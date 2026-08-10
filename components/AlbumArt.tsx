@@ -22,11 +22,6 @@ export function AlbumArt({
   const [hasError, setHasError] = useState(false);
   const dimensions = size === "sm" ? 44 : 56;
 
-  // Reset error state when src changes
-  if (hasError && src) {
-    // reset synchronously on prop change pattern
-  }
-
   return (
     <div
       className={cn(

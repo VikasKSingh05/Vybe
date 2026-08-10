@@ -12,13 +12,6 @@ export function VybeApp() {
 
   return (
     <div className="relative min-h-dvh overflow-hidden text-white font-sans antialiased select-none">
-      {/* Hidden YouTube player container for audio engine */}
-      <div
-        id="vybe-yt-player-iframe"
-        className="pointer-events-none fixed -bottom-96 -right-96 h-48 w-48 opacity-0"
-        aria-hidden="true"
-      />
-
       {/* 100vh Full Screen Cinematic Background with GSAP transitions */}
       <Background theme={player.theme} />
 
@@ -27,10 +20,10 @@ export function VybeApp() {
 
       {/* Main Single Page Content */}
       <main className="relative z-10 flex h-dvh flex-col items-center justify-center pb-44 sm:pb-48 md:pb-52">
-        {/* Hero — centered in the viewport, offset slightly upward */}
+        {/* Editorial Hero */}
         <HeroSection />
 
-        {/* Genre Selector Pills — directly below the hero */}
+        {/* Genre Selector Pills */}
         <div className="mt-8 sm:mt-10">
           <GenrePills
             activeId={player.vibeId}
