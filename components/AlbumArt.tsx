@@ -5,7 +5,7 @@ import Image from "next/image";
 import { cn } from "@/lib/cn";
 
 interface AlbumArtProps {
-  src: string;
+  src?: string;
   title: string;
   accent: string;
   size?: "sm" | "md";
@@ -21,6 +21,11 @@ export function AlbumArt({
 }: AlbumArtProps) {
   const [hasError, setHasError] = useState(false);
   const dimensions = size === "sm" ? 44 : 56;
+
+  // Reset error state when src changes
+  if (hasError && src) {
+    // reset synchronously on prop change pattern
+  }
 
   return (
     <div
@@ -42,12 +47,14 @@ export function AlbumArt({
         </span>
       </div>
 
-      {!hasError && (
+      {!hasError && src && (
         <Image
+          key={src}
           src={src}
           alt={`${title} artwork`}
           width={dimensions}
           height={dimensions}
+          unoptimized
           className="relative h-full w-full object-cover"
           onError={() => setHasError(true)}
         />

@@ -11,7 +11,8 @@ export interface Track {
   title: string;
   artist: string;
   duration: number; // in seconds
-  cover: string;
+  cover?: string;
+  youtubeId: string;
   audio?: string;
   accent: string;
   synthPreset?: "sitar" | "phonk" | "lofi" | "bollywood" | "indie" | "chill";
