@@ -235,6 +235,7 @@ export function useYouTubePlayer({ onEnded, onReady }: UseYouTubePlayerOptions =
 
   const loadVideo = useCallback((videoId: string, autoPlayTrack = true) => {
     try {
+      setCurrentTime(0);
       if (playerRef.current) {
         if (autoPlayTrack) {
           playerRef.current.loadVideoById(videoId);

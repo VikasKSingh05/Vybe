@@ -156,13 +156,14 @@ export function usePlayer({
   }, []);
 
   const currentDuration = ytPlayer.duration > 0 ? ytPlayer.duration : track.duration;
+  const clampedTime = Math.min(currentDuration, Math.max(0, ytPlayer.currentTime));
 
   return {
     vibeId,
     theme,
     track,
     isPlaying: ytPlayer.isPlaying,
-    currentTime: ytPlayer.currentTime,
+    currentTime: clampedTime,
     duration: currentDuration,
     volume,
     isMuted,
@@ -175,7 +176,7 @@ export function usePlayer({
     changeVibe,
     changeVolume,
     toggleMute,
-    progress: currentDuration > 0 ? (ytPlayer.currentTime / currentDuration) * 100 : 0,
+    progress: currentDuration > 0 ? Math.min(100, Math.max(0, (clampedTime / currentDuration) * 100)) : 0,
   };
 }
 
