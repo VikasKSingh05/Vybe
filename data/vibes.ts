@@ -46,6 +46,12 @@ export function getNextTrack(
   vibeId: VibeId,
 ): Track | undefined {
   const theme = getVibeTheme(vibeId);
+  if (vibeId === "all") {
+    const otherTracks = theme.tracks.filter((t) => t.id !== currentId);
+    if (otherTracks.length === 0) return theme.tracks[0];
+    const randomIndex = Math.floor(Math.random() * otherTracks.length);
+    return otherTracks[randomIndex];
+  }
   const index = theme.tracks.findIndex((t) => t.id === currentId);
   if (index === -1) return theme.tracks[0];
   return theme.tracks[(index + 1) % theme.tracks.length];
