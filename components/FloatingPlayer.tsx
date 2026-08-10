@@ -108,18 +108,9 @@ export function FloatingPlayer({
           </div>
 
           <div ref={trackInfoRef} className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <p className="truncate text-sm font-semibold text-white/95 tracking-tight">
-                {track.title}
-              </p>
-              {isPlaying && (
-                <span className="flex items-end gap-0.5 h-3 shrink-0">
-                  <span className="w-0.5 h-full bg-emerald-400 animate-pulse" />
-                  <span className="w-0.5 h-2/3 bg-emerald-400 animate-pulse delay-75" />
-                  <span className="w-0.5 h-4/5 bg-emerald-400 animate-pulse delay-150" />
-                </span>
-              )}
-            </div>
+            <p className="truncate text-sm font-semibold text-white/95 tracking-tight">
+              {track.title}
+            </p>
             <p className="mt-0.5 truncate text-xs text-white/50">
               {track.artist}
             </p>

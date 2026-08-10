@@ -30,42 +30,36 @@ export function Header({ className }: HeaderProps) {
         className,
       )}
     >
-      {/* Top Left: Logo */}
-      <div className="flex items-center gap-3">
-        <span className="text-[12px] font-bold tracking-[0.35em] text-white/80 uppercase hover:text-white transition-colors duration-300">
-          VYBE
-        </span>
-      </div>
-
-      {/* Top Right: Time + External Links */}
-      <div className="flex items-center gap-5 sm:gap-6">
+      {/* Top Left: Live Time */}
+      <div className="flex items-center">
         <LiveTime />
-
-        <nav className="flex items-center gap-4 sm:gap-5">
-          <a
-            href="https://open.spotify.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group flex items-center gap-1 text-[11px] tracking-wide text-white/50 transition-colors duration-300 hover:text-white/90"
-          >
-            Spotify
-            <span className="text-[10px] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
-              ↗
-            </span>
-          </a>
-          <a
-            href="https://music.youtube.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group flex items-center gap-1 text-[11px] tracking-wide text-white/50 transition-colors duration-300 hover:text-white/90"
-          >
-            YouTube Music
-            <span className="text-[10px] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
-              ↗
-            </span>
-          </a>
-        </nav>
       </div>
+
+      {/* Top Right: External Links */}
+      <nav className="flex items-center gap-4 sm:gap-5">
+        <a
+          href="https://open.spotify.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-center gap-1 text-[11px] tracking-wide text-white/50 transition-colors duration-300 hover:text-white/90"
+        >
+          Spotify
+          <span className="text-[10px] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
+            ↗
+          </span>
+        </a>
+        <a
+          href="https://music.youtube.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-center gap-1 text-[11px] tracking-wide text-white/50 transition-colors duration-300 hover:text-white/90"
+        >
+          YouTube Music
+          <span className="text-[10px] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
+            ↗
+          </span>
+        </a>
+      </nav>
     </header>
   );
 }
