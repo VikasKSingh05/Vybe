@@ -21,7 +21,7 @@ export function VybeApp() {
       {/* Main Single Page Content */}
       <main className="relative z-10 flex h-dvh flex-col items-center justify-center pb-44 sm:pb-48 md:pb-52">
         {/* Hero — centered in the viewport, offset slightly upward */}
-        <HeroSection vibeLabel={player.theme.label} />
+        <HeroSection />
 
         {/* Genre Selector Pills — directly below the hero */}
         <div className="mt-8 sm:mt-10">
