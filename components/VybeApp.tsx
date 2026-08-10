@@ -5,7 +5,6 @@ import { FloatingPlayer } from "@/components/FloatingPlayer";
 import { GenrePills } from "@/components/GenrePills";
 import { Header } from "@/components/Header";
 import { HeroSection } from "@/components/HeroSection";
-import { NowPlayingBadge } from "@/components/NowPlayingBadge";
 import { usePlayer } from "@/hooks/usePlayer";
 
 export function VybeApp() {
@@ -24,15 +23,6 @@ export function VybeApp() {
           activeId={player.vibeId}
           onChange={player.changeVibe}
           accent={player.theme.accent}
-        />
-
-        <NowPlayingBadge
-          title={player.track.title}
-          artist={player.track.artist}
-          isPlaying={player.isPlaying}
-          accent={player.theme.accent}
-          trackKey={`${player.vibeId}-${player.track.id}`}
-          className="mt-auto"
         />
       </main>
 

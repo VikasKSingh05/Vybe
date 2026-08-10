@@ -15,7 +15,7 @@ const tracks: Record<Exclude<VibeId, "all">, Track[]> = {
       title: "Neon Cathedral",
       artist: "DRIFT PHONK",
       duration: 214,
-      cover: "/covers/phonk-2.jpg",
+      cover: "/covers/phonk-1.jpg",
       accent: "#8b2252",
     },
     {
@@ -23,7 +23,7 @@ const tracks: Record<Exclude<VibeId, "all">, Track[]> = {
       title: "Concrete Prayer",
       artist: "SHDW",
       duration: 187,
-      cover: "/covers/phonk-3.jpg",
+      cover: "/covers/phonk-1.jpg",
       accent: "#4a1942",
     },
   ],
@@ -41,7 +41,7 @@ const tracks: Record<Exclude<VibeId, "all">, Track[]> = {
       title: "Late Night Pages",
       artist: "Idealism",
       duration: 198,
-      cover: "/covers/lofi-2.jpg",
+      cover: "/covers/lofi-1.jpg",
       accent: "#8b7355",
     },
     {
@@ -49,7 +49,7 @@ const tracks: Record<Exclude<VibeId, "all">, Track[]> = {
       title: "Warm Static",
       artist: "Kupla",
       duration: 221,
-      cover: "/covers/lofi-3.jpg",
+      cover: "/covers/lofi-1.jpg",
       accent: "#6b8cae",
     },
   ],
@@ -67,7 +67,7 @@ const tracks: Record<Exclude<VibeId, "all">, Track[]> = {
       title: "Raat Bhar",
       artist: "Anuv Jain",
       duration: 234,
-      cover: "/covers/bollywood-2.jpg",
+      cover: "/covers/bollywood-1.jpg",
       accent: "#d4a017",
     },
     {
@@ -75,7 +75,7 @@ const tracks: Record<Exclude<VibeId, "all">, Track[]> = {
       title: "Gulabi Aankhein",
       artist: "The Local Train",
       duration: 267,
-      cover: "/covers/bollywood-3.jpg",
+      cover: "/covers/bollywood-1.jpg",
       accent: "#2d6a4f",
     },
   ],
@@ -93,7 +93,7 @@ const tracks: Record<Exclude<VibeId, "all">, Track[]> = {
       title: "Wildflower Season",
       artist: "Beach House",
       duration: 278,
-      cover: "/covers/indie-2.jpg",
+      cover: "/covers/indie-1.jpg",
       accent: "#7d9b76",
     },
     {
@@ -101,7 +101,7 @@ const tracks: Record<Exclude<VibeId, "all">, Track[]> = {
       title: "Dust & Daylight",
       artist: "Big Thief",
       duration: 241,
-      cover: "/covers/indie-3.jpg",
+      cover: "/covers/indie-1.jpg",
       accent: "#8fa4b8",
     },
   ],
@@ -119,7 +119,7 @@ const tracks: Record<Exclude<VibeId, "all">, Track[]> = {
       title: "Coastal Dreams",
       artist: "Bonobo",
       duration: 289,
-      cover: "/covers/chill-2.jpg",
+      cover: "/covers/chill-1.jpg",
       accent: "#9b8ec4",
     },
     {
@@ -127,7 +127,7 @@ const tracks: Record<Exclude<VibeId, "all">, Track[]> = {
       title: "Horizon Fade",
       artist: "Emancipator",
       duration: 265,
-      cover: "/covers/chill-3.jpg",
+      cover: "/covers/chill-1.jpg",
       accent: "#e8a598",
     },
   ],
@@ -137,7 +137,7 @@ export const vibeThemes: VibeTheme[] = [
   {
     id: "all",
     label: "ALL",
-    background: "/backgrounds/bg-default.jpg",
+    background: "/backgrounds/home.jpg",
     overlay: "linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.55) 100%)",
     accent: "#e07a3a",
     tracks: [
@@ -151,7 +151,7 @@ export const vibeThemes: VibeTheme[] = [
   {
     id: "phonk",
     label: "PHONK",
-    background: "/backgrounds/bg-phonk.jpg",
+    background: "/backgrounds/phonk.png",
     overlay:
       "linear-gradient(180deg, rgba(10,0,15,0.35) 0%, rgba(0,0,0,0.7) 100%)",
     accent: "#c41e3a",
@@ -160,7 +160,7 @@ export const vibeThemes: VibeTheme[] = [
   {
     id: "lofi",
     label: "LO-FI",
-    background: "/backgrounds/bg-lofi.jpg",
+    background: "/backgrounds/lofi.png",
     overlay:
       "linear-gradient(180deg, rgba(20,12,8,0.3) 0%, rgba(0,0,0,0.65) 100%)",
     accent: "#c4956a",
@@ -169,7 +169,7 @@ export const vibeThemes: VibeTheme[] = [
   {
     id: "bollywood",
     label: "BOLLYWOOD",
-    background: "/backgrounds/bg-bollywood.jpg",
+    background: "/backgrounds/bg-indie.jpg",
     overlay:
       "linear-gradient(180deg, rgba(30,10,5,0.25) 0%, rgba(0,0,0,0.6) 100%)",
     accent: "#e85d04",
@@ -178,7 +178,7 @@ export const vibeThemes: VibeTheme[] = [
   {
     id: "indie",
     label: "INDIE",
-    background: "/backgrounds/bg-indie.jpg",
+    background: "/backgrounds/Fields.jpg",
     overlay:
       "linear-gradient(180deg, rgba(15,20,10,0.3) 0%, rgba(0,0,0,0.6) 100%)",
     accent: "#c9b458",
@@ -187,7 +187,7 @@ export const vibeThemes: VibeTheme[] = [
   {
     id: "chill",
     label: "CHILL",
-    background: "/backgrounds/bg-chill.jpg",
+    background: "/backgrounds/chill.jpg",
     overlay:
       "linear-gradient(180deg, rgba(5,15,30,0.3) 0%, rgba(0,0,0,0.65) 100%)",
     accent: "#5b8fa8",
