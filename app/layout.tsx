@@ -15,7 +15,7 @@ const syne = Syne({
 });
 
 export const metadata: Metadata = {
-  title: "VYBE — Pick a vibe. Press play.",
+  title: "VYBE",
   description:
     "An immersive, cinematic music discovery experience. Pick a vibe and press play.",
   openGraph: {
