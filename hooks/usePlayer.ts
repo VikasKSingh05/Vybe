@@ -77,7 +77,7 @@ export function usePlayer({
       audio.removeEventListener("play", handlePlay);
       audio.removeEventListener("pause", handlePause);
       audio.pause();
-      audio.src = "";
+      audio.removeAttribute("src");
     };
   }, []);
 
@@ -148,7 +148,7 @@ export function usePlayer({
       setIsLoading(true);
       setErrorState(null);
 
-      // Stop current playback
+      // Stop current playback cleanly without firing artificial error
       audio.pause();
       setCurrentTime(0);
 
@@ -210,7 +210,12 @@ export function usePlayer({
     };
 
     const handleError = () => {
-      console.warn("[VYBE Audio] Error loading audio source.");
+      // Ignore false error events caused by empty src or aborted requests
+      if (!audio.src || audio.error?.code === 1) {
+        return;
+      }
+
+      console.warn("[VYBE Audio] Real playback error for audio source:", audio.error);
       failCountRef.current += 1;
       const currentList = activePlaylistRef.current;
       if (failCountRef.current >= currentList.length) {
@@ -249,10 +254,10 @@ export function usePlayer({
       failCountRef.current = 0;
       setCurrentIndex(0);
 
-      // Stop current playback immediately
+      // Stop current playback cleanly
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current.src = "";
+        audioRef.current.removeAttribute("src");
       }
 
       // Load first song of new genre and play
