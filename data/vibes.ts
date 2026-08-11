@@ -1,68 +1,33 @@
 import { backgroundThemes } from "./backgrounds";
-import { songsByGenre, allSongs } from "./songs";
-import type { Track, VibeId, VibeTheme } from "./types";
+import type { VibeId, VibeTheme } from "./types";
 
 export const vibeThemes: VibeTheme[] = [
   {
     ...backgroundThemes.all,
-    tracks: allSongs,
+    tracks: [],
   },
   {
     ...backgroundThemes.phonk,
-    tracks: songsByGenre.phonk,
+    tracks: [],
   },
   {
     ...backgroundThemes.lofi,
-    tracks: songsByGenre.lofi,
+    tracks: [],
   },
   {
     ...backgroundThemes.bollywood,
-    tracks: songsByGenre.bollywood,
+    tracks: [],
   },
   {
     ...backgroundThemes.indie,
-    tracks: songsByGenre.indie,
+    tracks: [],
   },
   {
     ...backgroundThemes.chill,
-    tracks: songsByGenre.chill,
+    tracks: [],
   },
 ];
 
 export function getVibeTheme(id: VibeId): VibeTheme {
   return vibeThemes.find((v) => v.id === id) ?? vibeThemes[0];
-}
-
-export function getAllTracks(): Track[] {
-  return vibeThemes.flatMap((v) => v.tracks);
-}
-
-export function findTrackById(id: string): Track | undefined {
-  return getAllTracks().find((t) => t.id === id);
-}
-
-export function getNextTrack(
-  currentId: string,
-  vibeId: VibeId,
-): Track | undefined {
-  const theme = getVibeTheme(vibeId);
-  if (vibeId === "all") {
-    const otherTracks = theme.tracks.filter((t) => t.id !== currentId);
-    if (otherTracks.length === 0) return theme.tracks[0];
-    const randomIndex = Math.floor(Math.random() * otherTracks.length);
-    return otherTracks[randomIndex];
-  }
-  const index = theme.tracks.findIndex((t) => t.id === currentId);
-  if (index === -1) return theme.tracks[0];
-  return theme.tracks[(index + 1) % theme.tracks.length];
-}
-
-export function getPrevTrack(
-  currentId: string,
-  vibeId: VibeId,
-): Track | undefined {
-  const theme = getVibeTheme(vibeId);
-  const index = theme.tracks.findIndex((t) => t.id === currentId);
-  if (index === -1) return theme.tracks[0];
-  return theme.tracks[(index - 1 + theme.tracks.length) % theme.tracks.length];
 }

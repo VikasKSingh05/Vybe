@@ -11,6 +11,18 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "i.ytimg.com",
       },
+      {
+        protocol: "https",
+        hostname: "c.saavncdn.com",
+      },
+      {
+        protocol: "https",
+        hostname: "aac.saavncdn.com",
+      },
+      {
+        protocol: "https",
+        hostname: "www.jiosaavn.com",
+      },
     ],
   },
 };
