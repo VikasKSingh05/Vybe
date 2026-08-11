@@ -4,30 +4,37 @@ import type { JioSaavnRawSong, JioSaavnDownloadUrl, JioSaavnImage } from "./type
 /**
  * Priority order for audio bitrates.
  */
-const QUALITY_PRIORITY = ["320kbps", "160kbps", "96kbps", "48kbps", "12kbps"];
+const QUALITY_PRIORITY = ["320kbps", "320", "160kbps", "160", "96kbps", "96", "48kbps", "48", "12kbps", "12"];
 
 export function extractBestStreamUrl(downloadUrl?: JioSaavnDownloadUrl[]): string | undefined {
   if (!downloadUrl || !Array.isArray(downloadUrl) || downloadUrl.length === 0) {
     return undefined;
   }
 
-  // 1. Try matching priority list
-  for (const quality of QUALITY_PRIORITY) {
-    const item = downloadUrl.find(
-      (d) => d.quality && d.quality.toLowerCase() === quality.toLowerCase()
-    );
+  // 1. Try matching explicit priority order: 320kbps -> 160kbps -> 96kbps -> 48kbps -> 12kbps
+  for (const targetQuality of QUALITY_PRIORITY) {
+    const item = downloadUrl.find((d) => {
+      const q = String(d.quality || "").toLowerCase().trim();
+      return q === targetQuality || q.replace(/[^0-9]/g, "") === targetQuality.replace(/[^0-9]/g, "");
+    });
     const stream = item?.url || item?.link;
     if (stream && isValidStreamUrl(stream)) {
       return stream;
     }
   }
 
-  // 2. Fallback to last item (often highest quality in some APIs) or first valid stream
-  for (let i = downloadUrl.length - 1; i >= 0; i--) {
-    const stream = downloadUrl[i]?.url || downloadUrl[i]?.link;
-    if (stream && isValidStreamUrl(stream)) {
-      return stream;
-    }
+  // 2. Fallback: Parse numeric bitrates and sort highest quality first
+  const validStreams = downloadUrl
+    .map((d) => {
+      const url = d.url || d.link;
+      const numericQuality = parseInt(String(d.quality || "").replace(/[^0-9]/g, ""), 10) || 0;
+      return { url, quality: numericQuality };
+    })
+    .filter((d): d is { url: string; quality: number } => Boolean(d.url && isValidStreamUrl(d.url)));
+
+  if (validStreams.length > 0) {
+    validStreams.sort((a, b) => b.quality - a.quality);
+    return validStreams[0].url;
   }
 
   return undefined;
