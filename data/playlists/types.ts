@@ -1,5 +1,5 @@
 export interface PlaylistEntry {
-  jiosaavnId: string;
+  jiosaavnId?: string;
   title: string;
   artist: string;
   mood?: string;

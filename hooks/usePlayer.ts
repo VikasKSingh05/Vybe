@@ -88,27 +88,36 @@ export function usePlayer({
     }
   }, [volume, isMuted]);
 
-  // Helper to resolve song from cache or API
+  // Helper to resolve song from cache or API (by ID or Title+Artist search)
   const resolveSong = useCallback(
     async (entry: PlaylistEntry): Promise<Song | null> => {
-      const cached = songCacheRef.current.get(entry.jiosaavnId);
+      const cacheKey =
+        entry.jiosaavnId && entry.jiosaavnId.trim()
+          ? entry.jiosaavnId.trim()
+          : `${entry.title}-${entry.artist}`.toLowerCase();
+
+      const cached = songCacheRef.current.get(cacheKey);
       if (cached && cached.streamUrl) {
         return cached;
       }
 
       try {
         const queryParam = encodeURIComponent(`${entry.title} ${entry.artist}`);
-        const res = await fetch(`/api/music/song/${entry.jiosaavnId}?query=${queryParam}`);
+        const idParam =
+          entry.jiosaavnId && entry.jiosaavnId.trim()
+            ? entry.jiosaavnId.trim()
+            : "search";
+        const res = await fetch(`/api/music/song/${idParam}?query=${queryParam}`);
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
         }
         const data: Song = await res.json();
         if (data && data.streamUrl) {
-          songCacheRef.current.set(entry.jiosaavnId, data);
+          songCacheRef.current.set(cacheKey, data);
           return data;
         }
       } catch (err) {
-        console.warn(`[VYBE] Failed to resolve song ${entry.title}:`, err);
+        console.warn(`[VYBE] Failed to resolve song "${entry.title}":`, err);
       }
 
       return null;
@@ -122,8 +131,14 @@ export function usePlayer({
       const currentList = activePlaylistRef.current;
       if (currentList.length === 0) return;
       const targetEntry = currentList[nextIdx % currentList.length];
-      if (targetEntry && !songCacheRef.current.has(targetEntry.jiosaavnId)) {
-        await resolveSong(targetEntry);
+      if (targetEntry) {
+        const cacheKey =
+          targetEntry.jiosaavnId && targetEntry.jiosaavnId.trim()
+            ? targetEntry.jiosaavnId.trim()
+            : `${targetEntry.title}-${targetEntry.artist}`.toLowerCase();
+        if (!songCacheRef.current.has(cacheKey)) {
+          await resolveSong(targetEntry);
+        }
       }
     },
     [resolveSong]
@@ -362,13 +377,12 @@ export function usePlayer({
 
   // Adapt currentSong / playlist entry to `Track` format expected by FloatingPlayer
   const activeEntry = playlist[currentIndex] || {
-    jiosaavnId: "default",
     title: "VYBE Radio",
     artist: "Selecting vibe...",
   };
 
   const track: Track = {
-    id: currentSong?.id || activeEntry.jiosaavnId,
+    id: currentSong?.id || activeEntry.jiosaavnId || `${activeEntry.title}-${activeEntry.artist}`,
     title: currentSong?.title || activeEntry.title,
     artist: currentSong?.artist || activeEntry.artist,
     duration: duration || currentSong?.duration || 180,

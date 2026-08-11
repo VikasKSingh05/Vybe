@@ -10,18 +10,11 @@ export async function GET(
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get("query") || undefined;
 
-    if (!id) {
-      return NextResponse.json(
-        { error: "Song ID is required" },
-        { status: 400 }
-      );
-    }
-
     const song = await fetchJioSaavnSong(id, query);
 
     if (!song || !song.streamUrl) {
       return NextResponse.json(
-        { error: `Song with ID ${id} could not be resolved or has no playable stream` },
+        { error: `Song ${query ? `"${query}"` : `ID ${id}`} could not be resolved or has no playable stream` },
         { status: 404 }
       );
     }

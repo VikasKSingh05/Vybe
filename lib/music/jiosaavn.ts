@@ -2,60 +2,65 @@ import { normalizeSong } from "./normalize";
 import type { Song } from "@/types/music";
 import type { JioSaavnApiResponse, JioSaavnRawSong } from "./types";
 
-export async function fetchJioSaavnSong(songId: string, fallbackQuery?: string): Promise<Song | null> {
+export async function fetchJioSaavnSong(songId?: string, fallbackQuery?: string): Promise<Song | null> {
   const baseUrl = process.env.JIOSAAVN_API_URL || "http://localhost:3000";
   const cleanBaseUrl = baseUrl.replace(/\/+$/, "");
 
-  // Candidate endpoints for saavn.dev and standard JioSaavn unofficial APIs
-  const endpoints = [
-    `${cleanBaseUrl}/api/songs?ids=${encodeURIComponent(songId)}`,
-    `${cleanBaseUrl}/api/songs/${encodeURIComponent(songId)}`,
-    `${cleanBaseUrl}/api/songs?id=${encodeURIComponent(songId)}`,
-    `${cleanBaseUrl}/songs/${encodeURIComponent(songId)}`,
-  ];
+  const cleanId = songId?.trim();
+  const isValidId = cleanId && cleanId !== "search" && cleanId !== "null" && cleanId !== "undefined";
 
-  for (const url of endpoints) {
-    try {
-      const res = await fetch(url, {
-        headers: { Accept: "application/json" },
-        next: { revalidate: 3600 },
-      });
+  // 1. If valid song ID is provided, attempt resolving by ID first
+  if (isValidId) {
+    const endpoints = [
+      `${cleanBaseUrl}/api/songs?ids=${encodeURIComponent(cleanId)}`,
+      `${cleanBaseUrl}/api/songs/${encodeURIComponent(cleanId)}`,
+      `${cleanBaseUrl}/api/songs?id=${encodeURIComponent(cleanId)}`,
+      `${cleanBaseUrl}/songs/${encodeURIComponent(cleanId)}`,
+    ];
 
-      if (!res.ok) continue;
+    for (const url of endpoints) {
+      try {
+        const res = await fetch(url, {
+          headers: { Accept: "application/json" },
+          next: { revalidate: 3600 },
+        });
 
-      const body: JioSaavnApiResponse | JioSaavnRawSong | { success?: boolean; data?: JioSaavnRawSong[] } = await res.json();
-      
-      let rawSong: JioSaavnRawSong | null = null;
+        if (!res.ok) continue;
 
-      if ("data" in body && body.data) {
-        if (Array.isArray(body.data)) {
-          rawSong = body.data[0] || null;
-        } else {
-          rawSong = body.data as JioSaavnRawSong;
+        const body: JioSaavnApiResponse | JioSaavnRawSong | { success?: boolean; data?: JioSaavnRawSong[] } = await res.json();
+        
+        let rawSong: JioSaavnRawSong | null = null;
+
+        if ("data" in body && body.data) {
+          if (Array.isArray(body.data)) {
+            rawSong = body.data[0] || null;
+          } else {
+            rawSong = body.data as JioSaavnRawSong;
+          }
+        } else if ("results" in body && body.results && body.results.length > 0) {
+          rawSong = body.results[0];
+        } else if (Array.isArray(body) && body.length > 0) {
+          rawSong = body[0];
+        } else if (body && typeof body === "object" && ("id" in body || "name" in body || "title" in body)) {
+          rawSong = body as JioSaavnRawSong;
         }
-      } else if ("results" in body && body.results && body.results.length > 0) {
-        rawSong = body.results[0];
-      } else if (Array.isArray(body) && body.length > 0) {
-        rawSong = body[0];
-      } else if (body && typeof body === "object" && ("id" in body || "name" in body || "title" in body)) {
-        rawSong = body as JioSaavnRawSong;
-      }
 
-      if (rawSong) {
-        const normalized = normalizeSong(rawSong, songId);
-        if (normalized.streamUrl) {
-          return normalized;
+        if (rawSong) {
+          const normalized = normalizeSong(rawSong, cleanId);
+          if (normalized.streamUrl) {
+            return normalized;
+          }
         }
+      } catch (err) {
+        console.warn(`[JioSaavn API] Request failed for ${url}:`, err);
       }
-    } catch (err) {
-      console.warn(`[JioSaavn API] Request failed for ${url}:`, err);
     }
   }
 
-  // Graceful fallback: If ID resolution failed and we have title/artist, search JioSaavn
-  if (fallbackQuery) {
+  // 2. If song ID is missing or ID resolution failed, search JioSaavn using title + artist
+  if (fallbackQuery && fallbackQuery.trim()) {
     try {
-      const searchUrl = `${cleanBaseUrl}/api/search/songs?query=${encodeURIComponent(fallbackQuery)}`;
+      const searchUrl = `${cleanBaseUrl}/api/search/songs?query=${encodeURIComponent(fallbackQuery.trim())}`;
       const res = await fetch(searchUrl, {
         headers: { Accept: "application/json" },
         next: { revalidate: 3600 },
@@ -66,7 +71,7 @@ export async function fetchJioSaavnSong(songId: string, fallbackQuery?: string):
         const results = data?.data?.results || data?.results || data?.songs || (Array.isArray(data?.data) ? data.data : []);
         if (results && results.length > 0) {
           const firstMatch = results[0];
-          const normalized = normalizeSong(firstMatch, songId);
+          const normalized = normalizeSong(firstMatch);
           if (normalized.streamUrl) {
             return normalized;
           }
