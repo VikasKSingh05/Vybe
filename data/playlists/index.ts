@@ -1,7 +1,7 @@
 import type { VibeId } from "@/data/types";
 import type { PlaylistEntry } from "./types";
 import { phonkPlaylist } from "./phonk";
-import { lofiPlaylist } from "./lofi";
+import { loFiPlaylist } from "./lofi";
 import { bollywoodPlaylist } from "./bollywood";
 import { indiePlaylist } from "./indie";
 import { chillPlaylist } from "./chill";
@@ -15,7 +15,7 @@ export * from "./chill";
 
 export const allPlaylist: PlaylistEntry[] = [
   ...phonkPlaylist,
-  ...lofiPlaylist,
+  ...loFiPlaylist,
   ...bollywoodPlaylist,
   ...indiePlaylist,
   ...chillPlaylist,
@@ -24,7 +24,7 @@ export const allPlaylist: PlaylistEntry[] = [
 export const playlistsByGenre: Record<VibeId, PlaylistEntry[]> = {
   all: allPlaylist,
   phonk: phonkPlaylist,
-  lofi: lofiPlaylist,
+  lofi: loFiPlaylist,
   bollywood: bollywoodPlaylist,
   indie: indiePlaylist,
   chill: chillPlaylist,
