@@ -84,3 +84,49 @@ export async function fetchJioSaavnSong(songId?: string, fallbackQuery?: string)
 
   return null;
 }
+
+/**
+ * Searches JioSaavn for songs matching `query` and returns normalized tracks.
+ * Falls back to progressively simpler result shapes across API variants.
+ */
+export async function searchJioSaavnSongs(query: string): Promise<Song[]> {
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+
+  const baseUrl = process.env.JIOSAAVN_API_URL || "http://localhost:3000";
+  const cleanBaseUrl = baseUrl.replace(/\/+$/, "");
+
+  const urls = [
+    `${cleanBaseUrl}/api/search/songs?query=${encodeURIComponent(trimmed)}`,
+    `${cleanBaseUrl}/api/search?query=${encodeURIComponent(trimmed)}&type=song`,
+  ];
+
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, {
+        headers: { Accept: "application/json" },
+        next: { revalidate: 3600 },
+      });
+      if (!res.ok) continue;
+
+      const data = await res.json();
+      const results =
+        data?.data?.results ||
+        data?.results ||
+        data?.songs ||
+        (Array.isArray(data?.data) ? data.data : []) ||
+        (Array.isArray(data) ? data : []);
+
+      if (Array.isArray(results) && results.length > 0) {
+        const songs = results
+          .map((raw: JioSaavnRawSong) => normalizeSong(raw))
+          .filter((song: Song) => Boolean(song.streamUrl));
+        if (songs.length > 0) return songs;
+      }
+    } catch (err) {
+      console.warn(`[JioSaavn API] Search failed for "${trimmed}":`, err);
+    }
+  }
+
+  return [];
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Link from "next/link";
 import gsap from "gsap";
 import { LiveTime } from "@/components/LiveTime";
 import { cn } from "@/lib/cn";
@@ -37,6 +38,12 @@ export function Header({ className }: HeaderProps) {
 
       {/* Top Right: External Links */}
       <nav className="flex items-center gap-4 sm:gap-5">
+        <Link
+          href="/party"
+          className="group flex items-center gap-1 text-[11px] tracking-wide text-white/50 transition-colors duration-300 hover:text-white/90"
+        >
+          Host Party
+        </Link>
         <a
           href="https://open.spotify.com"
           target="_blank"

@@ -123,3 +123,19 @@ button:focus-visible {
   outline: 1px solid rgba(255, 255, 255, 0.35);
   outline-offset: 2px;
 }
+
+/* Party reaction pop-in */
+.party-reaction-pop {
+  animation: party-reaction-pop 0.35s ease-out both;
+}
+
+@keyframes party-reaction-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
