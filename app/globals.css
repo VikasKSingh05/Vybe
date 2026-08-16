@@ -124,9 +124,11 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
-/* Party reaction pop-in */
+/* Party reaction pop-in then fade-out */
 .party-reaction-pop {
-  animation: party-reaction-pop 0.35s ease-out both;
+  animation:
+    party-reaction-pop 0.35s ease-out both,
+    party-reaction-fade 0.6s ease-in 3.4s forwards;
 }
 
 @keyframes party-reaction-pop {
@@ -137,5 +139,12 @@ button:focus-visible {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes party-reaction-fade {
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.95);
   }
 }

@@ -181,40 +181,38 @@ export function PartyRoom({ party }: PartyRoomProps) {
             <p className="mb-3 text-[10px] tracking-widest text-white/40 uppercase">
               Vibe
             </p>
-            {isHost ? (
-              <PartyVibePicker
-                current={state?.vibeId ?? "all"}
-                onChange={(vibeId) => send("setVibe", { vibeId })}
-              />
-            ) : (
-              <p className="text-sm text-white/80">
-                {theme.label} — {theme.description}
+            <PartyVibePicker
+              current={state?.vibeId ?? "all"}
+              disabled={!isHost}
+              onChange={(vibeId) => send("setVibe", { vibeId })}
+            />
+            {!isHost && (
+              <p className="mt-2.5 text-[10px] text-white/30">
+                Only the host can change the vibe
               </p>
             )}
           </div>
         </aside>
       </main>
 
-      {playerTrack && (
-        <FloatingPlayer
-          track={playerTrack}
-          isPlaying={audio.isPlaying}
-          currentTime={audio.currentTime}
-          duration={audio.duration}
-          progress={audio.duration > 0 ? (audio.currentTime / audio.duration) * 100 : 0}
-          volume={audio.volume}
-          isMuted={audio.isMuted}
-          accent={theme.accent}
-          onTogglePlay={() => {
-            if (isHost) send(audio.isPlaying ? "pause" : "play");
-          }}
-          onPrev={() => isHost && send("prev")}
-          onNext={() => isHost && send("next")}
-          onSeek={handleSeek}
-          onVolumeChange={audio.setVolume}
-          onToggleMute={audio.toggleMute}
-        />
-      )}
+      <FloatingPlayer
+        track={playerTrack}
+        isPlaying={audio.isPlaying}
+        currentTime={audio.currentTime}
+        duration={audio.duration}
+        progress={audio.duration > 0 ? (audio.currentTime / audio.duration) * 100 : 0}
+        volume={audio.volume}
+        isMuted={audio.isMuted}
+        accent={theme.accent}
+        onTogglePlay={() => {
+          if (isHost) send(audio.isPlaying ? "pause" : "play");
+        }}
+        onPrev={() => isHost && send("prev")}
+        onNext={() => isHost && send("next")}
+        onSeek={handleSeek}
+        onVolumeChange={audio.setVolume}
+        onToggleMute={audio.toggleMute}
+      />
 
       <PartyReactions
         accent={theme.accent}
@@ -228,9 +226,11 @@ export function PartyRoom({ party }: PartyRoomProps) {
 
 function PartyVibePicker({
   current,
+  disabled = false,
   onChange,
 }: {
   current: VibeId;
+  disabled?: boolean;
   onChange: (vibeId: VibeId) => void;
 }) {
   return (
@@ -242,14 +242,22 @@ function PartyVibePicker({
           <button
             key={id}
             type="button"
-            onClick={() => onChange(id)}
+            onClick={() => {
+              if (!disabled) onChange(id);
+            }}
+            disabled={disabled}
             className={cn(
-              "rounded-full border px-3 py-1.5 text-[11px] font-medium tracking-wide transition-all duration-200 cursor-pointer",
+              "rounded-full border px-3 py-1.5 text-[11px] font-medium tracking-wide transition-all duration-200",
+              disabled
+                ? "cursor-not-allowed"
+                : "cursor-pointer hover:border-white/25 hover:text-white/90",
               selected
                 ? "border-transparent text-black"
-                : "border-white/10 bg-white/5 text-white/60 hover:border-white/25 hover:text-white/90",
+                : "border-white/10 bg-white/5 text-white/60",
+              disabled && !selected && "opacity-50",
             )}
             style={selected ? { backgroundColor: theme.accent } : undefined}
+            aria-pressed={selected}
           >
             {theme.label}
           </button>

@@ -1,6 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { PARTY_EMOJIS, type PartyReaction } from "@/lib/party/types";
+
+const REACTION_TTL_MS = 4_000;
+const PRUNE_TICK_MS = 1_000;
 
 interface PartyReactionsProps {
   accent: string;
@@ -15,13 +19,23 @@ export function PartyReactions({
   reactions,
   onReact,
 }: PartyReactionsProps) {
-  const recent = reactions.slice(-6).reverse();
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), PRUNE_TICK_MS);
+    return () => clearInterval(id);
+  }, []);
+
+  const visible = reactions
+    .filter((r) => now - r.at < REACTION_TTL_MS)
+    .slice(-6)
+    .reverse();
 
   return (
     <div className="fixed right-3 bottom-36 z-40 flex flex-col items-end gap-2 sm:right-5 sm:bottom-40">
-      {recent.length > 0 && (
+      {visible.length > 0 && (
         <div className="flex flex-col-reverse items-end gap-1.5">
-          {recent.map((r) => (
+          {visible.map((r) => (
             <div
               key={r.id}
               className="flex items-center gap-2 rounded-full border border-white/10 bg-black/50 px-3 py-1.5 text-xs text-white/80 backdrop-blur-md party-reaction-pop"
