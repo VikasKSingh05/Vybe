@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ChevronDown, SmilePlus } from "lucide-react";
 import { PARTY_EMOJIS, type PartyReaction } from "@/lib/party/types";
 
 const REACTION_TTL_MS = 4_000;
@@ -19,6 +20,7 @@ export function PartyReactions({
   reactions,
   onReact,
 }: PartyReactionsProps) {
+  const [collapsed, setCollapsed] = useState(true);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -49,23 +51,45 @@ export function PartyReactions({
         </div>
       )}
 
-      <div
-        className="flex flex-col gap-1.5 rounded-2xl border border-white/10 bg-black/45 p-2 backdrop-blur-xl"
-        style={{ boxShadow: `0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px ${accent}22` }}
-      >
-        {PARTY_EMOJIS.map((emoji) => (
+      {collapsed ? (
+        <button
+          type="button"
+          onClick={() => setCollapsed(false)}
+          aria-label="Open reactions"
+          title="Reactions"
+          className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-black/45 text-white/70 backdrop-blur-xl transition-all duration-200 hover:scale-105 hover:text-white cursor-pointer"
+          style={{ boxShadow: `0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px ${accent}22` }}
+        >
+          <SmilePlus className="h-5 w-5" style={{ color: accent }} />
+        </button>
+      ) : (
+        <div
+          className="flex flex-col gap-1.5 rounded-2xl border border-white/10 bg-black/45 p-2 backdrop-blur-xl"
+          style={{ boxShadow: `0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px ${accent}22` }}
+        >
           <button
-            key={emoji}
             type="button"
-            disabled={disabled}
-            onClick={() => onReact(emoji)}
-            aria-label={`React with ${emoji}`}
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-lg transition-transform duration-150 hover:scale-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+            onClick={() => setCollapsed(true)}
+            aria-label="Collapse reactions"
+            className="mb-0.5 flex items-center gap-1 rounded-xl px-2 py-1 text-[10px] tracking-widest text-white/40 uppercase transition-colors hover:bg-white/5 hover:text-white/80 cursor-pointer"
           >
-            {emoji}
+            React
+            <ChevronDown className="h-3 w-3" />
           </button>
-        ))}
-      </div>
+          {PARTY_EMOJIS.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              disabled={disabled}
+              onClick={() => onReact(emoji)}
+              aria-label={`React with ${emoji}`}
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-lg transition-transform duration-150 hover:scale-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
