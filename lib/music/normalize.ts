@@ -97,7 +97,7 @@ export function normalizeSong(raw: JioSaavnRawSong, fallbackId?: string): Song {
     albumName = (raw.album as Record<string, unknown>).name as string;
   }
 
-  const artwork = extractArtworkUrl(raw.image);
+  const artwork = extractArtworkUrl(raw.image) ?? raw.artwork;
   let streamUrl = extractBestStreamUrl(raw.downloadUrl);
 
   // Fallback to media_url if downloadUrl didn't yield a stream

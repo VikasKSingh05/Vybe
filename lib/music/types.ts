@@ -22,6 +22,7 @@ export interface JioSaavnRawSong {
   artist?: string;
   album?: string | { name?: string };
   image?: string | JioSaavnImage[];
+  artwork?: string;
   duration?: number | string;
   downloadUrl?: JioSaavnDownloadUrl[];
   media_url?: string;
