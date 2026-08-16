@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
+
+const FALLBACK_ARTWORK = "/covers/default.jpg";
 
 interface AlbumArtProps {
   src?: string;
@@ -19,8 +20,26 @@ export function AlbumArt({
   size = "md",
   className,
 }: AlbumArtProps) {
-  const [hasError, setHasError] = useState(false);
+  const [currentSrc, setCurrentSrc] = useState<string | undefined>(src);
+  const [prevSrc, setPrevSrc] = useState<string | undefined>(src);
   const dimensions = size === "sm" ? 44 : 56;
+
+  if (src !== prevSrc) {
+    setPrevSrc(src);
+    setCurrentSrc(src);
+  }
+
+  useEffect(() => {
+    if (src && src !== FALLBACK_ARTWORK) {
+      console.log(`[VYBE] Artwork: ${src}`);
+    }
+  }, [src]);
+
+  const handleError = () => {
+    if (currentSrc && currentSrc !== FALLBACK_ARTWORK) {
+      setCurrentSrc(FALLBACK_ARTWORK);
+    }
+  };
 
   return (
     <div
@@ -42,16 +61,15 @@ export function AlbumArt({
         </span>
       </div>
 
-      {!hasError && src && (
-        <Image
-          key={src}
-          src={src}
+      {currentSrc && (
+        <img
+          key={currentSrc}
+          src={currentSrc}
           alt={`${title} artwork`}
           width={dimensions}
           height={dimensions}
-          unoptimized
           className="relative h-full w-full object-cover"
-          onError={() => setHasError(true)}
+          onError={handleError}
         />
       )}
     </div>
