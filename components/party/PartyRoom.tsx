@@ -38,7 +38,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
     ? state.queue.find((t) => t.queueId === state.playback?.queueId)
     : null;
 
-  const playerTrack: Track | null = currentQueueTrack
+  const playerTrack: Track = currentQueueTrack
     ? {
         id: currentQueueTrack.queueId,
         title: currentQueueTrack.song.title,
@@ -48,7 +48,17 @@ export function PartyRoom({ party }: PartyRoomProps) {
         streamUrl: currentQueueTrack.song.streamUrl,
         accent: theme.accent,
       }
-    : null;
+    : {
+        id: "idle",
+        title: (state?.queue.length ?? 0) > 0 ? "Nothing playing yet" : "Queue is empty",
+        artist: isHost
+          ? (state?.queue.length ?? 0) > 0
+            ? "Press play to start the party"
+            : "Add a track to get going"
+          : "Waiting for the host to start…",
+        duration: 0,
+        accent: theme.accent,
+      };
 
   const handleCopy = useCallback(async () => {
     if (!state) return;
