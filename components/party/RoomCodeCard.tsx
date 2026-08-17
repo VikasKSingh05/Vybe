@@ -73,7 +73,7 @@ export function RoomCodeCard({
   };
 
   return (
-    <div className="h-full rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">
+    <div className="h-full flex flex-col justify-center rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">
       {/* Room code section */}
       <div className="flex flex-col items-center px-5 pt-6 pb-5 text-center">
         <div
