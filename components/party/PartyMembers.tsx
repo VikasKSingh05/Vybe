@@ -1,6 +1,6 @@
 "use client";
 
-import { Crown } from "lucide-react";
+import { Crown, UserPlus } from "lucide-react";
 import type { PartyMember } from "@/lib/party/types";
 import { cn } from "@/lib/cn";
 
@@ -9,57 +9,101 @@ interface PartyMembersProps {
   hostId: string;
   meId: string;
   accent: string;
+  onInvite?: () => void;
 }
 
-export function PartyMembers({ members, hostId, meId, accent }: PartyMembersProps) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-black/40 p-4 backdrop-blur-xl">
-      <p className="mb-3 text-[10px] tracking-widest text-white/40 uppercase">
-        In the room ({members.length})
-      </p>
+const AVATAR_COLORS = [
+  "#e07a3a", "#c41e3a", "#e8a0bf", "#d4943a", "#d4b24c",
+  "#5b8fa8", "#7c6fcf", "#4caf87", "#cf6f8a", "#6fa3cf",
+];
 
-      {members.length === 0 ? (
-        <p className="text-xs text-white/30">Nobody else yet — share the code.</p>
-      ) : (
-        <ul className="space-y-2.5">
-          {members.map((member) => {
-            const isHost = member.id === hostId;
-            const isMe = member.id === meId;
-            return (
-              <li key={member.id} className="flex items-center gap-2.5">
-                <div
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-black"
-                  style={{
-                    backgroundColor: isHost ? accent : "rgba(255,255,255,0.25)",
-                  }}
+function getAvatarColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+export function PartyMembers({ members, hostId, meId, accent, onInvite }: PartyMembersProps) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">
+      <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3">
+        <p className="text-[10px] tracking-widest text-white/40 uppercase">
+          In the Room ({members.length})
+        </p>
+      </div>
+
+      <div className="p-4">
+        {members.length === 0 ? (
+          <p className="text-xs text-white/30 py-2">Nobody else yet — share the code.</p>
+        ) : (
+          <ul className="space-y-1">
+            {members.map((member) => {
+              const isHost = member.id === hostId;
+              const isMe = member.id === meId;
+              return (
+                <li
+                  key={member.id}
+                  className="flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-white/[0.03]"
                 >
-                  {member.name.slice(0, 1).toUpperCase()}
-                </div>
-                <span
-                  className={cn(
-                    "truncate text-sm",
-                    isHost ? "font-medium text-white" : "text-white/60",
+                  {/* Avatar */}
+                  <div
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-black"
+                    style={{
+                      backgroundColor: isHost ? accent : getAvatarColor(member.name),
+                    }}
+                  >
+                    {member.name.slice(0, 1).toUpperCase()}
+                  </div>
+
+                  {/* Name + badge */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={cn(
+                          "truncate text-sm",
+                          isHost ? "font-semibold text-white" : "text-white/70",
+                        )}
+                      >
+                        {member.name}
+                      </span>
+                      {isMe && (
+                        <span className="shrink-0 text-[9px] tracking-wider text-white/25 uppercase">
+                          you
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Host badge */}
+                  {isHost && (
+                    <span className="shrink-0 flex items-center gap-1 rounded-full bg-white/5 px-2 py-0.5 text-[9px] font-semibold tracking-wider uppercase" style={{ color: accent }}>
+                      <Crown className="h-2.5 w-2.5" />
+                      Host
+                    </span>
                   )}
-                >
-                  {member.name}
-                </span>
-                {isHost && (
-                  <Crown
-                    className="h-3.5 w-3.5 shrink-0"
-                    style={{ color: accent }}
-                    aria-label="Host"
-                  />
-                )}
-                {isMe && (
-                  <span className="ml-auto shrink-0 text-[10px] tracking-wider text-white/30 uppercase">
-                    you
-                  </span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
+
+                  {/* Online dot */}
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400/80" />
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {/* Invite button */}
+        {onInvite && (
+          <button
+            type="button"
+            onClick={onInvite}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-xs font-medium text-white/50 transition-colors hover:bg-white/[0.07] hover:text-white/80 cursor-pointer"
+          >
+            <UserPlus className="h-3.5 w-3.5" />
+            Invite friends
+          </button>
+        )}
+      </div>
     </div>
   );
 }

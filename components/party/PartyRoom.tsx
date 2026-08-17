@@ -2,18 +2,21 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Copy, Check, LogOut, Music2, Radio, Users } from "lucide-react";
+import { LogOut } from "lucide-react";
 import type { Track } from "@/data/types";
 import { getVibeTheme } from "@/data/vibes";
 import { Background } from "@/components/Background";
-import { Header } from "@/components/Header";
-import { FloatingPlayer } from "@/components/FloatingPlayer";
 import { usePartyAudio } from "@/hooks/usePartyAudio";
+import { usePartyActivity } from "@/hooks/usePartyActivity";
 import type { useParty } from "@/hooks/useParty";
+import { PartyTopNav } from "./PartyTopNav";
+import { RoomCodeCard } from "./RoomCodeCard";
+import { NowPlayingCard } from "./NowPlayingCard";
 import { PartyQueue } from "./PartyQueue";
 import { PartyAddSong } from "./PartyAddSong";
 import { PartyMembers } from "./PartyMembers";
-import { PartyReactions } from "./PartyReactions";
+import { ActivityFeed } from "./ActivityFeed";
+import { SyncStatus } from "./SyncStatus";
 
 interface PartyRoomProps {
   party: ReturnType<typeof useParty>;
@@ -22,7 +25,6 @@ interface PartyRoomProps {
 export function PartyRoom({ party }: PartyRoomProps) {
   const { state, member, isHost, send, leaveParty } = party;
   const router = useRouter();
-  const [copied, setCopied] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
   const theme = getVibeTheme(state?.vibeId ?? "all");
@@ -32,6 +34,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
   }, [isHost, send]);
 
   const audio = usePartyAudio({ state, onTrackEnded });
+  const activities = usePartyActivity(state);
 
   const currentQueueTrack = state?.playback?.queueId
     ? state.queue.find((t) => t.queueId === state.playback?.queueId)
@@ -58,17 +61,6 @@ export function PartyRoom({ party }: PartyRoomProps) {
   const playerDuration =
     audio.duration > 0 ? audio.duration : (playerTrack?.duration ?? 0);
 
-  const handleCopy = useCallback(async () => {
-    if (!state) return;
-    try {
-      await navigator.clipboard.writeText(state.roomId.toUpperCase());
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // clipboard unavailable
-    }
-  }, [state]);
-
   const handleSeek = useCallback(
     (seconds: number) => {
       if (isHost) send("seek", { seconds });
@@ -82,66 +74,71 @@ export function PartyRoom({ party }: PartyRoomProps) {
     router.push("/");
   }, [leaveParty, router]);
 
+  const handleInvite = useCallback(async () => {
+    if (!state) return;
+    const url = `${window.location.origin}/party/${state.roomId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      // clipboard unavailable
+    }
+  }, [state]);
+
   return (
     <div className="relative h-dvh flex flex-col overflow-hidden text-white font-sans antialiased select-none">
       <Background theme={theme} />
-      <Header inParty onExitParty={() => setShowLeaveConfirm(true)} />
 
-      <main className="relative z-10 mx-auto flex min-h-0 flex-1 w-full max-w-5xl flex-col gap-6 overflow-hidden px-4 pt-24 pb-48 sm:px-6 md:pb-56">
-        {/* Room header row */}
-        <section className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div
-              className="flex h-11 w-11 items-center justify-center rounded-xl shadow-lg"
-              style={{ backgroundColor: theme.accent, boxShadow: `0 8px 24px ${theme.accent}44` }}
-            >
-              <Radio className="h-5 w-5 text-black" />
-            </div>
-            <div>
-              <p className="text-[10px] tracking-widest text-white/40 uppercase">
-                Room code
-              </p>
-              <p className="font-mono text-2xl font-semibold tracking-[0.25em] text-white">
-                {state?.roomId.toUpperCase()}
-              </p>
-            </div>
+      <PartyTopNav
+        roomId={state?.roomId ?? ""}
+        memberCount={state?.members.length ?? 0}
+        queueCount={state?.queue.length ?? 0}
+        accent={theme.accent}
+        onLeave={() => setShowLeaveConfirm(true)}
+      />
+
+      {/* Main scrollable content */}
+      <main className="relative z-10 flex-1 min-h-0 overflow-y-auto pt-[60px] pb-6 px-3 sm:px-5">
+        <div className="mx-auto max-w-7xl grid gap-4 lg:grid-cols-[280px_1fr_280px] lg:gap-5">
+
+          {/* ─── LEFT COLUMN ─── */}
+          <div className="flex flex-col gap-4 lg:gap-5 order-2 lg:order-1">
+            <RoomCodeCard
+              roomId={state?.roomId ?? ""}
+              isHost={isHost}
+              accent={theme.accent}
+              isPlaying={audio.isPlaying}
+              volume={audio.volume}
+              isMuted={audio.isMuted}
+              onTogglePlay={() => {
+                if (isHost) send(audio.isPlaying ? "pause" : "play");
+              }}
+              onPrev={() => isHost && send("prev")}
+              onNext={() => isHost && send("next")}
+              onVolumeChange={audio.setVolume}
+              onToggleMute={audio.toggleMute}
+            />
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[11px] text-white/50">
-              <Users className="h-3.5 w-3.5" style={{ color: theme.accent }} />
-              {state?.members.length ?? 0}
-            </div>
-            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[11px] text-white/50">
-              <Music2 className="h-3.5 w-3.5" style={{ color: theme.accent }} />
-              {state?.queue.length ?? 0}
-            </div>
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3.5 py-2 text-[11px] text-white/70 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
-            >
-              {copied ? (
-                <Check className="h-3.5 w-3.5" style={{ color: theme.accent }} />
-              ) : (
-                <Copy className="h-3.5 w-3.5" />
-              )}
-              {copied ? "Copied" : "Copy code"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowLeaveConfirm(true)}
-              className="flex items-center gap-1.5 rounded-full border border-red-400/30 bg-red-400/10 px-3.5 py-2 text-[11px] text-red-300 transition-colors hover:bg-red-400/20 cursor-pointer"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Leave
-            </button>
-          </div>
-        </section>
+          {/* ─── CENTER COLUMN ─── */}
+          <div className="flex flex-col gap-4 lg:gap-5 min-h-0 order-1 lg:order-2">
+            <NowPlayingCard
+              track={playerTrack}
+              state={state}
+              isPlaying={audio.isPlaying}
+              currentTime={audio.currentTime}
+              duration={playerDuration}
+              progress={playerDuration > 0 ? (audio.currentTime / playerDuration) * 100 : 0}
+              isHost={isHost}
+              accent={theme.accent}
+              onTogglePlay={() => {
+                if (isHost) send(audio.isPlaying ? "pause" : "play");
+              }}
+              onPrev={() => isHost && send("prev")}
+              onNext={() => isHost && send("next")}
+              onSeek={handleSeek}
+              onReact={(emoji) => send("reaction", { emoji })}
+            />
 
-        {/* Main grid */}
-        <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <section className="flex min-h-0 min-w-0 flex-col gap-6">
             <PartyQueue
               className="flex-1 min-h-0"
               state={state}
@@ -155,48 +152,29 @@ export function PartyRoom({ party }: PartyRoomProps) {
               accent={theme.accent}
               onAdd={(song) => send("addTrack", { song })}
             />
-          </section>
+          </div>
 
-          <aside className="flex min-h-0 min-w-0 flex-col gap-6 overflow-y-auto">
+          {/* ─── RIGHT COLUMN ─── */}
+          <div className="flex flex-col gap-4 lg:gap-5 min-h-0 overflow-y-auto order-3">
             <PartyMembers
               members={state?.members ?? []}
               hostId={state?.hostId ?? ""}
               meId={member?.id ?? ""}
               accent={theme.accent}
+              onInvite={handleInvite}
             />
-          </aside>
+
+            <ActivityFeed
+              activities={activities}
+              accent={theme.accent}
+            />
+
+            <SyncStatus accent={theme.accent} />
+          </div>
         </div>
       </main>
 
-      {playerTrack && (
-        <FloatingPlayer
-          track={playerTrack}
-          isPlaying={audio.isPlaying}
-          currentTime={audio.currentTime}
-          duration={playerDuration}
-          progress={playerDuration > 0 ? (audio.currentTime / playerDuration) * 100 : 0}
-          volume={audio.volume}
-          isMuted={audio.isMuted}
-          accent={theme.accent}
-          locked={!isHost}
-          onTogglePlay={() => {
-            if (isHost) send(audio.isPlaying ? "pause" : "play");
-          }}
-          onPrev={() => isHost && send("prev")}
-          onNext={() => isHost && send("next")}
-          onSeek={handleSeek}
-          onVolumeChange={audio.setVolume}
-          onToggleMute={audio.toggleMute}
-        />
-      )}
-
-      <PartyReactions
-        accent={theme.accent}
-        disabled={!state}
-        reactions={state?.reactions ?? []}
-        onReact={(emoji) => send("reaction", { emoji })}
-      />
-
+      {/* Leave confirm modal */}
       {showLeaveConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111]/95 p-6 text-center shadow-2xl">

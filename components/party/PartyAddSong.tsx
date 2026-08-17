@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Plus, Search, Loader2, ChevronDown } from "lucide-react";
+import { Plus, Search, Loader2 } from "lucide-react";
 import type { Song } from "@/types/music";
 import { AlbumArt } from "@/components/AlbumArt";
 import { cn } from "@/lib/cn";
@@ -14,7 +14,6 @@ interface PartyAddSongProps {
 const DEBOUNCE_MS = 450;
 
 export function PartyAddSong({ accent, onAdd }: PartyAddSongProps) {
-  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Song[]>([]);
   const [searching, setSearching] = useState(false);
@@ -93,55 +92,60 @@ export function PartyAddSong({ accent, onAdd }: PartyAddSongProps) {
     [onAdd],
   );
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (query.trim()) void runSearch(query);
+  };
+
   return (
     <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl">
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        aria-expanded={open}
-        className="flex w-full items-center justify-between border-b border-white/10 px-4 py-3.5 text-left transition-colors hover:bg-white/[0.03] sm:px-5 cursor-pointer"
-      >
-        <span className="flex items-center gap-2 text-[10px] tracking-widest text-white/40 uppercase">
-          <Search className="h-3.5 w-3.5" style={{ color: accent }} />
-          Add a track
-        </span>
-        <ChevronDown
-          className={cn(
-            "h-4 w-4 text-white/30 transition-transform duration-300",
-            open && "rotate-180",
-          )}
-        />
-      </button>
+      <div className="px-5 py-3 border-b border-white/[0.06]">
+        <p className="text-[10px] tracking-widest text-white/40 uppercase">
+          Add a track to the queue
+        </p>
+      </div>
 
-      {open && (
-        <div className="px-4 py-4 sm:px-5">
-          <input
-            type="text"
-            autoFocus
-            value={query}
-            onChange={(e) => handleChange(e.target.value)}
-            placeholder="Search JioSaavn…"
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none transition-colors focus:border-white/30"
-          />
-
-        {searching && (
-          <div className="flex items-center gap-2 px-1 pt-4 text-xs text-white/40">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            Searching…
+      <div className="p-4">
+        <form onSubmit={handleSubmit} className="flex gap-2">
+          <div className="relative flex-1">
+            <Search
+              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30"
+              style={{ color: undefined }}
+            />
+            <input
+              type="text"
+              autoFocus
+              value={query}
+              onChange={(e) => handleChange(e.target.value)}
+              placeholder="Search JioSaavn for songs, artists, albums..."
+              className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-9 pr-4 text-sm text-white placeholder-white/25 outline-none transition-colors focus:border-white/25"
+            />
           </div>
-        )}
+          <button
+            type="submit"
+            disabled={!query.trim() || searching}
+            className="shrink-0 rounded-xl px-4 py-2.5 text-sm font-medium text-black transition-all duration-200 hover:brightness-110 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+            style={{ backgroundColor: accent }}
+          >
+            {searching ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Search className="h-4 w-4" />
+            )}
+          </button>
+        </form>
 
         {error && (
-          <p className="px-1 pt-4 text-xs text-red-300">{error}</p>
+          <p className="mt-3 text-xs text-red-300">{error}</p>
         )}
 
         {!searching && searched && results.length === 0 && !error && (
-          <p className="px-1 pt-4 text-xs text-white/35">
-            No results for “{query.trim()}”.
+          <p className="mt-3 text-xs text-white/30">
+            No results for &ldquo;{query.trim()}&rdquo;.
           </p>
         )}
 
-        {!searching && results.length > 0 && (
+        {results.length > 0 && (
           <ul className="mt-3 max-h-[25vh] divide-y divide-white/5 overflow-y-auto scrollbar-hide">
             {results.map((song) => {
               const added = addedIds.has(song.id);
@@ -180,8 +184,7 @@ export function PartyAddSong({ accent, onAdd }: PartyAddSongProps) {
             })}
           </ul>
         )}
-        </div>
-      )}
+      </div>
     </div>
   );
 }
