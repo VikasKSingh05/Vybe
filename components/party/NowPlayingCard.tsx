@@ -82,7 +82,7 @@ export function NowPlayingCard({
 
   if (!track) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-black/40 p-10 text-center backdrop-blur-xl">
+      <div className="shrink-0 rounded-2xl border border-white/10 bg-black/40 p-10 text-center backdrop-blur-xl">
         <p className="text-sm text-white/40">
           No tracks in the queue. Add a track to get started.
         </p>
@@ -91,7 +91,7 @@ export function NowPlayingCard({
   }
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">
+    <div className="shrink-0 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3">
         <p className="text-[10px] tracking-widest text-white/40 uppercase">

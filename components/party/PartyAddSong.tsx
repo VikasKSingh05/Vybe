@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Plus, Search, Loader2 } from "lucide-react";
+import { Plus, Search, Loader2, X } from "lucide-react";
 import type { Song } from "@/types/music";
 import { AlbumArt } from "@/components/AlbumArt";
 import { cn } from "@/lib/cn";
@@ -20,7 +20,10 @@ export function PartyAddSong({ accent, onAdd }: PartyAddSongProps) {
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
+  const [open, setOpen] = useState(false);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestSeqRef = useRef(0);
 
@@ -61,6 +64,7 @@ export function PartyAddSong({ accent, onAdd }: PartyAddSongProps) {
   const handleChange = useCallback(
     (value: string) => {
       setQuery(value);
+      setOpen(true);
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
         void runSearch(value);
@@ -71,6 +75,17 @@ export function PartyAddSong({ accent, onAdd }: PartyAddSongProps) {
 
   useEffect(() => () => {
     if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
+
+  // Close overlay on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleAdd = useCallback(
@@ -97,94 +112,115 @@ export function PartyAddSong({ accent, onAdd }: PartyAddSongProps) {
     if (query.trim()) void runSearch(query);
   };
 
+  const hasDropdown = open && (searching || error || searched || results.length > 0);
+
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl">
-      <div className="px-5 py-3 border-b border-white/[0.06]">
-        <p className="text-[10px] tracking-widest text-white/40 uppercase">
-          Add a track to the queue
-        </p>
-      </div>
+    <div ref={containerRef} className="relative">
+      {/* Slim search bar */}
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => handleChange(e.target.value)}
+            onFocus={() => query.trim() && setOpen(true)}
+            placeholder="Search JioSaavn for songs, artists, albums..."
+            className="w-full rounded-xl border border-white/10 bg-black/40 backdrop-blur-xl py-2.5 pl-9 pr-9 text-sm text-white placeholder-white/25 outline-none transition-colors focus:border-white/25"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                setResults([]);
+                setSearched(false);
+                setError(null);
+                setOpen(false);
+                inputRef.current?.focus();
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-white/30 hover:text-white/60 cursor-pointer"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+        <button
+          type="submit"
+          disabled={!query.trim() || searching}
+          className="shrink-0 rounded-xl px-4 py-2.5 text-sm font-medium text-black transition-all duration-200 hover:brightness-110 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+          style={{ backgroundColor: accent }}
+        >
+          {searching ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Search className="h-4 w-4" />
+          )}
+        </button>
+      </form>
 
-      <div className="p-4">
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <div className="relative flex-1">
-            <Search
-              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30"
-              style={{ color: undefined }}
-            />
-            <input
-              type="text"
-              autoFocus
-              value={query}
-              onChange={(e) => handleChange(e.target.value)}
-              placeholder="Search JioSaavn for songs, artists, albums..."
-              className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-9 pr-4 text-sm text-white placeholder-white/25 outline-none transition-colors focus:border-white/25"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={!query.trim() || searching}
-            className="shrink-0 rounded-xl px-4 py-2.5 text-sm font-medium text-black transition-all duration-200 hover:brightness-110 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
-            style={{ backgroundColor: accent }}
-          >
-            {searching ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Search className="h-4 w-4" />
-            )}
-          </button>
-        </form>
+      {/* Dropdown overlay — floats above the search bar */}
+      {hasDropdown && (
+        <div className="absolute bottom-full left-0 right-0 mb-2 max-h-[35vh] overflow-y-auto rounded-xl border border-white/10 bg-[#0a0a0a]/95 backdrop-blur-xl shadow-2xl scrollbar-hide z-50">
+          {error && (
+            <p className="px-4 py-3 text-xs text-red-300">{error}</p>
+          )}
 
-        {error && (
-          <p className="mt-3 text-xs text-red-300">{error}</p>
-        )}
+          {!searching && searched && results.length === 0 && !error && (
+            <p className="px-4 py-3 text-xs text-white/30">
+              No results for &ldquo;{query.trim()}&rdquo;.
+            </p>
+          )}
 
-        {!searching && searched && results.length === 0 && !error && (
-          <p className="mt-3 text-xs text-white/30">
-            No results for &ldquo;{query.trim()}&rdquo;.
-          </p>
-        )}
+          {searching && results.length === 0 && (
+            <div className="flex items-center justify-center gap-2 px-4 py-5 text-xs text-white/30">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Searching...
+            </div>
+          )}
 
-        {results.length > 0 && (
-          <ul className="mt-3 max-h-[25vh] divide-y divide-white/5 overflow-y-auto scrollbar-hide">
-            {results.map((song) => {
-              const added = addedIds.has(song.id);
-              return (
-                <li
-                  key={song.id}
-                  className="flex items-center gap-3 py-2.5"
-                >
-                  <AlbumArt
-                    src={song.artwork}
-                    title={song.title}
-                    accent={accent}
-                    size="sm"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm text-white/85">{song.title}</p>
-                    <p className="truncate text-xs text-white/40">{song.artist}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleAdd(song)}
-                    disabled={added}
-                    className={cn(
-                      "flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-medium transition-all duration-200 cursor-pointer",
-                      added
-                        ? "bg-white/10 text-white/60"
-                        : "text-black hover:brightness-110",
-                    )}
-                    style={!added ? { backgroundColor: accent } : undefined}
+          {results.length > 0 && (
+            <ul className="divide-y divide-white/5">
+              {results.map((song) => {
+                const added = addedIds.has(song.id);
+                return (
+                  <li
+                    key={song.id}
+                    className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-white/[0.04]"
                   >
-                    <Plus className="h-3 w-3" />
-                    {added ? "Added" : "Add"}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
+                    <AlbumArt
+                      src={song.artwork}
+                      title={song.title}
+                      accent={accent}
+                      size="sm"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm text-white/85">{song.title}</p>
+                      <p className="truncate text-xs text-white/40">{song.artist}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleAdd(song)}
+                      disabled={added}
+                      className={cn(
+                        "flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-medium transition-all duration-200 cursor-pointer shrink-0",
+                        added
+                          ? "bg-white/10 text-white/60"
+                          : "text-black hover:brightness-110",
+                      )}
+                      style={!added ? { backgroundColor: accent } : undefined}
+                    >
+                      <Plus className="h-3 w-3" />
+                      {added ? "Added" : "Add"}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }

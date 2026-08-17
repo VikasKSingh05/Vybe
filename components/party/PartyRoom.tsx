@@ -102,12 +102,13 @@ export function PartyRoom({ party }: PartyRoomProps) {
         onLeave={() => setShowLeaveConfirm(true)}
       />
 
-      {/* Main scrollable content */}
-      <main className="relative z-10 flex-1 min-h-0 overflow-y-auto pt-[60px] pb-6 px-3 sm:px-5">
-        <div className="mx-auto max-w-7xl grid gap-4 lg:grid-cols-[280px_1fr_280px] lg:gap-5">
+      {/* Viewport-locked content area: no overflow on this container */}
+      <div className="relative z-10 flex-1 min-h-0 flex flex-col px-3 sm:px-5 pt-14 pb-3">
+        {/* 3-column grid: fills remaining height minus search bar */}
+        <div className="flex-1 min-h-0 grid gap-4 lg:grid-cols-[280px_1fr_280px] lg:gap-5 min-h-0">
 
           {/* ─── LEFT COLUMN ─── */}
-          <div className="flex flex-col gap-4 lg:gap-5 order-2 lg:order-1">
+          <div className="flex flex-col gap-4 lg:gap-5 min-h-0 overflow-y-auto order-2 lg:order-1 scrollbar-hide">
             <RoomCodeCard
               roomId={state?.roomId ?? ""}
               isHost={isHost}
@@ -126,7 +127,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
           </div>
 
           {/* ─── CENTER COLUMN ─── */}
-          <div className="flex flex-col gap-4 lg:gap-5 min-h-0 order-1 lg:order-2">
+          <div className="flex flex-col gap-3 min-h-0 order-1 lg:order-2">
             <NowPlayingCard
               track={playerTrack}
               state={state}
@@ -146,7 +147,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
             />
 
             <PartyQueue
-              className="max-h-[45vh] min-h-0"
+              className="flex-1 min-h-0"
               state={state}
               isHost={isHost}
               accent={theme.accent}
@@ -154,15 +155,10 @@ export function PartyRoom({ party }: PartyRoomProps) {
               onRemove={(queueId) => send("removeTrack", { queueId })}
               onPlayTrack={handlePlayTrack}
             />
-
-            <PartyAddSong
-              accent={theme.accent}
-              onAdd={(song) => send("addTrack", { song })}
-            />
           </div>
 
           {/* ─── RIGHT COLUMN ─── */}
-          <div className="flex flex-col gap-4 lg:gap-5 min-h-0 overflow-y-auto order-3">
+          <div className="flex flex-col gap-4 lg:gap-5 min-h-0 overflow-y-auto order-3 scrollbar-hide">
             <PartyMembers
               members={state?.members ?? []}
               hostId={state?.hostId ?? ""}
@@ -177,7 +173,15 @@ export function PartyRoom({ party }: PartyRoomProps) {
             />
           </div>
         </div>
-      </main>
+
+        {/* Search bar: full width, pinned bottom, never pushes layout */}
+        <div className="shrink-0 pt-3">
+          <PartyAddSong
+            accent={theme.accent}
+            onAdd={(song) => send("addTrack", { song })}
+          />
+        </div>
+      </div>
 
       {/* Leave confirm modal */}
       {showLeaveConfirm && (
