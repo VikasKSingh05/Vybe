@@ -75,7 +75,7 @@ export function RoomCodeCard({
   return (
     <div className="h-full flex flex-col justify-center rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">
       {/* Room code section */}
-      <div className="flex flex-col items-center px-5 pt-6 pb-5 text-center">
+      <div className="flex flex-col items-center px-6 pb-6 text-center">
         <div
           className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg"
           style={{
@@ -97,7 +97,7 @@ export function RoomCodeCard({
       </div>
 
       {/* Action buttons */}
-      <div className="flex flex-col gap-2 px-4 pb-4">
+      <div className="flex flex-col gap-2.5 px-5 pb-5">
         <button
           type="button"
           onClick={handleCopy}
@@ -127,10 +127,10 @@ export function RoomCodeCard({
       </div>
 
       {/* Divider */}
-      <div className="mx-4 h-px bg-white/10" />
+      <div className="mx-5 my-8 h-px bg-white/10" />
 
       {/* Host section */}
-      <div className="px-4 py-4">
+      <div className="px-5 py-5">
         <div className="flex items-center gap-2 mb-2">
           <Crown className="h-4 w-4" style={{ color: accent }} />
           <span className="text-[11px] font-semibold tracking-wide text-white/80 uppercase">
