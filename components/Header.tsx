@@ -1,15 +1,19 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Link from "next/link";
 import gsap from "gsap";
 import { LiveTime } from "@/components/LiveTime";
 import { cn } from "@/lib/cn";
 
 interface HeaderProps {
   className?: string;
+  /** When inside a party room, swap the "Host Party" link for an "Exit Party" action. */
+  inParty?: boolean;
+  onExitParty?: () => void;
 }
 
-export function Header({ className }: HeaderProps) {
+export function Header({ className, inParty = false, onExitParty }: HeaderProps) {
   const headerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -37,6 +41,22 @@ export function Header({ className }: HeaderProps) {
 
       {/* Top Right: External Links */}
       <nav className="flex items-center gap-4 sm:gap-5">
+        {inParty ? (
+          <button
+            type="button"
+            onClick={onExitParty}
+            className="flex items-center gap-1 text-[11px] tracking-wide text-white/50 transition-colors duration-300 hover:text-white/90 cursor-pointer"
+          >
+            Exit Party
+          </button>
+        ) : (
+          <Link
+            href="/party"
+            className="group flex items-center gap-1 text-[11px] tracking-wide text-white/50 transition-colors duration-300 hover:text-white/90"
+          >
+            Host Party
+          </Link>
+        )}
         <a
           href="https://open.spotify.com"
           target="_blank"

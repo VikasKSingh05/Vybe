@@ -24,6 +24,8 @@ interface FloatingPlayerProps {
   volume: number;
   isMuted: boolean;
   accent: string;
+  /** Disables the transport controls (prev/play/next). Volume/mute stay active. */
+  locked?: boolean;
   onTogglePlay: () => void;
   onPrev: () => void;
   onNext: () => void;
@@ -42,6 +44,7 @@ export function FloatingPlayer({
   volume,
   isMuted,
   accent,
+  locked = false,
   onTogglePlay,
   onPrev,
   onNext,
@@ -194,8 +197,9 @@ export function FloatingPlayer({
             <button
               type="button"
               onClick={onPrev}
+              disabled={locked}
               aria-label="Previous track"
-              className="rounded-full p-2.5 text-white/60 transition-all duration-200 hover:scale-105 hover:bg-white/10 hover:text-white active:scale-95 cursor-pointer"
+              className="rounded-full p-2.5 text-white/60 transition-all duration-200 hover:scale-105 hover:bg-white/10 hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-transparent disabled:hover:text-white/60 cursor-pointer"
             >
               <SkipBack className="h-4 w-4 fill-current" />
             </button>
@@ -203,11 +207,12 @@ export function FloatingPlayer({
             <button
               type="button"
               onClick={onTogglePlay}
+              disabled={locked}
               aria-label={isPlaying ? "Pause" : "Play"}
-              className="rounded-full p-3 text-white transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer shadow-lg"
+              className="rounded-full p-3 text-white transition-all duration-200 hover:scale-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100 cursor-pointer shadow-lg"
               style={{
-                backgroundColor: accent,
-                boxShadow: `0 4px 20px ${accent}66`,
+                backgroundColor: locked ? "rgba(255,255,255,0.15)" : accent,
+                boxShadow: `0 4px 20px ${locked ? "rgba(255,255,255,0.05)" : `${accent}66`}`,
               }}
             >
               {isPlaying ? (
@@ -220,8 +225,9 @@ export function FloatingPlayer({
             <button
               type="button"
               onClick={onNext}
+              disabled={locked}
               aria-label="Next track"
-              className="rounded-full p-2.5 text-white/60 transition-all duration-200 hover:scale-105 hover:bg-white/10 hover:text-white active:scale-95 cursor-pointer"
+              className="rounded-full p-2.5 text-white/60 transition-all duration-200 hover:scale-105 hover:bg-white/10 hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-transparent disabled:hover:text-white/60 cursor-pointer"
             >
               <SkipForward className="h-4 w-4 fill-current" />
             </button>
