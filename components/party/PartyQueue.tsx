@@ -1,6 +1,6 @@
 "use client";
 
-import { Music2, X, Settings } from "lucide-react";
+import { Music2, X, Settings, Play } from "lucide-react";
 import type { PartyState } from "@/lib/party/types";
 import { AlbumArt } from "@/components/AlbumArt";
 import { formatTime } from "@/lib/format-time";
@@ -13,6 +13,7 @@ interface PartyQueueProps {
   accent: string;
   className?: string;
   onRemove: (queueId: string) => void;
+  onPlayTrack?: (queueId: string) => void;
 }
 
 export function PartyQueue({
@@ -22,6 +23,7 @@ export function PartyQueue({
   accent,
   className,
   onRemove,
+  onPlayTrack,
 }: PartyQueueProps) {
   const queue = state?.queue ?? [];
 
@@ -53,13 +55,16 @@ export function PartyQueue({
           {queue.map((track, index) => {
             const isCurrent = state?.playback?.queueId === track.queueId;
             const canRemove = isHost || track.addedBy === memberId;
+            const canPlay = isHost && !isCurrent;
             return (
               <li
                 key={track.queueId}
+                onClick={canPlay ? () => onPlayTrack?.(track.queueId) : undefined}
                 className={cn(
                   "group flex items-center gap-3 px-4 py-2.5 sm:px-5 transition-colors",
                   isCurrent && "bg-orange-500/[0.06] border-l-2",
                   !isCurrent && "border-l-2 border-l-transparent",
+                  canPlay && "cursor-pointer hover:bg-white/[0.04]",
                 )}
                 style={isCurrent ? { borderLeftColor: accent } : undefined}
               >
@@ -69,6 +74,13 @@ export function PartyQueue({
                 >
                   {isCurrent ? (
                     <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: accent }} />
+                  ) : canPlay ? (
+                    <span className="relative inline-flex h-4 w-4 items-center justify-center text-white/0 transition-colors group-hover:text-white/70">
+                      <Play className="h-3 w-3 fill-current" />
+                      <span className="absolute inset-0 flex items-center justify-center text-[11px] tabular-nums text-white/25 group-hover:hidden">
+                        {index + 1}
+                      </span>
+                    </span>
                   ) : (
                     index + 1
                   )}

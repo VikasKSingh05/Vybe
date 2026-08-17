@@ -371,6 +371,19 @@ export function dispatch(
       return wire ? { ok: true, state: wire } : { ok: false, status: 404, error: "Room not found" };
     }
 
+    case "playTrack": {
+      const denied = requiresHost();
+      if (denied) return denied;
+      const queueId = typeof payload?.queueId === "string" ? payload.queueId : null;
+      if (!queueId) return { ok: false, status: 400, error: "Missing queueId" };
+      const wire = apply(roomId, (s) => {
+        const idx = s.queue.findIndex((t) => t.queueId === queueId);
+        if (idx === -1) return;
+        startPlayback(s, idx);
+      });
+      return wire ? { ok: true, state: wire } : { ok: false, status: 404, error: "Room not found" };
+    }
+
     case "setVibe": {
       const denied = requiresHost();
       if (denied) return denied;

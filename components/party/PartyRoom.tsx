@@ -16,7 +16,6 @@ import { PartyQueue } from "./PartyQueue";
 import { PartyAddSong } from "./PartyAddSong";
 import { PartyMembers } from "./PartyMembers";
 import { ActivityFeed } from "./ActivityFeed";
-import { SyncStatus } from "./SyncStatus";
 
 interface PartyRoomProps {
   party: ReturnType<typeof useParty>;
@@ -64,6 +63,13 @@ export function PartyRoom({ party }: PartyRoomProps) {
   const handleSeek = useCallback(
     (seconds: number) => {
       if (isHost) send("seek", { seconds });
+    },
+    [isHost, send],
+  );
+
+  const handlePlayTrack = useCallback(
+    (queueId: string) => {
+      if (isHost) send("playTrack", { queueId });
     },
     [isHost, send],
   );
@@ -140,12 +146,13 @@ export function PartyRoom({ party }: PartyRoomProps) {
             />
 
             <PartyQueue
-              className="flex-1 min-h-0"
+              className="max-h-[45vh] min-h-0"
               state={state}
               isHost={isHost}
               accent={theme.accent}
               memberId={member?.id ?? ""}
               onRemove={(queueId) => send("removeTrack", { queueId })}
+              onPlayTrack={handlePlayTrack}
             />
 
             <PartyAddSong
@@ -168,8 +175,6 @@ export function PartyRoom({ party }: PartyRoomProps) {
               activities={activities}
               accent={theme.accent}
             />
-
-            <SyncStatus accent={theme.accent} />
           </div>
         </div>
       </main>
