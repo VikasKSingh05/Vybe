@@ -132,9 +132,6 @@ export function NowPlayingCard({
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                 Playing
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-[10px] font-medium text-white/40">
-                ✓ In sync
-              </span>
             </div>
           </div>
         </div>

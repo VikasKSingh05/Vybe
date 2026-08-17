@@ -91,6 +91,7 @@ export function PartyAddSong({ accent, onAdd }: PartyAddSongProps) {
   const handleAdd = useCallback(
     (song: Song) => {
       onAdd(song);
+      setOpen(false);
       setAddedIds((prev) => {
         const next = new Set(prev);
         next.add(song.id);
