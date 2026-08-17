@@ -102,13 +102,14 @@ export function PartyRoom({ party }: PartyRoomProps) {
         onLeave={() => setShowLeaveConfirm(true)}
       />
 
-      {/* Viewport-locked content area: no overflow on this container */}
-      <div className="relative z-10 flex-1 min-h-0 flex flex-col px-3 sm:px-5 pt-14 pb-3">
-        {/* 3-column grid: fills remaining height minus search bar */}
-        <div className="flex-1 min-h-0 grid gap-4 lg:grid-cols-[280px_1fr_280px] lg:gap-5 min-h-0">
+      {/* Viewport-locked content area */}
+      <div className="relative z-10 flex-1 min-h-0 flex flex-col px-4 sm:px-5 lg:px-6 pt-[60px] pb-4">
 
-          {/* ─── LEFT COLUMN ─── */}
-          <div className="flex flex-col gap-4 lg:gap-5 min-h-0 overflow-y-auto order-2 lg:order-1 scrollbar-hide">
+        {/* ─── BENTO GRID ─── */}
+        <div className="flex-1 min-h-0 grid gap-4 lg:gap-5 grid-cols-1 lg:grid-cols-[280px_1fr_260px] grid-rows-[auto_1fr] lg:auto-rows-auto">
+
+          {/* LEFT COLUMN — spans both rows on desktop */}
+          <div className="min-h-0 overflow-y-auto scrollbar-hide lg:row-span-2">
             <RoomCodeCard
               roomId={state?.roomId ?? ""}
               isHost={isHost}
@@ -126,8 +127,8 @@ export function PartyRoom({ party }: PartyRoomProps) {
             />
           </div>
 
-          {/* ─── CENTER COLUMN ─── */}
-          <div className="flex flex-col gap-3 min-h-0 order-1 lg:order-2">
+          {/* CENTER — NOW PLAYING (row 1) */}
+          <div className="min-h-0">
             <NowPlayingCard
               track={playerTrack}
               state={state}
@@ -145,9 +146,23 @@ export function PartyRoom({ party }: PartyRoomProps) {
               onSeek={handleSeek}
               onReact={(emoji) => send("reaction", { emoji })}
             />
+          </div>
 
+          {/* RIGHT — IN THE ROOM (row 1) */}
+          <div className="min-h-0">
+            <PartyMembers
+              members={state?.members ?? []}
+              hostId={state?.hostId ?? ""}
+              meId={member?.id ?? ""}
+              accent={theme.accent}
+              onInvite={handleInvite}
+            />
+          </div>
+
+          {/* CENTER — UP NEXT (row 2) */}
+          <div className="min-h-0 lg:block hidden">
             <PartyQueue
-              className="flex-1 min-h-0"
+              className="h-full"
               state={state}
               isHost={isHost}
               accent={theme.accent}
@@ -157,16 +172,29 @@ export function PartyRoom({ party }: PartyRoomProps) {
             />
           </div>
 
-          {/* ─── RIGHT COLUMN ─── */}
-          <div className="flex flex-col gap-4 lg:gap-5 min-h-0 overflow-y-auto order-3 scrollbar-hide">
-            <PartyMembers
-              members={state?.members ?? []}
-              hostId={state?.hostId ?? ""}
-              meId={member?.id ?? ""}
+          {/* CENTER — UP NEXT (row 2, mobile — only visible below lg) */}
+          <div className="min-h-0 lg:hidden">
+            <PartyQueue
+              className="h-full max-h-[40vh]"
+              state={state}
+              isHost={isHost}
               accent={theme.accent}
-              onInvite={handleInvite}
+              memberId={member?.id ?? ""}
+              onRemove={(queueId) => send("removeTrack", { queueId })}
+              onPlayTrack={handlePlayTrack}
             />
+          </div>
 
+          {/* RIGHT — ACTIVITY (row 2) */}
+          <div className="min-h-0 overflow-y-auto scrollbar-hide lg:block hidden">
+            <ActivityFeed
+              activities={activities}
+              accent={theme.accent}
+            />
+          </div>
+
+          {/* RIGHT — ACTIVITY (row 2, mobile — only visible below lg) */}
+          <div className="min-h-0 overflow-y-auto scrollbar-hide lg:hidden">
             <ActivityFeed
               activities={activities}
               accent={theme.accent}
@@ -174,12 +202,14 @@ export function PartyRoom({ party }: PartyRoomProps) {
           </div>
         </div>
 
-        {/* Search bar: full width, pinned bottom, never pushes layout */}
-        <div className="shrink-0 pt-3">
-          <PartyAddSong
-            accent={theme.accent}
-            onAdd={(song) => send("addTrack", { song })}
-          />
+        {/* ─── SEARCH BAR — centered floating bento card ─── */}
+        <div className="shrink-0 flex justify-center pt-3 lg:pt-4">
+          <div className="w-full max-w-lg">
+            <PartyAddSong
+              accent={theme.accent}
+              onAdd={(song) => send("addTrack", { song })}
+            />
+          </div>
         </div>
       </div>
 
