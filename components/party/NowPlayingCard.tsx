@@ -93,16 +93,16 @@ export function NowPlayingCard({
   return (
     <div className="shrink-0 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3">
+      <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-2.5">
         <p className="text-[10px] tracking-widest text-white/40 uppercase">
           Now Playing
         </p>
         {isPlaying && <Equalizer isPlaying={isPlaying} accent={accent} />}
       </div>
 
-      <div className="p-5">
+      <div className="p-4">
         {/* Album art + track info */}
-        <div className="flex gap-5 mb-5">
+        <div className="flex gap-4 mb-3">
           <div
             ref={artRef}
             className="shrink-0"
@@ -172,7 +172,7 @@ export function NowPlayingCard({
         </div>
 
         {/* Time display */}
-        <div className="mb-4 flex justify-between text-[10px] tabular-nums font-mono text-white/40">
+        <div className="mb-2 flex justify-between text-[10px] tabular-nums font-mono text-white/40">
           <span>{formatTime(currentTime)}</span>
           <span>{formatTime(duration)}</span>
         </div>
@@ -218,8 +218,8 @@ export function NowPlayingCard({
       </div>
 
       {/* Reactions strip */}
-      <div className="border-t border-white/[0.06] px-5 py-3.5">
-        <div className="flex items-center justify-between mb-2.5">
+      <div className="border-t border-white/[0.06] px-5 py-2.5">
+        <div className="flex items-center justify-between mb-2">
           <p className="text-[10px] tracking-widest text-white/35 uppercase">
             Reactions
           </p>

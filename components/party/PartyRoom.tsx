@@ -160,7 +160,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
 
           {/* RIGHT — Members + Activity */}
           <div className="flex flex-col gap-2 min-h-0">
-            <div className="min-h-0 overflow-y-auto scrollbar-hide">
+            <div className="flex-none">
               <PartyMembers
                 members={state?.members ?? []}
                 hostId={state?.hostId ?? ""}
@@ -169,7 +169,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
                 onInvite={handleInvite}
               />
             </div>
-            <div className="min-h-0 overflow-y-auto scrollbar-hide">
+            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">
               <ActivityFeed
                 activities={activities}
                 accent={theme.accent}
