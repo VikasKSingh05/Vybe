@@ -61,7 +61,7 @@ export function PartyTopNav({
         </p>
 
         {/* External links — desktop only */}
-        <div className="hidden xl:flex items-center gap-3 ml-1">
+        {/* <div className="hidden xl:flex items-center gap-3 ml-1">
           <div className="h-3 w-px bg-white/10" />
           <a
             href="https://open.spotify.com"
@@ -85,7 +85,7 @@ export function PartyTopNav({
               ↗
             </span>
           </a>
-        </div>
+        </div> */}
       </div>
 
       {/* Right section */}
