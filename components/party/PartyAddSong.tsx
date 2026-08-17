@@ -142,7 +142,7 @@ export function PartyAddSong({ accent, onAdd }: PartyAddSongProps) {
         )}
 
         {!searching && results.length > 0 && (
-          <ul className="mt-3 max-h-64 divide-y divide-white/5 overflow-y-auto scrollbar-hide">
+          <ul className="mt-3 max-h-[25vh] divide-y divide-white/5 overflow-y-auto scrollbar-hide">
             {results.map((song) => {
               const added = addedIds.has(song.id);
               return (

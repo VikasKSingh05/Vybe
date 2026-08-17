@@ -3,21 +3,17 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, Check, LogOut, Music2, Radio, Users } from "lucide-react";
-import type { Track, VibeId } from "@/data/types";
+import type { Track } from "@/data/types";
 import { getVibeTheme } from "@/data/vibes";
-import { backgroundThemes } from "@/data/backgrounds";
 import { Background } from "@/components/Background";
 import { Header } from "@/components/Header";
 import { FloatingPlayer } from "@/components/FloatingPlayer";
 import { usePartyAudio } from "@/hooks/usePartyAudio";
 import type { useParty } from "@/hooks/useParty";
-import { cn } from "@/lib/cn";
 import { PartyQueue } from "./PartyQueue";
 import { PartyAddSong } from "./PartyAddSong";
 import { PartyMembers } from "./PartyMembers";
 import { PartyReactions } from "./PartyReactions";
-
-const VIBE_IDS: VibeId[] = ["all", "phonk", "lofi", "bollywood", "indie", "chill"];
 
 interface PartyRoomProps {
   party: ReturnType<typeof useParty>;
@@ -87,11 +83,11 @@ export function PartyRoom({ party }: PartyRoomProps) {
   }, [leaveParty, router]);
 
   return (
-    <div className="relative min-h-dvh overflow-x-hidden text-white font-sans antialiased select-none">
+    <div className="relative h-dvh flex flex-col overflow-hidden text-white font-sans antialiased select-none">
       <Background theme={theme} />
       <Header inParty onExitParty={() => setShowLeaveConfirm(true)} />
 
-      <main className="relative z-10 mx-auto flex min-h-dvh w-full max-w-5xl flex-col gap-6 px-4 pt-24 pb-48 sm:px-6 md:pb-56">
+      <main className="relative z-10 mx-auto flex min-h-0 flex-1 w-full max-w-5xl flex-col gap-6 overflow-hidden px-4 pt-24 pb-48 sm:px-6 md:pb-56">
         {/* Room header row */}
         <section className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
@@ -144,9 +140,10 @@ export function PartyRoom({ party }: PartyRoomProps) {
         </section>
 
         {/* Main grid */}
-        <div className="grid flex-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <section className="flex min-w-0 flex-col gap-6">
+        <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <section className="flex min-h-0 min-w-0 flex-col gap-6">
             <PartyQueue
+              className="flex-1 min-h-0"
               state={state}
               isHost={isHost}
               accent={theme.accent}
@@ -160,29 +157,13 @@ export function PartyRoom({ party }: PartyRoomProps) {
             />
           </section>
 
-          <aside className="flex min-w-0 flex-col gap-6">
+          <aside className="flex min-h-0 min-w-0 flex-col gap-6 overflow-y-auto">
             <PartyMembers
               members={state?.members ?? []}
               hostId={state?.hostId ?? ""}
               meId={member?.id ?? ""}
               accent={theme.accent}
             />
-
-            <div className="rounded-2xl border border-white/10 bg-black/40 p-5 backdrop-blur-xl">
-              <p className="mb-3 text-[10px] tracking-widest text-white/40 uppercase">
-                Vibe
-              </p>
-              <PartyVibePicker
-                current={state?.vibeId ?? "all"}
-                disabled={!isHost}
-                onChange={(vibeId) => send("setVibe", { vibeId })}
-              />
-              {!isHost && (
-                <p className="mt-2.5 text-[10px] text-white/30">
-                  Only the host can change the vibe
-                </p>
-              )}
-            </div>
           </aside>
         </div>
       </main>
@@ -245,49 +226,6 @@ export function PartyRoom({ party }: PartyRoomProps) {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function PartyVibePicker({
-  current,
-  disabled = false,
-  onChange,
-}: {
-  current: VibeId;
-  disabled?: boolean;
-  onChange: (vibeId: VibeId) => void;
-}) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {VIBE_IDS.map((id) => {
-        const theme = backgroundThemes[id];
-        const selected = current === id;
-        return (
-          <button
-            key={id}
-            type="button"
-            onClick={() => {
-              if (!disabled) onChange(id);
-            }}
-            disabled={disabled}
-            className={cn(
-              "rounded-full border px-3 py-1.5 text-[11px] font-medium tracking-wide transition-all duration-200",
-              disabled
-                ? "cursor-not-allowed"
-                : "cursor-pointer hover:border-white/25 hover:text-white/90",
-              selected
-                ? "border-transparent text-black"
-                : "border-white/10 bg-white/5 text-white/60",
-              disabled && !selected && "opacity-50",
-            )}
-            style={selected ? { backgroundColor: theme.accent } : undefined}
-            aria-pressed={selected}
-          >
-            {theme.label}
-          </button>
-        );
-      })}
     </div>
   );
 }

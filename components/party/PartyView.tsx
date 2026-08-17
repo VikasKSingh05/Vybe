@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { VibeId } from "@/data/types";
 import { useParty, type PartyStatus } from "@/hooks/useParty";
 import { PartyLanding } from "./PartyLanding";
 import { PartyRoom } from "./PartyRoom";
@@ -15,10 +14,10 @@ export function PartyView({ initialRoomId }: PartyViewProps) {
   const [landingError, setLandingError] = useState<string | null>(null);
 
   const handleCreate = useCallback(
-    async (name: string, vibeId: VibeId) => {
+    async (name: string, vibeId: string) => {
       setLandingError(null);
       try {
-        await party.createParty(name, vibeId);
+        await party.createParty(name, vibeId as "all");
       } catch (err) {
         setLandingError(err instanceof Error ? err.message : "Failed to create party");
       }

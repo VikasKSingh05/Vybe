@@ -10,6 +10,7 @@ interface PartyQueueProps {
   isHost: boolean;
   memberId: string;
   accent: string;
+  className?: string;
   onRemove: (queueId: string) => void;
 }
 
@@ -18,13 +19,14 @@ export function PartyQueue({
   isHost,
   memberId,
   accent,
+  className,
   onRemove,
 }: PartyQueueProps) {
   const queue = state?.queue ?? [];
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl">
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-5">
+    <div className={cn("flex flex-col min-h-0 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl", className)}>
+      <div className="shrink-0 flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-5">
         <p className="text-[10px] tracking-widest text-white/40 uppercase">
           Now playing / queue
         </p>
@@ -34,7 +36,7 @@ export function PartyQueue({
       </div>
 
       {queue.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
+        <div className="shrink-0 flex flex-col items-center gap-2 px-6 py-10 text-center">
           <Music2 className="h-6 w-6 text-white/20" />
           <p className="text-sm text-white/40">Queue is empty</p>
           <p className="text-xs text-white/25">
@@ -42,7 +44,7 @@ export function PartyQueue({
           </p>
         </div>
       ) : (
-        <ul className="max-h-[46vh] divide-y divide-white/5 overflow-y-auto scrollbar-hide">
+        <ul className="min-h-0 flex-1 divide-y divide-white/5 overflow-y-auto scrollbar-hide">
           {queue.map((track, index) => {
             const isCurrent = state?.playback?.queueId === track.queueId;
             const canRemove = isHost || track.addedBy === memberId;
