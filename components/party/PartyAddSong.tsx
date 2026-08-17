@@ -126,7 +126,7 @@ export function PartyAddSong({ accent, onAdd }: PartyAddSongProps) {
             value={query}
             onChange={(e) => handleChange(e.target.value)}
             onFocus={() => query.trim() && setOpen(true)}
-            placeholder="Search JioSaavn for songs, artists, albums..."
+            placeholder="Search for songs, artists, albums..."
             className="w-full rounded-xl border border-white/10 bg-black/40 backdrop-blur-xl py-2.5 pl-9 pr-9 text-sm text-white placeholder-white/25 outline-none transition-colors focus:border-white/25"
           />
           {query && (

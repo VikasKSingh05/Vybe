@@ -29,14 +29,14 @@ const TYPE_CONFIG: Record<
 
 export function ActivityFeed({ activities, accent }: ActivityFeedProps) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">
+    <div className="h-full rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden flex flex-col">
       <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3">
         <p className="text-[10px] tracking-widest text-white/40 uppercase">
           Recent Activity
         </p>
       </div>
 
-      <div className="p-4">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 scrollbar-hide">
         {activities.length === 0 ? (
           <p className="text-xs text-white/25 py-2 text-center">
             Activity will appear here as people interact.

@@ -105,11 +105,11 @@ export function PartyRoom({ party }: PartyRoomProps) {
       {/* Viewport-locked content area */}
       <div className="relative z-10 flex-1 min-h-0 flex flex-col px-4 sm:px-5 lg:px-6 pt-[60px] pb-4">
 
-        {/* ─── BENTO GRID ─── */}
-        <div className="flex-1 min-h-0 grid gap-4 lg:gap-5 grid-cols-1 lg:grid-cols-[280px_1fr_260px] grid-rows-[auto_1fr] lg:auto-rows-auto">
+        {/* ─── BENTO GRID — single row, three columns ─── */}
+        <div className="flex-1 min-h-0 grid gap-4 lg:gap-5 grid-cols-1 lg:grid-cols-[280px_1fr_260px]">
 
-          {/* LEFT COLUMN — spans both rows on desktop */}
-          <div className="min-h-0 overflow-y-auto scrollbar-hide lg:row-span-2">
+          {/* LEFT — Room + Host Controls (full height) */}
+          <div className="min-h-0 overflow-y-auto scrollbar-hide">
             <RoomCodeCard
               roomId={state?.roomId ?? ""}
               isHost={isHost}
@@ -127,8 +127,8 @@ export function PartyRoom({ party }: PartyRoomProps) {
             />
           </div>
 
-          {/* CENTER — NOW PLAYING (row 1) */}
-          <div className="min-h-0">
+          {/* CENTER — Now Playing + Queue */}
+          <div className="flex flex-col gap-3 min-h-0">
             <NowPlayingCard
               track={playerTrack}
               state={state}
@@ -146,23 +146,9 @@ export function PartyRoom({ party }: PartyRoomProps) {
               onSeek={handleSeek}
               onReact={(emoji) => send("reaction", { emoji })}
             />
-          </div>
 
-          {/* RIGHT — IN THE ROOM (row 1) */}
-          <div className="min-h-0">
-            <PartyMembers
-              members={state?.members ?? []}
-              hostId={state?.hostId ?? ""}
-              meId={member?.id ?? ""}
-              accent={theme.accent}
-              onInvite={handleInvite}
-            />
-          </div>
-
-          {/* CENTER — UP NEXT (row 2) */}
-          <div className="min-h-0 lg:block hidden">
             <PartyQueue
-              className="h-full"
+              className="flex-1 min-h-0"
               state={state}
               isHost={isHost}
               accent={theme.accent}
@@ -172,33 +158,23 @@ export function PartyRoom({ party }: PartyRoomProps) {
             />
           </div>
 
-          {/* CENTER — UP NEXT (row 2, mobile — only visible below lg) */}
-          <div className="min-h-0 lg:hidden">
-            <PartyQueue
-              className="h-full max-h-[40vh]"
-              state={state}
-              isHost={isHost}
-              accent={theme.accent}
-              memberId={member?.id ?? ""}
-              onRemove={(queueId) => send("removeTrack", { queueId })}
-              onPlayTrack={handlePlayTrack}
-            />
-          </div>
-
-          {/* RIGHT — ACTIVITY (row 2) */}
-          <div className="min-h-0 overflow-y-auto scrollbar-hide lg:block hidden">
-            <ActivityFeed
-              activities={activities}
-              accent={theme.accent}
-            />
-          </div>
-
-          {/* RIGHT — ACTIVITY (row 2, mobile — only visible below lg) */}
-          <div className="min-h-0 overflow-y-auto scrollbar-hide lg:hidden">
-            <ActivityFeed
-              activities={activities}
-              accent={theme.accent}
-            />
+          {/* RIGHT — Members + Activity */}
+          <div className="flex flex-col gap-2 min-h-0">
+            <div className="min-h-0 overflow-y-auto scrollbar-hide">
+              <PartyMembers
+                members={state?.members ?? []}
+                hostId={state?.hostId ?? ""}
+                meId={member?.id ?? ""}
+                accent={theme.accent}
+                onInvite={handleInvite}
+              />
+            </div>
+            <div className="min-h-0 overflow-y-auto scrollbar-hide">
+              <ActivityFeed
+                activities={activities}
+                accent={theme.accent}
+              />
+            </div>
           </div>
         </div>
 

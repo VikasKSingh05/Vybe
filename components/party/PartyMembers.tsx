@@ -27,14 +27,14 @@ function getAvatarColor(name: string): string {
 
 export function PartyMembers({ members, hostId, meId, accent, onInvite }: PartyMembersProps) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">
+    <div className="h-full rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">
       <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3">
         <p className="text-[10px] tracking-widest text-white/40 uppercase">
           In the Room ({members.length})
         </p>
       </div>
 
-      <div className="p-4">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 scrollbar-hide">
         {members.length === 0 ? (
           <p className="text-xs text-white/30 py-2">Nobody else yet — share the code.</p>
         ) : (
