@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PartyState } from "@/lib/party/types";
 import { effectivePosition, playbackSignature } from "@/lib/party/clock";
+import { useAudioElement } from "./useAudioElement";
 
 const DRIFT_CHECK_MS = 10_000;
 const DRIFT_TOLERANCE_S = 0.35;
@@ -13,14 +14,9 @@ interface UsePartyAudioOptions {
 }
 
 export function usePartyAudio({ state, onTrackEnded }: UsePartyAudioOptions) {
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [volume, setVolumeState] = useState(0.75);
   const [isMuted, setIsMutedState] = useState(false);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const clockOffsetRef = useRef(0);
   const appliedSigRef = useRef("");
   const onEndedRef = useRef(onTrackEnded);
@@ -29,11 +25,15 @@ export function usePartyAudio({ state, onTrackEnded }: UsePartyAudioOptions) {
     onEndedRef.current = onTrackEnded;
   }, [onTrackEnded]);
 
+  const { audioRef, currentTime, duration, isPlaying, isLoading } = useAudioElement({
+    onEnded: () => onEndedRef.current(),
+  });
+
   const setVolume = useCallback((v: number) => {
     const clamped = Math.min(Math.max(v, 0), 1);
     setVolumeState(clamped);
     if (audioRef.current) audioRef.current.volume = clamped;
-  }, []);
+  }, [audioRef]);
 
   const toggleMute = useCallback(() => {
     setIsMutedState((prev) => {
@@ -41,52 +41,14 @@ export function usePartyAudio({ state, onTrackEnded }: UsePartyAudioOptions) {
       if (audioRef.current) audioRef.current.muted = next;
       return next;
     });
-  }, []);
+  }, [audioRef]);
 
-  // Mount: create the audio element once and drive UI state from its events.
   useEffect(() => {
-    const audio = new Audio();
-    audio.preload = "auto";
-    audio.volume = volume;
-    audioRef.current = audio;
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+  }, [volume, audioRef]);
 
-    const handleTimeUpdate = () => setCurrentTime(audio.currentTime || 0);
-    const handleLoadedMetadata = () => {
-      if (audio.duration && !isNaN(audio.duration)) setDuration(audio.duration);
-    };
-    const handlePlay = () => {
-      setIsPlaying(true);
-      setIsLoading(false);
-    };
-    const handlePause = () => setIsPlaying(false);
-    const handleWaiting = () => setIsLoading(true);
-    const handlePlaying = () => setIsLoading(false);
-    const handleEnded = () => onEndedRef.current();
-
-    audio.addEventListener("timeupdate", handleTimeUpdate);
-    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
-    audio.addEventListener("play", handlePlay);
-    audio.addEventListener("pause", handlePause);
-    audio.addEventListener("waiting", handleWaiting);
-    audio.addEventListener("playing", handlePlaying);
-    audio.addEventListener("ended", handleEnded);
-
-    return () => {
-      audio.removeEventListener("timeupdate", handleTimeUpdate);
-      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
-      audio.removeEventListener("play", handlePlay);
-      audio.removeEventListener("pause", handlePause);
-      audio.removeEventListener("waiting", handleWaiting);
-      audio.removeEventListener("playing", handlePlaying);
-      audio.removeEventListener("ended", handleEnded);
-      audio.pause();
-      audio.removeAttribute("src");
-      audio.load();
-      audioRef.current = null;
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Conductor transitions: mutate the audio element directly (no setState).
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -132,9 +94,8 @@ export function usePartyAudio({ state, onTrackEnded }: UsePartyAudioOptions) {
     } else {
       audio.play().catch(() => {});
     }
-  }, [state]);
+  }, [state, audioRef]);
 
-  // Periodic drift correction between conductor clock and the audio element.
   useEffect(() => {
     const id = setInterval(() => {
       const audio = audioRef.current;
@@ -151,7 +112,7 @@ export function usePartyAudio({ state, onTrackEnded }: UsePartyAudioOptions) {
       }
     }, DRIFT_CHECK_MS);
     return () => clearInterval(id);
-  }, [state?.playback]);
+  }, [state?.playback, audioRef]);
 
   return {
     currentTime,

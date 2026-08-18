@@ -1,22 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Radio,
-  Copy,
-  Check,
-  Share2,
-  Crown,
-  SkipBack,
-  Play,
-  Pause,
-  SkipForward,
-  Shuffle,
-  Repeat,
-  Volume2,
-  VolumeX,
-} from "lucide-react";
-import { cn } from "@/lib/cn";
+import { Radio, Copy, Check, Share2, Crown, Shuffle, Repeat } from "lucide-react";
+import { TransportControls } from "@/components/player/TransportControls";
+import { VolumeControl } from "@/components/player/VolumeControl";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 
 interface RoomCodeCardProps {
   roomId: string;
@@ -45,17 +32,9 @@ export function RoomCodeCard({
   onVolumeChange,
   onToggleMute,
 }: RoomCodeCardProps) {
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyToClipboard();
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(roomId.toUpperCase());
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // clipboard unavailable
-    }
-  };
+  const handleCopy = () => copy(roomId.toUpperCase());
 
   const handleShare = async () => {
     const url = `${typeof window !== "undefined" ? window.location.origin : ""}/party/${roomId}`;
@@ -66,15 +45,12 @@ export function RoomCodeCard({
         // user cancelled or error
       }
     } else {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      copy(url);
     }
   };
 
   return (
     <div className="h-full flex flex-col justify-center rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">
-      {/* Room code section */}
       <div className="flex flex-col items-center px-6 pb-6 text-center">
         <div
           className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg"
@@ -96,7 +72,6 @@ export function RoomCodeCard({
         </p>
       </div>
 
-      {/* Action buttons */}
       <div className="flex flex-col gap-2.5 px-5 pb-5">
         <button
           type="button"
@@ -126,10 +101,8 @@ export function RoomCodeCard({
         </button>
       </div>
 
-      {/* Divider */}
       <div className="mx-5 my-8 h-px bg-white/10" />
 
-      {/* Host section */}
       <div className="px-5 py-5">
         <div className="flex items-center gap-2 mb-2">
           <Crown className="h-4 w-4" style={{ color: accent }} />
@@ -147,43 +120,18 @@ export function RoomCodeCard({
           </p>
         )}
 
-        {/* Host controls */}
         {isHost ? (
           <div className="flex flex-col gap-4">
-            {/* Transport */}
-            <div className="flex items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={onPrev}
-                className="rounded-full p-2 text-white/50 transition-all hover:bg-white/10 hover:text-white active:scale-95 cursor-pointer"
-              >
-                <SkipBack className="h-4 w-4 fill-current" />
-              </button>
-              <button
-                type="button"
-                onClick={onTogglePlay}
-                className="rounded-full p-3.5 text-black transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-lg"
-                style={{
-                  backgroundColor: accent,
-                  boxShadow: `0 4px 24px ${accent}66`,
-                }}
-              >
-                {isPlaying ? (
-                  <Pause className="h-5 w-5 fill-current" />
-                ) : (
-                  <Play className="h-5 w-5 fill-current pl-0.5" />
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={onNext}
-                className="rounded-full p-2 text-white/50 transition-all hover:bg-white/10 hover:text-white active:scale-95 cursor-pointer"
-              >
-                <SkipForward className="h-4 w-4 fill-current" />
-              </button>
-            </div>
+            <TransportControls
+              isPlaying={isPlaying}
+              disabled={false}
+              accent={accent}
+              size="sm"
+              onTogglePlay={onTogglePlay}
+              onPrev={onPrev}
+              onNext={onNext}
+            />
 
-            {/* Shuffle / Repeat */}
             <div className="flex items-center justify-center gap-6">
               <button
                 type="button"
@@ -201,31 +149,14 @@ export function RoomCodeCard({
               </button>
             </div>
 
-            {/* Volume */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onToggleMute}
-                className="rounded-full p-1.5 text-white/40 transition-colors hover:bg-white/10 hover:text-white/80 cursor-pointer"
-              >
-                {isMuted || volume === 0 ? (
-                  <VolumeX className="h-4 w-4" />
-                ) : (
-                  <Volume2 className="h-4 w-4" />
-                )}
-              </button>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={isMuted ? 0 : volume}
-                onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
-                aria-label="Volume"
-                className="volume-slider flex-1"
-                style={{ "--accent": accent } as React.CSSProperties}
-              />
-            </div>
+            <VolumeControl
+              volume={volume}
+              isMuted={isMuted}
+              accent={accent}
+              size="sm"
+              onVolumeChange={onVolumeChange}
+              onToggleMute={onToggleMute}
+            />
           </div>
         ) : (
           <div className="rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3 text-center text-xs text-white/30">

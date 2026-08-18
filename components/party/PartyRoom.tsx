@@ -8,6 +8,7 @@ import { getVibeTheme } from "@/data/vibes";
 import { Background } from "@/components/Background";
 import { usePartyAudio } from "@/hooks/usePartyAudio";
 import { usePartyActivity } from "@/hooks/usePartyActivity";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import type { useParty } from "@/hooks/useParty";
 import { PartyTopNav } from "./PartyTopNav";
 import { RoomCodeCard } from "./RoomCodeCard";
@@ -25,6 +26,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
   const { state, member, isHost, send, leaveParty } = party;
   const router = useRouter();
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const { copy } = useCopyToClipboard();
 
   const theme = getVibeTheme(state?.vibeId ?? "all");
 
@@ -80,15 +82,10 @@ export function PartyRoom({ party }: PartyRoomProps) {
     router.push("/");
   }, [leaveParty, router]);
 
-  const handleInvite = useCallback(async () => {
+  const handleInvite = useCallback(() => {
     if (!state) return;
-    const url = `${window.location.origin}/party/${state.roomId}`;
-    try {
-      await navigator.clipboard.writeText(url);
-    } catch {
-      // clipboard unavailable
-    }
-  }, [state]);
+    copy(`${window.location.origin}/party/${state.roomId}`);
+  }, [state, copy]);
 
   return (
     <div className="relative h-dvh flex flex-col overflow-hidden text-white font-sans antialiased select-none">

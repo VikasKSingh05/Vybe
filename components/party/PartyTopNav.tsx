@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { Copy, Check, LogOut, Users, Music } from "lucide-react";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 
 interface PartyTopNavProps {
   roomId: string;
@@ -18,17 +18,9 @@ export function PartyTopNav({
   accent,
   onLeave,
 }: PartyTopNavProps) {
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyToClipboard();
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(roomId.toUpperCase());
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // clipboard unavailable
-    }
-  };
+  const handleCopy = () => copy(roomId.toUpperCase());
 
   return (
     <header className="fixed top-0 right-0 left-0 z-30 flex items-center gap-4 border-b border-white/[0.06] bg-black/50 px-4 py-3 backdrop-blur-xl sm:px-6 select-none">
@@ -59,8 +51,6 @@ export function PartyTopNav({
         <p className="hidden lg:block truncate text-[11px] text-white/35">
           Invite friends and vibe together
         </p>
-
-
       </div>
 
       {/* Right section */}
