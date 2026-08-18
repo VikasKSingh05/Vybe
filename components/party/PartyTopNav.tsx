@@ -60,32 +60,7 @@ export function PartyTopNav({
           Invite friends and vibe together
         </p>
 
-        {/* External links — desktop only */}
-        {/* <div className="hidden xl:flex items-center gap-3 ml-1">
-          <div className="h-3 w-px bg-white/10" />
-          <a
-            href="https://open.spotify.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group flex items-center gap-1 text-[11px] text-white/40 transition-colors hover:text-white/80"
-          >
-            Spotify
-            <span className="text-[9px] transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
-              ↗
-            </span>
-          </a>
-          <a
-            href="https://music.youtube.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group flex items-center gap-1 text-[11px] text-white/40 transition-colors hover:text-white/80"
-          >
-            YouTube Music
-            <span className="text-[9px] transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
-              ↗
-            </span>
-          </a>
-        </div> */}
+
       </div>
 
       {/* Right section */}

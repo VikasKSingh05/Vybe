@@ -1,6 +1,6 @@
 "use client";
 
-import { Music2, X, Settings, Play } from "lucide-react";
+import { Music2, X, Play } from "lucide-react";
 import type { PartyState } from "@/lib/party/types";
 import { AlbumArt } from "@/components/AlbumArt";
 import { formatTime } from "@/lib/format-time";
@@ -33,13 +33,6 @@ export function PartyQueue({
         <p className="text-[10px] tracking-widest text-white/40 uppercase">
           Up Next ({queue.length})
         </p>
-        <button
-          type="button"
-          className="rounded-md p-1 text-white/30 transition-colors hover:bg-white/10 hover:text-white/60 cursor-pointer"
-          title="Queue settings"
-        >
-          <Settings className="h-3.5 w-3.5" />
-        </button>
       </div>
 
       {queue.length === 0 ? (
