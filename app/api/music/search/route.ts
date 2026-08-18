@@ -1,7 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchJioSaavnSongs } from "@/lib/music/jiosaavn";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function GET(request: NextRequest) {
+  const ip = getClientIp(request);
+  const { allowed, retryAfterMs } = rateLimit(`music:search:${ip}`, {
+    maxTokens: 20,
+    refillRate: 1 / 3,
+  });
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Try again later." },
+      { status: 429, headers: { "Retry-After": String(Math.ceil(retryAfterMs / 1000)) } },
+    );
+  }
+
   try {
     const query = request.nextUrl.searchParams.get("query")?.trim() || "";
     if (!query) {
