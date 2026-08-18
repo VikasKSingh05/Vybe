@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { DM_Sans, Syne } from "next/font/google";
 import "./globals.css";
 
@@ -14,20 +14,31 @@ const syne = Syne({
   weight: ["600", "700", "800"],
 });
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://vybe.app";
+
 export const metadata: Metadata = {
   title: "VYBE",
   description:
     "An immersive, cinematic music discovery experience. Pick a vibe and press play.",
+  metadataBase: new URL(appUrl),
   openGraph: {
     title: "VYBE",
     description: "Pick a vibe. Press play.",
     type: "website",
+    url: appUrl,
+    siteName: "VYBE",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "VYBE",
+    description: "Pick a vibe. Press play.",
   },
 };
 
-export const viewport: Viewport = {
+export const viewport = {
   themeColor: "#0a0a0a",
-  width: "device-width",
+  width: "device-width" as const,
   initialScale: 1,
   maximumScale: 1,
 };
