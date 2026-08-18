@@ -1,5 +1,3 @@
-export type { Song } from "@/types/music";
-
 export interface JioSaavnDownloadUrl {
   quality: string;
   url?: string;

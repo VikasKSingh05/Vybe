@@ -171,10 +171,6 @@ export function getRoom(roomId: string): PartyState | null {
   return serialize(roomId);
 }
 
-export function roomExists(roomId: string): boolean {
-  return rooms.has(roomId);
-}
-
 /** SSE subscription. `memberId` ties a connection to a member for cleanup. */
 export function subscribe(
   roomId: string,
