@@ -16,6 +16,8 @@ export type PartyStatus = "idle" | "connecting" | "connected" | "reconnecting" |
 
 const MAX_RETRIES = 5;
 const HEARTBEAT_MS = 30_000;
+const BACKOFF_BASE_MS = 1_000;
+const BACKOFF_MAX_MS = 30_000;
 
 function loadSession(): PartySession | null {
   try {
@@ -61,6 +63,7 @@ export function useParty() {
   const esRef = useRef<EventSource | null>(null);
   const retryRef = useRef(0);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const member: PartyMember | null = state && selfId
     ? (state.members.find((m) => m.id === selfId) ?? null)
@@ -81,7 +84,13 @@ export function useParty() {
       clearInterval(heartbeatRef.current);
       heartbeatRef.current = null;
     }
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
   }, []);
+
+  const openStreamRef = useRef<((session: PartySession) => void) | null>(null);
 
   const openStream = useCallback(
     (session: PartySession) => {
@@ -115,21 +124,28 @@ export function useParty() {
         setSelfId(null);
       });
 
-        es.onerror = () => {
-          if (es.readyState === EventSource.CLOSED) {
-            // The server terminated the stream (e.g. room deleted).
-            stopConnection();
-            if (retryRef.current >= MAX_RETRIES) {
-              clearSession();
-              setStatus("closed");
-              setState(null);
-              setSelfId(null);
-              return;
-            }
-            setStatus("reconnecting");
-            retryRef.current += 1;
+      es.onerror = () => {
+        if (es.readyState === EventSource.CLOSED) {
+          stopConnection();
+          if (retryRef.current >= MAX_RETRIES) {
+            clearSession();
+            setStatus("closed");
+            setState(null);
+            setSelfId(null);
+            return;
           }
-        };
+          setStatus("reconnecting");
+          retryRef.current += 1;
+          const delay = Math.min(
+            BACKOFF_MAX_MS,
+            BACKOFF_BASE_MS * Math.pow(2, retryRef.current - 1),
+          ) + Math.random() * 1_000;
+          reconnectTimerRef.current = setTimeout(() => {
+            reconnectTimerRef.current = null;
+            openStreamRef.current?.(session);
+          }, delay);
+        }
+      };
 
       heartbeatRef.current = setInterval(() => {
         const current = sessionRef.current;
@@ -146,6 +162,8 @@ export function useParty() {
     },
     [applyState, stopConnection],
   );
+
+  openStreamRef.current = openStream;
 
   // Auto-rejoin a persisted session on mount (deferred out of the effect
   // body to satisfy react-hooks/set-state-in-effect).
