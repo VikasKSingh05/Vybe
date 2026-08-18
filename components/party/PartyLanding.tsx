@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import Link from "next/link";
 import { Users, Link2, Sparkles } from "lucide-react";
 import { backgroundThemes } from "@/data/backgrounds";
 
@@ -47,6 +48,12 @@ export function PartyLanding({
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
+      <Link
+        href="/"
+        className="fixed top-5 left-5 z-30 font-display text-sm font-semibold tracking-tight text-white/90 transition-colors duration-300 hover:text-white"
+      >
+        VYBE
+      </Link>
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-[11px] tracking-wide text-white/60">
