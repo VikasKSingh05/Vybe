@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { Copy, Check, LogOut, Users, Music } from "lucide-react";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 
 interface PartyTopNavProps {
   roomId: string;
@@ -18,17 +18,9 @@ export function PartyTopNav({
   accent,
   onLeave,
 }: PartyTopNavProps) {
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyToClipboard();
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(roomId.toUpperCase());
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // clipboard unavailable
-    }
-  };
+  const handleCopy = () => copy(roomId.toUpperCase());
 
   return (
     <header className="fixed top-0 right-0 left-0 z-30 flex items-center gap-4 border-b border-white/[0.06] bg-black/50 px-4 py-3 backdrop-blur-xl sm:px-6 select-none">
@@ -59,33 +51,6 @@ export function PartyTopNav({
         <p className="hidden lg:block truncate text-[11px] text-white/35">
           Invite friends and vibe together
         </p>
-
-        {/* External links — desktop only */}
-        {/* <div className="hidden xl:flex items-center gap-3 ml-1">
-          <div className="h-3 w-px bg-white/10" />
-          <a
-            href="https://open.spotify.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group flex items-center gap-1 text-[11px] text-white/40 transition-colors hover:text-white/80"
-          >
-            Spotify
-            <span className="text-[9px] transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
-              ↗
-            </span>
-          </a>
-          <a
-            href="https://music.youtube.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group flex items-center gap-1 text-[11px] text-white/40 transition-colors hover:text-white/80"
-          >
-            YouTube Music
-            <span className="text-[9px] transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
-              ↗
-            </span>
-          </a>
-        </div> */}
       </div>
 
       {/* Right section */}

@@ -16,15 +16,6 @@ export function effectivePosition(
   return (now - playback.startedAt) / 1000 + playback.positionAtStart;
 }
 
-/**
- * Serialization guard against NaN / negative playhead values.
- */
-export function clampPosition(position: number, duration = 0): number {
-  if (!Number.isFinite(position)) return 0;
-  if (duration > 0) return Math.min(Math.max(position, 0), duration);
-  return Math.max(position, 0);
-}
-
 /** Stable signature of a playback segment; used to detect transitions. */
 export function playbackSignature(pb: PartyPlayback | null): string {
   if (!pb) return "";

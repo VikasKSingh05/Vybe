@@ -5,6 +5,8 @@ import type { Track, VibeId } from "@/data/types";
 import { getVibeTheme } from "@/data/vibes";
 import { getPlaylistForGenre, type PlaylistEntry } from "@/data/playlists";
 import type { Song } from "@/types/music";
+import { useAudioElement } from "./useAudioElement";
+import { resolveSong as resolveSongFn } from "@/lib/music/resolve";
 
 interface UsePlayerOptions {
   initialVibeId?: VibeId;
@@ -21,111 +23,56 @@ export function usePlayer({
   );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
-
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [volume, setVolumeState] = useState(0.75);
-  const [isMuted, setIsMutedState] = useState(false);
+  const [extraLoading, setExtraLoading] = useState(false);
   const [errorState, setErrorState] = useState<string | null>(null);
   const [userInteracted, setUserInteracted] = useState(autoPlay);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const songCacheRef = useRef<Map<string, Song>>(new Map());
   const failCountRef = useRef(0);
   const activePlaylistRef = useRef(playlist);
   activePlaylistRef.current = playlist;
   const currentIndexRef = useRef(currentIndex);
   currentIndexRef.current = currentIndex;
+  const loadSongAtIndexRef = useRef<((index: number, shouldPlay?: boolean) => Promise<void>) | null>(null);
 
   const theme = getVibeTheme(vibeId);
 
-  // Initialize HTML5 Audio instance once
-  useEffect(() => {
-    const audio = new Audio();
-    audio.preload = "auto";
-    audioRef.current = audio;
+  const [volume, setVolumeState] = useState(0.75);
+  const [isMuted, setIsMutedState] = useState(false);
 
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime || 0);
-    };
-
-    const handleLoadedMetadata = () => {
-      if (audio.duration && !isNaN(audio.duration)) {
-        setDuration(audio.duration);
+  const { audioRef, currentTime, duration, isPlaying, isLoading: audioLoading } = useAudioElement({
+    onEnded: () => {
+      const currentList = activePlaylistRef.current;
+      if (currentList.length === 0) return;
+      const nextIndex = (currentIndexRef.current + 1) % currentList.length;
+      loadSongAtIndexRef.current?.(nextIndex, true);
+    },
+    onError: () => {
+      const audio = audioRef.current;
+      if (!audio?.src || audio.error?.code === 1) return;
+      console.warn("[VYBE Audio] Real playback error for audio source:", audio.error);
+      failCountRef.current += 1;
+      const currentList = activePlaylistRef.current;
+      if (failCountRef.current >= currentList.length) {
+        setErrorState("Unable to stream audio.");
+        return;
       }
-    };
+      const nextIndex = (currentIndexRef.current + 1) % currentList.length;
+      setTimeout(() => loadSongAtIndexRef.current?.(nextIndex, true), 400);
+    },
+  });
 
-    const handlePlay = () => {
-      setIsPlaying(true);
-      setErrorState(null);
-    };
-
-    const handlePause = () => {
-      setIsPlaying(false);
-    };
-
-    audio.addEventListener("timeupdate", handleTimeUpdate);
-    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
-    audio.addEventListener("play", handlePlay);
-    audio.addEventListener("pause", handlePause);
-
-    return () => {
-      audio.removeEventListener("timeupdate", handleTimeUpdate);
-      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
-      audio.removeEventListener("play", handlePlay);
-      audio.removeEventListener("pause", handlePause);
-      audio.pause();
-      audio.removeAttribute("src");
-    };
-  }, []);
-
-  // Sync volume and mute settings to Audio element
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = isMuted ? 0 : volume;
     }
-  }, [volume, isMuted]);
+  }, [volume, isMuted, audioRef]);
 
-  // Helper to resolve song from cache or API (by ID or Title+Artist search)
   const resolveSong = useCallback(
-    async (entry: PlaylistEntry): Promise<Song | null> => {
-      const cacheKey =
-        entry.jiosaavnId && entry.jiosaavnId.trim()
-          ? entry.jiosaavnId.trim()
-          : `${entry.title}-${entry.artist}`.toLowerCase();
-
-      const cached = songCacheRef.current.get(cacheKey);
-      if (cached && cached.streamUrl) {
-        return cached;
-      }
-
-      try {
-        const queryParam = encodeURIComponent(`${entry.title} ${entry.artist}`);
-        const idParam =
-          entry.jiosaavnId && entry.jiosaavnId.trim()
-            ? entry.jiosaavnId.trim()
-            : "search";
-        const res = await fetch(`/api/music/song/${idParam}?query=${queryParam}`);
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-        const data: Song = await res.json();
-        if (data && data.streamUrl) {
-          songCacheRef.current.set(cacheKey, data);
-          return data;
-        }
-      } catch (err) {
-        console.warn(`[VYBE] Failed to resolve song "${entry.title}":`, err);
-      }
-
-      return null;
-    },
-    []
+    (entry: PlaylistEntry) => resolveSongFn(songCacheRef.current, entry),
+    [],
   );
 
-  // Preload next track metadata
   const preloadNextSong = useCallback(
     async (nextIdx: number) => {
       const currentList = activePlaylistRef.current;
@@ -133,18 +80,16 @@ export function usePlayer({
       const targetEntry = currentList[nextIdx % currentList.length];
       if (targetEntry) {
         const cacheKey =
-          targetEntry.jiosaavnId && targetEntry.jiosaavnId.trim()
-            ? targetEntry.jiosaavnId.trim()
-            : `${targetEntry.title}-${targetEntry.artist}`.toLowerCase();
+          targetEntry.jiosaavnId?.trim() ||
+          `${targetEntry.title}-${targetEntry.artist}`.toLowerCase();
         if (!songCacheRef.current.has(cacheKey)) {
           await resolveSong(targetEntry);
         }
       }
     },
-    [resolveSong]
+    [resolveSong],
   );
 
-  // Core function to load and play a song index
   const loadSongAtIndex = useCallback(
     async (index: number, shouldPlay = true) => {
       const audio = audioRef.current;
@@ -153,19 +98,18 @@ export function usePlayer({
       const currentList = activePlaylistRef.current;
       if (currentList.length === 0) {
         setErrorState("Playlist is empty");
-        setIsLoading(false);
+        setExtraLoading(false);
         return;
       }
 
       const safeIndex = (index + currentList.length) % currentList.length;
       const entry = currentList[safeIndex];
       setCurrentIndex(safeIndex);
-      setIsLoading(true);
+      setExtraLoading(true);
       setErrorState(null);
 
-      // Stop current playback cleanly without firing artificial error
       audio.pause();
-      setCurrentTime(0);
+      audio.currentTime = 0;
 
       const song = await resolveSong(entry);
 
@@ -175,91 +119,41 @@ export function usePlayer({
 
         if (failCountRef.current >= currentList.length) {
           setErrorState("Unable to play tracks in this playlist.");
-          setIsLoading(false);
-          setIsPlaying(false);
+          setExtraLoading(false);
           return;
         }
 
-        // Auto skip to next song if this one failed
-        setTimeout(() => {
-          loadSongAtIndex(safeIndex + 1, shouldPlay);
-        }, 300);
+        setTimeout(() => loadSongAtIndexRef.current?.(safeIndex + 1, shouldPlay), 300);
         return;
       }
 
-      // Reset fail counter on success
       failCountRef.current = 0;
       setCurrentSong(song);
-      setDuration(song.duration || 0);
 
       audio.src = song.streamUrl;
       audio.load();
-      setIsLoading(false);
+      setExtraLoading(false);
 
       if (shouldPlay && userInteracted) {
         audio
           .play()
           .then(() => {
-            setIsPlaying(true);
             preloadNextSong(safeIndex + 1);
           })
           .catch((err) => {
             console.warn("[VYBE] Autoplay error:", err);
-            setIsPlaying(false);
           });
       }
     },
-    [resolveSong, preloadNextSong, userInteracted]
+    [resolveSong, preloadNextSong, userInteracted, audioRef],
   );
 
-  // Attach ended and error listeners with latest refs
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
+  loadSongAtIndexRef.current = loadSongAtIndex;
 
-    const handleEnded = () => {
-      const currentList = activePlaylistRef.current;
-      if (currentList.length === 0) return;
-      const nextIndex = (currentIndexRef.current + 1) % currentList.length;
-      loadSongAtIndex(nextIndex, true);
-    };
-
-    const handleError = () => {
-      // Ignore false error events caused by empty src or aborted requests
-      if (!audio.src || audio.error?.code === 1) {
-        return;
-      }
-
-      console.warn("[VYBE Audio] Real playback error for audio source:", audio.error);
-      failCountRef.current += 1;
-      const currentList = activePlaylistRef.current;
-      if (failCountRef.current >= currentList.length) {
-        setErrorState("Unable to stream audio.");
-        setIsPlaying(false);
-        setIsLoading(false);
-        return;
-      }
-      const nextIndex = (currentIndexRef.current + 1) % currentList.length;
-      setTimeout(() => {
-        loadSongAtIndex(nextIndex, true);
-      }, 400);
-    };
-
-    audio.addEventListener("ended", handleEnded);
-    audio.addEventListener("error", handleError);
-
-    return () => {
-      audio.removeEventListener("ended", handleEnded);
-      audio.removeEventListener("error", handleError);
-    };
-  }, [loadSongAtIndex]);
-
-  // Load first song on initial mount
   useEffect(() => {
     loadSongAtIndex(0, false);
-  }, []); // Run once on mount
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Change Genre / Vibe
   const changeVibe = useCallback(
     (newVibeId: VibeId) => {
       setUserInteracted(true);
@@ -269,36 +163,32 @@ export function usePlayer({
       failCountRef.current = 0;
       setCurrentIndex(0);
 
-      // Stop current playback cleanly
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.removeAttribute("src");
       }
 
-      // Load first song of new genre and play
       setTimeout(() => {
         const entry = newPlaylist[0];
         if (entry) {
-          setIsLoading(true);
+          setExtraLoading(true);
           resolveSong(entry).then((song) => {
-            if (song && song.streamUrl && audioRef.current) {
+            if (song?.streamUrl && audioRef.current) {
               setCurrentSong(song);
-              setDuration(song.duration || 0);
               audioRef.current.src = song.streamUrl;
               audioRef.current.load();
-              setIsLoading(false);
+              setExtraLoading(false);
               audioRef.current
                 .play()
-                .then(() => setIsPlaying(true))
-                .catch(() => setIsPlaying(false));
+                .catch(() => {});
             } else {
-              loadSongAtIndex(0, true);
+              loadSongAtIndexRef.current?.(0, true);
             }
           });
         }
       }, 50);
     },
-    [resolveSong, loadSongAtIndex]
+    [resolveSong, audioRef],
   );
 
   const togglePlay = useCallback(() => {
@@ -314,11 +204,10 @@ export function usePlayer({
       } else {
         audio
           .play()
-          .then(() => setIsPlaying(true))
           .catch((err) => console.warn("[VYBE] Play failed:", err));
       }
     }
-  }, [isPlaying, currentSong, currentIndex, loadSongAtIndex]);
+  }, [isPlaying, currentSong, currentIndex, loadSongAtIndex, audioRef]);
 
   const play = useCallback(() => {
     setUserInteracted(true);
@@ -329,23 +218,21 @@ export function usePlayer({
     } else {
       audio
         .play()
-        .then(() => setIsPlaying(true))
         .catch((err) => console.warn("[VYBE] Play failed:", err));
     }
-  }, [currentSong, currentIndex, loadSongAtIndex]);
+  }, [currentSong, currentIndex, loadSongAtIndex, audioRef]);
 
   const pause = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
     }
-  }, []);
+  }, [audioRef]);
 
   const seek = useCallback((time: number) => {
     if (audioRef.current) {
       audioRef.current.currentTime = time;
-      setCurrentTime(time);
     }
-  }, []);
+  }, [audioRef]);
 
   const next = useCallback(() => {
     setUserInteracted(true);
@@ -375,7 +262,6 @@ export function usePlayer({
     setIsMutedState((prev) => !prev);
   }, []);
 
-  // Adapt currentSong / playlist entry to `Track` format expected by FloatingPlayer
   const activeEntry = playlist[currentIndex] || {
     title: "VYBE Radio",
     artist: "Selecting vibe...",
@@ -392,17 +278,14 @@ export function usePlayer({
   };
 
   const currentDuration = duration > 0 ? duration : track.duration;
-  const clampedTime = Math.min(
-    currentDuration,
-    Math.max(0, currentTime)
-  );
+  const clampedTime = Math.min(currentDuration, Math.max(0, currentTime));
 
   return {
     vibeId,
     theme,
     track,
     isPlaying,
-    isLoading,
+    isLoading: extraLoading || audioLoading,
     error: errorState,
     currentTime: clampedTime,
     duration: currentDuration,

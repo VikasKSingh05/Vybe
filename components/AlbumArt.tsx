@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/cn";
 
 const FALLBACK_ARTWORK = "/covers/default.jpg";
@@ -28,12 +28,6 @@ export function AlbumArt({
     setPrevSrc(src);
     setCurrentSrc(src);
   }
-
-  useEffect(() => {
-    if (src && src !== FALLBACK_ARTWORK) {
-      console.log(`[VYBE] Artwork: ${src}`);
-    }
-  }, [src]);
 
   const handleError = () => {
     if (currentSrc && currentSrc !== FALLBACK_ARTWORK) {
