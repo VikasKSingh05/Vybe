@@ -1,36 +1,216 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# VYBE
 
-## Getting Started
+> Music that matches your mood.
 
-First, run the development server:
+VYBE is a modern music discovery and listening platform built around **moods, curated VYBES, and social listening**.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Instead of browsing through endless playlists, VYBE lets you choose a vibe and instantly start listening. You can also search for specific songs or join a **VYBE Jam** to listen together with friends in real time.
+
+---
+
+## ✨ Features
+
+### 🎧 VYBE-based Music Discovery
+
+Choose a vibe and let VYBE handle the music selection.
+
+Available vibes include different moods and energy levels such as:
+
+- 🌿 Lofi
+- ⚡ Energetic
+- 🧘 Chill
+- 🔥 Phonk
+- 🎲 Random
+
+Each VYBE provides a curated listening experience rather than requiring users to manually build a playlist.
+
+---
+
+### 🔎 Music Search
+
+Don't want to follow a predefined vibe?
+
+Search for a specific:
+
+- Song
+- Artist
+- Track
+
+VYBE resolves the requested track through its music API and plays the highest available audio quality.
+
+---
+
+### 🎉 VYBE Jam
+
+Create a listening room and enjoy music with friends.
+
+Jam allows multiple users to join the same room and share a synchronized listening experience.
+
+#### Current Jam features
+
+- Create a room
+- Join using a room link/code
+- Shared playback state
+- Host-controlled playback
+- Shared queue
+- Add songs to the queue
+- Remove songs
+- Skip tracks
+- Seek through tracks
+- Volume controls
+- Room member list
+- Activity feed
+- Reactions
+- Invite friends
+
+The Jam system is designed so that everyone in the room stays synchronized with the host's playback state.
+
+---
+
+### 🎨 Modern UI
+
+VYBE uses a dark, immersive interface designed around the music experience.
+
+The UI includes:
+
+- Dynamic vibe-based theming
+- Album artwork
+- Floating music player
+- Bento-style layouts
+- Responsive design
+- Smooth transitions
+- Desktop and mobile support
+
+---
+
+## 🏗️ Architecture
+
+VYBE is split into a frontend application and a music API backend.
+
+```text
+                    ┌──────────────────────┐
+                    │       VYBE           │
+                    │    Next.js App       │
+                    └──────────┬───────────┘
+                               │
+                 ┌─────────────┴─────────────┐
+                 │                           │
+                 ▼                           ▼
+        ┌─────────────────┐        ┌─────────────────┐
+        │ Music Discovery │        │    VYBE Jam     │
+        │                 │        │                 │
+        │ VYBES / Search  │        │ Rooms / Queue   │
+        │ Playlists       │        │ Sync / Members  │
+        └────────┬────────┘        └────────┬────────┘
+                 │                          │
+                 ▼                          ▼
+        ┌─────────────────┐        ┌─────────────────┐
+        │       API       │        │ Real-time Layer │
+        └─────────────────┘        └─────────────────┘
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠️ Tech Stack
+### Frontend
+- Next.js
+- TypeScript
+- Tailwind CSS
+- Lucide React
+### Backend
+- Bun
+- Hono
+- TypeScript
+- Zod
+### Development
+- Git
+- ESLint
+- Vitest
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🚀 Getting Started
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Prerequisites
 
-## Learn More
+Make sure you have:
 
-To learn more about Next.js, take a look at the following resources:
+- Node.js
+- Bun
+- Git
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Clone the repository
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+git clone https://github.com/VikasKSingh05/vybe.git
+cd vybe
+```
+Install dependencies:
 
-## Deploy on Vercel
+```bun install```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Environment Variables:
+```NEXT_PUBLIC_API_URL=your_api_url```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Replace your_api_url with the URL of the VYBE music API.
+
+Start development server:
+```bun run dev```
+
+VYBE will be available at:
+
+http://localhost:3000
+
+### 🎉 Testing VYBE Jam Locally
+
+To test Jam with another device on the same network:
+
+- Start the development server.
+- Find your computer's local IP address.
+- Make sure both devices are connected to the same Wi-Fi/network.
+- Open VYBE using your computer's local IP from the other device.
+
+For example:
+http://192.168.1.10:3000
+Create a Jam room on one device and open the invite URL on another.
+Note: Local in-memory rooms are intended for development/self-hosted environments. They are not suitable for persistent production rooms across server instances.
+
+🧪 Development
+
+The frontend can be deployed using platforms such as Vercel.
+The backend can be deployed separately using a container-based platform.
+The production architecture can therefore look like:
+
+                ┌──────────────────┐
+                │      VYBE        │
+                │     Frontend     │
+                └────────┬─────────┘
+                         │
+                         │ HTTPS
+                         ▼
+                ┌──────────────────┐
+                │   VYBE Backend   │
+                │   Hono + Bun     │
+                └────────┬─────────┘
+                         │
+                         ▼
+                ┌──────────────────┐
+                │                  │
+                │     Sources      │
+                └──────────────────┘
+
+### 🤝 Contributing
+
+Contributions and suggestions are welcome.
+
+### 📜 License
+
+- This project is intended for educational and personal use.
+- VYBE is not affiliated with or endorsed by any music streaming platform.
+- Music availability and playback depend on the underlying music sources and their respective terms.
+
+### 👨‍💻 Author
+Vikas Kumar Singh
+Built with ❤️ and a lot of music.
+
+⭐ Support
+If you like VYBE, consider giving the repository a ⭐ on GitHub.
+
+VYBE
+Music discovery, reimagined around your mood.
