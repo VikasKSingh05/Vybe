@@ -10,13 +10,10 @@ export interface Track {
   id: string;
   title: string;
   artist: string;
-  duration: number; // in seconds
+  duration: number;
   cover?: string;
-  youtubeId?: string;
   streamUrl?: string;
-  audio?: string;
   accent: string;
-  synthPreset?: "sitar" | "phonk" | "lofi" | "bollywood" | "indie" | "chill";
 }
 
 export interface VibeTheme {
@@ -25,12 +22,5 @@ export interface VibeTheme {
   background: string;
   overlay: string;
   accent: string;
-  description: string;
-  tracks: Track[];
-}
-
-export interface GenreInfo {
-  id: VibeId;
-  label: string;
   description: string;
 }

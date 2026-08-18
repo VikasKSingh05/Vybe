@@ -57,10 +57,4 @@ export const loFiPlaylist: PlaylistEntry[] = [
     artist: "Dede",
     energy: 4,
   },
-  {
-    jiosaavnId: "xoQG8CTx",
-    title: "Affection",
-    artist: "Jagga, MEAVIN",
-    energy: 3,
-  },
 ];
