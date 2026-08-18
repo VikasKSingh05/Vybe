@@ -104,7 +104,7 @@ export function RoomCodeCard({
       <div className="mx-5 my-8 h-px bg-white/10" />
 
       <div className="px-5 py-5">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex justify-center items-center gap-2 mb-2">
           <Crown className="h-4 w-4" style={{ color: accent }} />
           <span className="text-[11px] font-semibold tracking-wide text-white/80 uppercase">
             {isHost ? "You're the host" : "Host controls"}
@@ -121,7 +121,7 @@ export function RoomCodeCard({
         )}
 
         {isHost ? (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col items-center justify-center gap-4">
             <TransportControls
               isPlaying={isPlaying}
               disabled={false}
