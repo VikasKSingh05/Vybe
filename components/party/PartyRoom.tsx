@@ -77,7 +77,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
   const confirmLeave = useCallback(() => {
     setShowLeaveConfirm(false);
     leaveParty();
-    router.push("/");
+    router.push("/party");
   }, [leaveParty, router]);
 
   const handleInvite = useCallback(async () => {
