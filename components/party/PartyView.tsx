@@ -51,5 +51,14 @@ export function PartyView({ initialRoomId }: PartyViewProps) {
     );
   }
 
+  if (active === "connecting") {
+    return (
+      <div className="flex h-dvh flex-col items-center justify-center gap-4 text-white/60">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/15 border-t-white/60" />
+        <p className="text-sm">Connecting to party…</p>
+      </div>
+    );
+  }
+
   return <PartyRoom party={party} />;
 }

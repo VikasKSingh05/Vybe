@@ -58,6 +58,8 @@ export function GenrePills({
               key={vibe.id}
               data-vibe-id={vibe.id}
               type="button"
+              role="switch"
+              aria-checked={isActive}
               onClick={() => onChange(vibe.id)}
               className={cn(
                 "group relative shrink-0 rounded-full px-4 py-2 text-[11px] font-medium tracking-[0.2em] uppercase transition-all duration-300 ease-out cursor-pointer",

@@ -36,7 +36,7 @@ export function TransportControls({
             : "p-2.5 text-white/60"
         }`}
       >
-        <SkipBack className={`${isSmall ? "h-4 w-4" : "h-5 h-5"} fill-current`} />
+        <SkipBack className={`${isSmall ? "h-4 w-4" : "h-5 w-5"} fill-current`} />
       </button>
 
       <button

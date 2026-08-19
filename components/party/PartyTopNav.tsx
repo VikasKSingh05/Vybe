@@ -41,6 +41,7 @@ export function PartyTopNav({
           onClick={handleCopy}
           className="shrink-0 rounded-md p-1 text-white/40 transition-colors hover:bg-white/10 hover:text-white/80 cursor-pointer"
           title="Copy room code"
+          aria-label="Copy room code"
         >
           {copied ? (
             <Check className="h-3.5 w-3.5" style={{ color: accent }} />

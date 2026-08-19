@@ -129,6 +129,7 @@ export function PartyAddSong({ accent, onAdd }: PartyAddSongProps) {
             onChange={(e) => handleChange(e.target.value)}
             onFocus={() => query.trim() && setOpen(true)}
             placeholder="Search for songs, artists, albums..."
+            aria-label="Search for songs, artists, albums"
             className="w-full rounded-xl border border-white/10 bg-black/40 backdrop-blur-xl py-2.5 pl-9 pr-9 text-sm text-white placeholder-white/25 outline-none transition-colors focus:border-white/25"
           />
           {query && (
@@ -143,6 +144,7 @@ export function PartyAddSong({ accent, onAdd }: PartyAddSongProps) {
                 inputRef.current?.focus();
               }}
               className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-white/30 hover:text-white/60 cursor-pointer"
+              aria-label="Clear search"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -151,6 +153,7 @@ export function PartyAddSong({ accent, onAdd }: PartyAddSongProps) {
         <button
           type="submit"
           disabled={!query.trim() || searching}
+          aria-label="Search"
           className="shrink-0 rounded-xl px-4 py-2.5 text-sm font-medium text-black transition-all duration-200 hover:brightness-110 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
           style={{ backgroundColor: accent }}
         >
