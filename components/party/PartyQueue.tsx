@@ -138,4 +138,4 @@ export const PartyQueue = memo(function PartyQueue({
       )}
     </div>
   );
-})
+});

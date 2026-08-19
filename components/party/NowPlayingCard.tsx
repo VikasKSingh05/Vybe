@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useMemo, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import gsap from "gsap";
 import type { Track } from "@/data/types";
 import type { PartyReaction, PartyState } from "@/lib/party/types";
@@ -56,16 +56,13 @@ export const NowPlayingCard = memo(function NowPlayingCard({
     return () => ctx.revert();
   }, [track?.id]);
 
-  const reactionCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    const now = Date.now();
-    (state?.reactions ?? []).forEach((r: PartyReaction) => {
-      if (now - r.at < 30_000) {
-        counts[r.emoji] = (counts[r.emoji] || 0) + 1;
-      }
-    });
-    return counts;
-  }, [state?.reactions]);
+  const reactionCounts: Record<string, number> = {};
+  const now = Date.now();
+  (state?.reactions ?? []).forEach((r: PartyReaction) => {
+    if (now - r.at < 30_000) {
+      reactionCounts[r.emoji] = (reactionCounts[r.emoji] || 0) + 1;
+    }
+  });
 
   const memberCount = state?.members.length ?? 0;
 

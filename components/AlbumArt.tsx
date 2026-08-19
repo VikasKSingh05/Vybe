@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/cn";
 
@@ -22,13 +22,11 @@ export function AlbumArt({
   className,
 }: AlbumArtProps) {
   const [currentSrc, setCurrentSrc] = useState<string | undefined>(src);
-  const [prevSrc, setPrevSrc] = useState<string | undefined>(src);
   const dimensions = size === "sm" ? 44 : size === "lg" ? 120 : 56;
 
-  if (src !== prevSrc) {
-    setPrevSrc(src);
+  useEffect(() => {
     setCurrentSrc(src);
-  }
+  }, [src]);
 
   const handleError = () => {
     if (currentSrc && currentSrc !== FALLBACK_ARTWORK) {

@@ -185,7 +185,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
   const handleInvite = useCallback(() => {
     if (!state) return;
     copy(`${window.location.origin}/party/${state.roomId}`);
-  }, [state, copy]);
+  }, [state?.roomId, copy]);
 
   return (
     <div className="relative h-dvh flex flex-col overflow-hidden text-white font-sans antialiased select-none">
