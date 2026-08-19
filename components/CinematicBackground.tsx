@@ -80,6 +80,7 @@ export function CinematicBackground({
             priority
             className="object-cover object-center"
             sizes="100vw"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
           />
           <div
             className="absolute inset-0"
@@ -102,6 +103,7 @@ export function CinematicBackground({
           priority
           className="object-cover object-center"
           sizes="100vw"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
         />
         <div
           className="absolute inset-0"

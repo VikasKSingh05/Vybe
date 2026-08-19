@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useCallback, useState } from "react";
 import { Music2, X, Play } from "lucide-react";
 import type { PartyState } from "@/lib/party/types";
 import { AlbumArt } from "@/components/AlbumArt";
@@ -27,6 +27,16 @@ export const PartyQueue = memo(function PartyQueue({
   onPlayTrack,
 }: PartyQueueProps) {
   const queue = state?.queue ?? [];
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+  const handleRemove = useCallback((queueId: string) => {
+    if (confirmingId === queueId) {
+      setConfirmingId(null);
+      onRemove(queueId);
+    } else {
+      setConfirmingId(queueId);
+    }
+  }, [confirmingId, onRemove]);
 
   return (
     <div className={cn("flex flex-col min-h-0 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl", className)}>
@@ -127,9 +137,14 @@ export const PartyQueue = memo(function PartyQueue({
                 {canRemove && (
                   <button
                     type="button"
-                    onClick={() => onRemove(track.queueId)}
-                    aria-label={`Remove ${track.song.title}`}
-                    className="rounded-full p-1.5 text-white/25 opacity-0 transition-all hover:bg-white/10 hover:text-white group-hover:opacity-100 cursor-pointer focus:opacity-100"
+                    onClick={(e) => { e.stopPropagation(); handleRemove(track.queueId); }}
+                    onBlur={() => { if (confirmingId === track.queueId) setConfirmingId(null); }}
+                    aria-label={confirmingId === track.queueId ? `Confirm remove ${track.song.title}` : `Remove ${track.song.title}`}
+                    className={`rounded-full p-1.5 opacity-0 transition-all group-hover:opacity-100 cursor-pointer focus:opacity-100 ${
+                      confirmingId === track.queueId
+                        ? "bg-red-400/20 text-red-300 hover:bg-red-400/30"
+                        : "text-white/25 hover:bg-white/10 hover:text-white"
+                    }`}
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>

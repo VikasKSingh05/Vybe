@@ -1,7 +1,9 @@
 "use client";
 
 import { memo } from "react";
-import { Radio, Copy, Check, Share2, Crown } from "lucide-react";
+import { Radio, Copy, Check, Share2, Crown, Palette, Trash2 } from "lucide-react";
+import type { VibeId } from "@/data/types";
+import { PARTY_VIBES } from "@/lib/party/types";
 import { TransportControls } from "@/components/player/TransportControls";
 import { VolumeControl } from "@/components/player/VolumeControl";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
@@ -13,11 +15,14 @@ interface RoomCodeCardProps {
   isPlaying: boolean;
   volume: number;
   isMuted: boolean;
+  vibeId: VibeId;
   onTogglePlay: () => void;
   onPrev: () => void;
   onNext: () => void;
   onVolumeChange: (v: number) => void;
   onToggleMute: () => void;
+  onSetVibe: () => void;
+  onClearQueue: () => void;
 }
 
 export const RoomCodeCard = memo(function RoomCodeCard({
@@ -27,11 +32,14 @@ export const RoomCodeCard = memo(function RoomCodeCard({
   isPlaying,
   volume,
   isMuted,
+  vibeId,
   onTogglePlay,
   onPrev,
   onNext,
   onVolumeChange,
   onToggleMute,
+  onSetVibe,
+  onClearQueue,
 }: RoomCodeCardProps) {
   const { copied, copy } = useCopyToClipboard();
 
@@ -141,6 +149,24 @@ export const RoomCodeCard = memo(function RoomCodeCard({
               onVolumeChange={onVolumeChange}
               onToggleMute={onToggleMute}
             />
+
+            <div className="flex gap-2 w-full">
+              <button
+                type="button"
+                onClick={onSetVibe}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-medium text-white/60 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+              >
+                <Palette className="h-3 w-3" />
+                {vibeId.charAt(0).toUpperCase() + vibeId.slice(1)}
+              </button>
+              <button
+                type="button"
+                onClick={onClearQueue}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-medium text-white/60 transition-colors hover:bg-red-400/10 hover:text-red-300 cursor-pointer"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </div>
           </div>
         ) : (
           <div className="rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3 text-center text-xs text-white/30">
