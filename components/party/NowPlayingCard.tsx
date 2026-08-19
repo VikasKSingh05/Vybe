@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import gsap from "gsap";
 import type { Track } from "@/data/types";
 import type { PartyReaction, PartyState } from "@/lib/party/types";
@@ -29,7 +29,7 @@ interface NowPlayingCardProps {
   onReact: (emoji: string) => void;
 }
 
-export function NowPlayingCard({
+export const NowPlayingCard = memo(function NowPlayingCard({
   track,
   state,
   isPlaying,
@@ -48,20 +48,24 @@ export function NowPlayingCard({
   const infoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!infoRef.current) return;
-    gsap.fromTo(infoRef.current, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" });
-    if (artRef.current) {
-      gsap.fromTo(artRef.current, { scale: 0.92, opacity: 0.7 }, { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.4)" });
-    }
+    if (!infoRef.current || !artRef.current) return;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(infoRef.current!, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" });
+      gsap.fromTo(artRef.current!, { scale: 0.92, opacity: 0.7 }, { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.4)" });
+    });
+    return () => ctx.revert();
   }, [track?.id]);
 
-  const reactionCounts: Record<string, number> = {};
-  const now = Date.now();
-  (state?.reactions ?? []).forEach((r: PartyReaction) => {
-    if (now - r.at < 30_000) {
-      reactionCounts[r.emoji] = (reactionCounts[r.emoji] || 0) + 1;
-    }
-  });
+  const reactionCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const now = Date.now();
+    (state?.reactions ?? []).forEach((r: PartyReaction) => {
+      if (now - r.at < 30_000) {
+        counts[r.emoji] = (counts[r.emoji] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [state?.reactions]);
 
   const memberCount = state?.members.length ?? 0;
 
@@ -171,4 +175,4 @@ export function NowPlayingCard({
       </div>
     </div>
   );
-}
+})

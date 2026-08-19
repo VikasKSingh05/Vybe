@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Crown, UserPlus } from "lucide-react";
 import type { PartyMember } from "@/lib/party/types";
 import { cn } from "@/lib/cn";
@@ -25,7 +26,7 @@ function getAvatarColor(name: string): string {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-export function PartyMembers({ members, hostId, meId, accent, onInvite }: PartyMembersProps) {
+export const PartyMembers = memo(function PartyMembers({ members, hostId, meId, accent, onInvite }: PartyMembersProps) {
   return (
     <div className="h-full rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">
       <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3">
@@ -106,4 +107,4 @@ export function PartyMembers({ members, hostId, meId, accent, onInvite }: PartyM
       </div>
     </div>
   );
-}
+})

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/cn";
 
 const FALLBACK_ARTWORK = "/covers/default.jpg";
@@ -56,12 +57,13 @@ export function AlbumArt({
       </div>
 
       {currentSrc && (
-        <img
+        <Image
           key={currentSrc}
           src={currentSrc}
           alt={`${title} artwork`}
           width={dimensions}
           height={dimensions}
+          unoptimized
           className="relative h-full w-full object-cover"
           onError={handleError}
         />

@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Music2, X, Play } from "lucide-react";
 import type { PartyState } from "@/lib/party/types";
 import { AlbumArt } from "@/components/AlbumArt";
@@ -16,7 +17,7 @@ interface PartyQueueProps {
   onPlayTrack?: (queueId: string) => void;
 }
 
-export function PartyQueue({
+export const PartyQueue = memo(function PartyQueue({
   state,
   isHost,
   memberId,
@@ -137,4 +138,4 @@ export function PartyQueue({
       )}
     </div>
   );
-}
+})

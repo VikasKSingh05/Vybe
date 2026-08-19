@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import type { Track } from "@/data/types";
@@ -129,30 +129,38 @@ export function PartyRoom({ party }: PartyRoomProps) {
   const audio = usePartyAudio({ state, onTrackEnded });
   const activities = usePartyActivity(state);
 
-  const currentQueueTrack = state?.playback?.queueId
-    ? state.queue.find((t) => t.queueId === state.playback?.queueId)
-    : null;
+  const currentQueueTrack = useMemo(
+    () => state?.playback?.queueId
+      ? state.queue.find((t) => t.queueId === state.playback?.queueId)
+      : null,
+    [state?.playback?.queueId, state?.queue],
+  );
 
   const hasQueue = (state?.queue.length ?? 0) > 0;
   const isUpNext = !currentQueueTrack && hasQueue;
   const displayTrack = currentQueueTrack ?? (state?.queue[0] ?? null);
 
-  const playerTrack: Track | null = displayTrack
-    ? {
-        id: displayTrack.queueId,
-        title: displayTrack.song.title,
-        artist: isUpNext
-          ? `Up next — ${displayTrack.song.artist}`
-          : displayTrack.song.artist,
-        duration: displayTrack.song.duration ?? 0,
-        cover: displayTrack.song.artwork,
-        streamUrl: displayTrack.song.streamUrl,
-        accent: theme.accent,
-      }
-    : null;
+  const playerTrack: Track | null = useMemo(
+    () => displayTrack
+      ? {
+          id: displayTrack.queueId,
+          title: displayTrack.song.title,
+          artist: isUpNext
+            ? `Up next — ${displayTrack.song.artist}`
+            : displayTrack.song.artist,
+          duration: displayTrack.song.duration ?? 0,
+          cover: displayTrack.song.artwork,
+          streamUrl: displayTrack.song.streamUrl,
+          accent: theme.accent,
+        }
+      : null,
+    [displayTrack, isUpNext, theme.accent],
+  );
 
-  const playerDuration =
-    audio.duration > 0 ? audio.duration : (playerTrack?.duration ?? 0);
+  const playerDuration = useMemo(
+    () => audio.duration > 0 ? audio.duration : (playerTrack?.duration ?? 0),
+    [audio.duration, playerTrack?.duration],
+  );
 
   const handleSeek = useCallback(
     (seconds: number) => {
