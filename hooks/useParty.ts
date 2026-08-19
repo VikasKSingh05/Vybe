@@ -243,10 +243,11 @@ export function useParty() {
   );
 
   const send = useCallback(
-    async (command: string, payload?: Record<string, unknown>) => {
+    async (command: string, payload?: Record<string, unknown>): Promise<boolean> => {
       const session = sessionRef.current;
       if (!session || !["connected", "reconnecting", "connecting"].includes(status)) {
-        return;
+        setError("Connection lost. Please rejoin the party.");
+        return false;
       }
       try {
         const res = await fetch(`/api/party/${session.roomId}`, {
@@ -257,12 +258,15 @@ export function useParty() {
         if (res.ok) {
           const data = (await res.json().catch(() => null)) as { state?: PartyState } | null;
           if (data?.state) applyState(data.state);
+          return true;
         } else {
           const data = (await res.json().catch(() => null)) as { error?: string } | null;
           if (data?.error) setError(data.error);
+          return false;
         }
       } catch {
-        // transient network error; SSE will reconcile
+        setError("Network error. Check your connection.");
+        return false;
       }
     },
     [applyState, status],

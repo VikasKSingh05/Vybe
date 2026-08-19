@@ -32,8 +32,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const ip = getClientIp(request);
   const { allowed, retryAfterMs } = rateLimit(`party:stream:${ip}`, {
-    maxTokens: 3,
-    refillRate: 0.05,
+    maxTokens: 6,
+    refillRate: 1,
   });
   if (!allowed) {
     return new Response(JSON.stringify({ error: "Too many connections" }), {

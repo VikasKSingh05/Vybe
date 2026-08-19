@@ -8,7 +8,7 @@ import { cn } from "@/lib/cn";
 
 interface PartyAddSongProps {
   accent: string;
-  onAdd: (song: Song) => void;
+  onAdd: (song: Song) => Promise<boolean>;
 }
 
 const DEBOUNCE_MS = 450;
@@ -20,6 +20,7 @@ export function PartyAddSong({ accent, onAdd }: PartyAddSongProps) {
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
+  const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -89,21 +90,21 @@ export function PartyAddSong({ accent, onAdd }: PartyAddSongProps) {
   }, []);
 
   const handleAdd = useCallback(
-    (song: Song) => {
-      onAdd(song);
-      setOpen(false);
-      setAddedIds((prev) => {
-        const next = new Set(prev);
-        next.add(song.id);
-        return next;
-      });
-      setTimeout(() => {
-        setAddedIds((prev) => {
-          const next = new Set(prev);
-          next.delete(song.id);
-          return next;
-        });
-      }, 2000);
+    async (song: Song) => {
+      setFailedIds((prev) => { const next = new Set(prev); next.delete(song.id); return next; });
+      const ok = await onAdd(song);
+      if (ok) {
+        setOpen(false);
+        setAddedIds((prev) => { const next = new Set(prev); next.add(song.id); return next; });
+        setTimeout(() => {
+          setAddedIds((prev) => { const next = new Set(prev); next.delete(song.id); return next; });
+        }, 2000);
+      } else {
+        setFailedIds((prev) => { const next = new Set(prev); next.add(song.id); return next; });
+        setTimeout(() => {
+          setFailedIds((prev) => { const next = new Set(prev); next.delete(song.id); return next; });
+        }, 3000);
+      }
     },
     [onAdd],
   );
@@ -185,6 +186,7 @@ export function PartyAddSong({ accent, onAdd }: PartyAddSongProps) {
             <ul className="divide-y divide-white/5">
               {results.map((song) => {
                 const added = addedIds.has(song.id);
+                const failed = failedIds.has(song.id);
                 return (
                   <li
                     key={song.id}
@@ -203,17 +205,19 @@ export function PartyAddSong({ accent, onAdd }: PartyAddSongProps) {
                     <button
                       type="button"
                       onClick={() => handleAdd(song)}
-                      disabled={added}
+                      disabled={added || failed}
                       className={cn(
                         "flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-medium transition-all duration-200 cursor-pointer shrink-0",
                         added
                           ? "bg-white/10 text-white/60"
-                          : "text-black hover:brightness-110",
+                          : failed
+                            ? "bg-red-400/20 text-red-300"
+                            : "text-black hover:brightness-110",
                       )}
-                      style={!added ? { backgroundColor: accent } : undefined}
+                      style={!added && !failed ? { backgroundColor: accent } : undefined}
                     >
                       <Plus className="h-3 w-3" />
-                      {added ? "Added" : "Add"}
+                      {added ? "Added" : failed ? "Failed" : "Add"}
                     </button>
                   </li>
                 );
