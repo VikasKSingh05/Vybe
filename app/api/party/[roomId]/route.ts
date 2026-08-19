@@ -46,7 +46,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     // Joining creates a fresh member identity (no memberId yet).
     if (!memberId && command === "join") {
       const name = typeof body?.name === "string" ? body.name : "";
-      const joined = joinRoom(roomId, name);
+      const joined = await joinRoom(roomId, name);
       if (!joined.ok) {
         return NextResponse.json({ error: joined.error }, { status: joined.status });
       }
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: "Unknown command" }, { status: 400 });
     }
 
-    const result = dispatch(roomId, memberId, command, payload);
+    const result = await dispatch(roomId, memberId, command, payload);
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: result.status });
     }
@@ -83,7 +83,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
   }
 
   try {
-    const state = getRoom(roomId);
+    const state = await getRoom(roomId);
     if (!state) {
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
     }

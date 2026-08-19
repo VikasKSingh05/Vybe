@@ -116,6 +116,18 @@ export function useParty() {
         }
       });
 
+      es.addEventListener("patch", (ev) => {
+        try {
+          const patch = JSON.parse((ev as MessageEvent<string>).data) as Partial<PartyState> & { version: number; serverNow: number };
+          setState((prev) => {
+            if (!prev) return null;
+            return { ...prev, ...patch };
+          });
+        } catch {
+          // malformed frame; ignore
+        }
+      });
+
       es.addEventListener("closed", () => {
         stopConnection();
         clearSession();

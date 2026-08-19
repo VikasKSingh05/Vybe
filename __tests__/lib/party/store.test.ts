@@ -3,8 +3,8 @@ import { createRoom, joinRoom, getRoom, dispatch } from "@/lib/party/store";
 import { PARTY_MAX_MEMBERS } from "@/lib/party/types";
 
 describe("createRoom", () => {
-  it("creates a room with a host member", () => {
-    const result = createRoom("Test Host", "all");
+  it("creates a room with a host member", async () => {
+    const result = await createRoom("Test Host", "all");
     expect(result.roomId).toBeTruthy();
     expect(result.member.isHost).toBe(true);
     expect(result.member.name).toBe("Test Host");
@@ -13,13 +13,13 @@ describe("createRoom", () => {
     expect(result.state.members).toHaveLength(1);
   });
 
-  it("truncates long host names", () => {
-    const result = createRoom("A".repeat(50), "phonk");
+  it("truncates long host names", async () => {
+    const result = await createRoom("A".repeat(50), "phonk");
     expect(result.member.name.length).toBeLessThanOrEqual(24);
   });
 
-  it("falls back to 'Host' for empty name", () => {
-    const result = createRoom("", "lofi");
+  it("falls back to 'Host' for empty name", async () => {
+    const result = await createRoom("", "lofi");
     expect(result.member.name).toBe("Host");
   });
 });
@@ -27,12 +27,12 @@ describe("createRoom", () => {
 describe("joinRoom", () => {
   let roomId: string;
 
-  beforeEach(() => {
-    roomId = createRoom("Host", "all").roomId;
+  beforeEach(async () => {
+    roomId = (await createRoom("Host", "all")).roomId;
   });
 
-  it("allows joining an existing room", () => {
-    const result = joinRoom(roomId, "Guest");
+  it("allows joining an existing room", async () => {
+    const result = await joinRoom(roomId, "Guest");
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.member.name).toBe("Guest");
@@ -40,27 +40,27 @@ describe("joinRoom", () => {
     }
   });
 
-  it("returns 404 for non-existent room", () => {
-    const result = joinRoom("nonexistent", "Guest");
+  it("returns 404 for non-existent room", async () => {
+    const result = await joinRoom("nonexistent", "Guest");
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.status).toBe(404);
     }
   });
 
-  it("rejects when room is full", () => {
+  it("rejects when room is full", async () => {
     for (let i = 0; i < PARTY_MAX_MEMBERS - 1; i++) {
-      joinRoom(roomId, `Member ${i}`);
+      await joinRoom(roomId, `Member ${i}`);
     }
-    const result = joinRoom(roomId, "Extra");
+    const result = await joinRoom(roomId, "Extra");
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.status).toBe(429);
     }
   });
 
-  it("falls back to 'Guest' for empty name", () => {
-    const result = joinRoom(roomId, "");
+  it("falls back to 'Guest' for empty name", async () => {
+    const result = await joinRoom(roomId, "");
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.member.name).toBe("Guest");
@@ -69,16 +69,16 @@ describe("joinRoom", () => {
 });
 
 describe("getRoom", () => {
-  it("returns serialized state for existing room", () => {
-    const { roomId } = createRoom("Host", "all");
-    const state = getRoom(roomId);
+  it("returns serialized state for existing room", async () => {
+    const { roomId } = await createRoom("Host", "all");
+    const state = await getRoom(roomId);
     expect(state).not.toBeNull();
     expect(state!.roomId).toBe(roomId);
     expect(state!.serverNow).toBeGreaterThan(0);
   });
 
-  it("returns null for non-existent room", () => {
-    expect(getRoom("nonexistent")).toBeNull();
+  it("returns null for non-existent room", async () => {
+    expect(await getRoom("nonexistent")).toBeNull();
   });
 });
 
@@ -86,79 +86,79 @@ describe("dispatch", () => {
   let roomId: string;
   let memberId: string;
 
-  beforeEach(() => {
-    const room = createRoom("Host", "all");
+  beforeEach(async () => {
+    const room = await createRoom("Host", "all");
     roomId = room.roomId;
     memberId = room.member.id;
   });
 
-  it("rejects unknown commands", () => {
-    const result = dispatch(roomId, memberId, "unknown", {});
+  it("rejects unknown commands", async () => {
+    const result = await dispatch(roomId, memberId, "unknown", {});
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.status).toBe(400);
     }
   });
 
-  it("handles heartbeat", () => {
-    const result = dispatch(roomId, memberId, "heartbeat", {});
+  it("handles heartbeat", async () => {
+    const result = await dispatch(roomId, memberId, "heartbeat", {});
     expect(result.ok).toBe(true);
   });
 
-  it("handles play/pause/next/prev for host", () => {
-    expect(dispatch(roomId, memberId, "play", {}).ok).toBe(true);
-    expect(dispatch(roomId, memberId, "pause", {}).ok).toBe(true);
-    expect(dispatch(roomId, memberId, "next", {}).ok).toBe(true);
-    expect(dispatch(roomId, memberId, "prev", {}).ok).toBe(true);
+  it("handles play/pause/next/prev for host", async () => {
+    expect((await dispatch(roomId, memberId, "play", {})).ok).toBe(true);
+    expect((await dispatch(roomId, memberId, "pause", {})).ok).toBe(true);
+    expect((await dispatch(roomId, memberId, "next", {})).ok).toBe(true);
+    expect((await dispatch(roomId, memberId, "prev", {})).ok).toBe(true);
   });
 
-  it("rejects host-only commands from non-host", () => {
-    const { member } = joinRoom(roomId, "Guest") as { member: { id: string } };
-    const result = dispatch(roomId, member.id, "play", {});
+  it("rejects host-only commands from non-host", async () => {
+    const { member } = (await joinRoom(roomId, "Guest")) as { member: { id: string } };
+    const result = await dispatch(roomId, member.id, "play", {});
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.status).toBe(403);
     }
   });
 
-  it("adds a valid track to queue", () => {
+  it("adds a valid track to queue", async () => {
     const song = {
       id: "s1",
       title: "Test",
       artist: "Artist",
       streamUrl: "https://example.com/stream",
     };
-    const result = dispatch(roomId, memberId, "addTrack", { song });
+    const result = await dispatch(roomId, memberId, "addTrack", { song });
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.state.queue).toHaveLength(1);
     }
   });
 
-  it("rejects invalid song payload", () => {
-    const result = dispatch(roomId, memberId, "addTrack", { song: {} });
+  it("rejects invalid song payload", async () => {
+    const result = await dispatch(roomId, memberId, "addTrack", { song: {} });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.status).toBe(400);
     }
   });
 
-  it("handles reaction with valid emoji", () => {
-    const result = dispatch(roomId, memberId, "reaction", { emoji: "🔥" });
+  it("handles reaction with valid emoji", async () => {
+    const result = await dispatch(roomId, memberId, "reaction", { emoji: "🔥" });
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.state.reactions).toHaveLength(1);
     }
   });
 
-  it("rejects invalid emoji", () => {
-    const result = dispatch(roomId, memberId, "reaction", { emoji: "💀" });
+  it("rejects invalid emoji", async () => {
+    const result = await dispatch(roomId, memberId, "reaction", { emoji: "💀" });
     expect(result.ok).toBe(false);
   });
 
-  it("handles leave and promotes next host", () => {
-    const guest = joinRoom(roomId, "Guest") as { member: { id: string } };
-    const result = dispatch(roomId, guest.member.id, "leave", {});
+  it("handles leave and promotes next host", async () => {
+    const guest = (await joinRoom(roomId, "Guest")) as { member: { id: string } };
+    const result = await dispatch(roomId, guest.member.id, "leave", {});
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.state.members).toHaveLength(1);
@@ -166,8 +166,8 @@ describe("dispatch", () => {
     }
   });
 
-  it("returns 404 for non-existent room", () => {
-    const result = dispatch("nonexistent", memberId, "heartbeat", {});
+  it("returns 404 for non-existent room", async () => {
+    const result = await dispatch("nonexistent", memberId, "heartbeat", {});
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.status).toBe(404);
