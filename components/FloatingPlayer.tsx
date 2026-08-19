@@ -52,21 +52,20 @@ export function FloatingPlayer({
   const artRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!trackInfoRef.current) return;
-
-    gsap.fromTo(
-      trackInfoRef.current,
-      { opacity: 0, y: 6 },
-      { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" },
-    );
-
-    if (artRef.current) {
+    if (!trackInfoRef.current || !artRef.current) return;
+    const ctx = gsap.context(() => {
       gsap.fromTo(
-        artRef.current,
+        trackInfoRef.current!,
+        { opacity: 0, y: 6 },
+        { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" },
+      );
+      gsap.fromTo(
+        artRef.current!,
         { scale: 0.9, opacity: 0.7 },
         { scale: 1, opacity: 1, duration: 0.45, ease: "back.out(1.5)" },
       );
-    }
+    });
+    return () => ctx.revert();
   }, [track.id]);
 
   return (

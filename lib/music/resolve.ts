@@ -21,7 +21,7 @@ export async function resolveSong(
     const idParam = entry.jiosaavnId?.trim() || "search";
     const res = await fetch(`/api/music/song/${idParam}?query=${queryParam}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data: Song = await res.json();
+    const data: Song | null = await res.json().catch(() => null);
     if (data?.streamUrl) {
       cache.set(cacheKey, data);
       return data;

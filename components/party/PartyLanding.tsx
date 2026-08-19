@@ -4,11 +4,12 @@ import { useCallback, useState } from "react";
 import Link from "next/link";
 import { Users, Link2, Sparkles } from "lucide-react";
 import { backgroundThemes } from "@/data/backgrounds";
+import type { VibeId } from "@/data/types";
 
 interface PartyLandingProps {
   initialRoomId?: string;
   error?: string;
-  onCreate: (name: string, vibeId: string) => void;
+  onCreate: (name: string, vibeId: VibeId) => void;
   onJoin: (roomId: string, name: string) => void;
 }
 
@@ -27,21 +28,29 @@ export function PartyLanding({
   const canSubmit = name.trim().length > 0;
 
   const handleCreate = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
       if (!canSubmit || submitting) return;
       setSubmitting("create");
-      onCreate(name.trim(), "all");
+      try {
+        await onCreate(name.trim(), "all");
+      } finally {
+        setSubmitting(null);
+      }
     },
     [canSubmit, name, submitting, onCreate],
   );
 
   const handleJoin = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
       if (!canSubmit || submitting || roomId.trim().length < 4) return;
       setSubmitting("join");
-      onJoin(roomId.trim().toLowerCase(), name.trim());
+      try {
+        await onJoin(roomId.trim().toLowerCase(), name.trim());
+      } finally {
+        setSubmitting(null);
+      }
     },
     [canSubmit, name, roomId, submitting, onJoin],
   );

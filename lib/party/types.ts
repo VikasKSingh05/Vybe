@@ -1,5 +1,6 @@
 import type { Song } from "@/types/music";
-import type { VibeId } from "@/data/types";
+import type { VibeId as _VibeId } from "@/data/types";
+export type VibeId = _VibeId;
 
 export interface PartyMember {
   id: string;
@@ -66,3 +67,9 @@ export const PARTY_ROOM_TTL_MS = 30 * 60 * 1000;
 export const PARTY_REACTION_TTL_MS = 30 * 1000;
 
 export const PARTY_VIBES: VibeId[] = ["all", "phonk", "lofi", "bollywood", "indie", "chill"];
+
+/** Delta-sync patch: only fields that changed since the last broadcast. */
+export type PartyPatch = Partial<Pick<PartyState, "hostId" | "vibeId" | "members" | "queue" | "playback" | "reactions">> & {
+  version: number;
+  serverNow: number;
+};
