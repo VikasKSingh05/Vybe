@@ -182,6 +182,15 @@ export function PartyRoom({ party }: PartyRoomProps) {
     router.push("/party");
   }, [leaveParty, router]);
 
+  const handleTogglePlay = useCallback(() => {
+    if (isHost) send(audio.isPlaying ? "pause" : "play");
+  }, [isHost, send, audio.isPlaying]);
+
+  const handlePrev = useCallback(() => { if (isHost) send("prev"); }, [isHost, send]);
+  const handleNext = useCallback(() => { if (isHost) send("next"); }, [isHost, send]);
+  const handleReact = useCallback((emoji: string) => send("reaction", { emoji }), [send]);
+  const handleRemove = useCallback((queueId: string) => send("removeTrack", { queueId }), [send]);
+
   const handleInvite = useCallback(() => {
     if (!state) return;
     copy(`${window.location.origin}/party/${state.roomId}`);
@@ -238,11 +247,9 @@ export function PartyRoom({ party }: PartyRoomProps) {
               isPlaying={audio.isPlaying}
               volume={audio.volume}
               isMuted={audio.isMuted}
-              onTogglePlay={() => {
-                if (isHost) send(audio.isPlaying ? "pause" : "play");
-              }}
-              onPrev={() => isHost && send("prev")}
-              onNext={() => isHost && send("next")}
+              onTogglePlay={handleTogglePlay}
+              onPrev={handlePrev}
+              onNext={handleNext}
               onVolumeChange={audio.setVolume}
               onToggleMute={audio.toggleMute}
             />
@@ -259,13 +266,11 @@ export function PartyRoom({ party }: PartyRoomProps) {
               progress={playerDuration > 0 ? (audio.currentTime / playerDuration) * 100 : 0}
               isHost={isHost}
               accent={theme.accent}
-              onTogglePlay={() => {
-                if (isHost) send(audio.isPlaying ? "pause" : "play");
-              }}
-              onPrev={() => isHost && send("prev")}
-              onNext={() => isHost && send("next")}
+              onTogglePlay={handleTogglePlay}
+              onPrev={handlePrev}
+              onNext={handleNext}
               onSeek={handleSeek}
-              onReact={(emoji) => send("reaction", { emoji })}
+              onReact={handleReact}
             />
 
             <PartyQueue
@@ -274,7 +279,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
               isHost={isHost}
               accent={theme.accent}
               memberId={member?.id ?? ""}
-              onRemove={(queueId) => send("removeTrack", { queueId })}
+              onRemove={handleRemove}
               onPlayTrack={handlePlayTrack}
             />
           </div>
