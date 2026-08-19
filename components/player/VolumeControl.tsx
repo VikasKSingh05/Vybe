@@ -45,7 +45,7 @@ export function VolumeControl({
         value={isMuted ? 0 : volume}
         onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
         aria-label="Volume"
-        className={`volume-slider ${isSmall ? "flex-1" : "hidden w-16 sm:block"}`}
+        className={`volume-slider ${isSmall ? "hidden w-16 sm:block" : "w-24"}`}
         style={{ "--accent": accent } as React.CSSProperties}
       />
     </div>

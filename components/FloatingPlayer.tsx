@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import gsap from "gsap";
 import type { Track } from "@/data/types";
 import { AlbumArt } from "@/components/AlbumArt";
@@ -30,7 +30,7 @@ interface FloatingPlayerProps {
   className?: string;
 }
 
-export function FloatingPlayer({
+export const FloatingPlayer = memo(function FloatingPlayer({
   track,
   isPlaying,
   currentTime,
@@ -129,4 +129,4 @@ export function FloatingPlayer({
       </div>
     </div>
   );
-}
+});

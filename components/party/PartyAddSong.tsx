@@ -143,7 +143,7 @@ export function PartyAddSong({ accent, onAdd }: PartyAddSongProps) {
                 setOpen(false);
                 inputRef.current?.focus();
               }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-white/30 hover:text-white/60 cursor-pointer"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-white/30 hover:text-white/60 cursor-pointer"
               aria-label="Clear search"
             >
               <X className="h-3.5 w-3.5" />

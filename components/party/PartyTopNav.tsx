@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Copy, Check, LogOut, Users, Music } from "lucide-react";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 
@@ -11,7 +12,7 @@ interface PartyTopNavProps {
   onLeave: () => void;
 }
 
-export function PartyTopNav({
+export const PartyTopNav = memo(function PartyTopNav({
   roomId,
   memberCount,
   queueCount,
@@ -39,7 +40,7 @@ export function PartyTopNav({
         <button
           type="button"
           onClick={handleCopy}
-          className="shrink-0 rounded-md p-1 text-white/40 transition-colors hover:bg-white/10 hover:text-white/80 cursor-pointer"
+          className="shrink-0 rounded-md p-1.5 text-white/40 transition-colors hover:bg-white/10 hover:text-white/80 cursor-pointer"
           title="Copy room code"
           aria-label="Copy room code"
         >
@@ -92,4 +93,4 @@ export function PartyTopNav({
       </div>
     </header>
   );
-}
+});

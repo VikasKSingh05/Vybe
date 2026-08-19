@@ -1,6 +1,7 @@
 "use client";
 
-import { Radio, Copy, Check, Share2, Crown, Shuffle, Repeat } from "lucide-react";
+import { memo } from "react";
+import { Radio, Copy, Check, Share2, Crown } from "lucide-react";
 import { TransportControls } from "@/components/player/TransportControls";
 import { VolumeControl } from "@/components/player/VolumeControl";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
@@ -19,7 +20,7 @@ interface RoomCodeCardProps {
   onToggleMute: () => void;
 }
 
-export function RoomCodeCard({
+export const RoomCodeCard = memo(function RoomCodeCard({
   roomId,
   isHost,
   accent,
@@ -132,23 +133,6 @@ export function RoomCodeCard({
               onNext={onNext}
             />
 
-            <div className="flex items-center justify-center gap-6">
-              <button
-                type="button"
-                className="rounded-full p-2 text-white/30 transition-colors hover:bg-white/10 hover:text-white/60 cursor-pointer"
-                title="Shuffle (coming soon)"
-              >
-                <Shuffle className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                className="rounded-full p-2 text-white/30 transition-colors hover:bg-white/10 hover:text-white/60 cursor-pointer"
-                title="Repeat (coming soon)"
-              >
-                <Repeat className="h-4 w-4" />
-              </button>
-            </div>
-
             <VolumeControl
               volume={volume}
               isMuted={isMuted}
@@ -166,4 +150,4 @@ export function RoomCodeCard({
       </div>
     </div>
   );
-}
+});

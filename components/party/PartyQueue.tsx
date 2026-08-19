@@ -129,7 +129,7 @@ export const PartyQueue = memo(function PartyQueue({
                     type="button"
                     onClick={() => onRemove(track.queueId)}
                     aria-label={`Remove ${track.song.title}`}
-                    className="rounded-full p-1 text-white/25 opacity-0 transition-all hover:bg-white/10 hover:text-white group-hover:opacity-100 cursor-pointer focus:opacity-100"
+                    className="rounded-full p-1.5 text-white/25 opacity-0 transition-all hover:bg-white/10 hover:text-white group-hover:opacity-100 cursor-pointer focus:opacity-100"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>

@@ -25,6 +25,12 @@ export function usePartyActivity(state: PartyState | null) {
 
     if (!prev) return;
 
+    // Cheap pre-check: skip diffing if the relevant arrays haven't changed length
+    const queueChanged = state.queue.length !== prev.queue.length;
+    const reactionsChanged = state.reactions.length !== prev.reactions.length;
+    const membersChanged = state.members.length !== prev.members.length;
+    if (!queueChanged && !reactionsChanged && !membersChanged) return;
+
     const newActivities: Activity[] = [];
 
     // Detect new queue entries

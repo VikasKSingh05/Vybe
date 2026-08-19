@@ -1,15 +1,8 @@
-import type { VibeId } from "./types";
+import type { VibeId, VibeTheme } from "./types";
 
-export interface BackgroundTheme {
-  id: VibeId;
-  label: string;
-  background: string;
-  overlay: string;
-  accent: string;
-  description: string;
-}
+export type { VibeTheme as BackgroundTheme };
 
-export const backgroundThemes: Record<VibeId, BackgroundTheme> = {
+export const backgroundThemes: Record<VibeId, VibeTheme> = {
   all: {
     id: "all",
     label: "ALL",

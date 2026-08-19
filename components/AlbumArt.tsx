@@ -61,6 +61,7 @@ export function AlbumArt({
           alt={`${title} artwork`}
           width={dimensions}
           height={dimensions}
+          sizes="(max-width: 640px) 44px, (max-width: 1024px) 56px, 120px"
           unoptimized
           className="relative h-full w-full object-cover"
           onError={handleError}
