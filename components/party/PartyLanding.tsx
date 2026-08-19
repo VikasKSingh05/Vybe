@@ -24,13 +24,18 @@ export function PartyLanding({
   const [name, setName] = useState("");
   const [roomId, setRoomId] = useState(initialRoomId ?? "");
   const [submitting, setSubmitting] = useState<"create" | "join" | null>(null);
+  const [triedSubmit, setTriedSubmit] = useState(false);
 
-  const canSubmit = name.trim().length > 0;
+  const canCreate = name.trim().length > 0;
+  const canJoin = name.trim().length > 0 && roomId.trim().length >= 4;
+  const showNameHint = triedSubmit && name.trim().length === 0;
+  const showCodeHint = roomId.length > 0 && roomId.length < 4;
 
   const handleCreate = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!canSubmit || submitting) return;
+      setTriedSubmit(true);
+      if (!canCreate || submitting) return;
       setSubmitting("create");
       try {
         await onCreate(name.trim(), "all");
@@ -38,13 +43,14 @@ export function PartyLanding({
         setSubmitting(null);
       }
     },
-    [canSubmit, name, submitting, onCreate],
+    [canCreate, name, submitting, onCreate],
   );
 
   const handleJoin = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!canSubmit || submitting || roomId.trim().length < 4) return;
+      setTriedSubmit(true);
+      if (!canJoin || submitting) return;
       setSubmitting("join");
       try {
         await onJoin(roomId.trim().toLowerCase(), name.trim());
@@ -52,7 +58,7 @@ export function PartyLanding({
         setSubmitting(null);
       }
     },
-    [canSubmit, name, roomId, submitting, onJoin],
+    [canJoin, name, roomId, submitting, onJoin],
   );
 
   return (
@@ -77,7 +83,7 @@ export function PartyLanding({
           </p>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-5">
           <label className="mb-2 block text-[11px] tracking-wide text-white/40" htmlFor="party-name">
             YOUR NAME
           </label>
@@ -85,11 +91,16 @@ export function PartyLanding({
             id="party-name"
             type="text"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => { setName(e.target.value); if (triedSubmit) setTriedSubmit(false); }}
             placeholder="e.g. Aarav"
             maxLength={24}
             className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition-colors focus:border-white/30"
           />
+          {showNameHint && (
+            <p className="mt-1.5 text-[11px] text-amber-400/80">
+              Enter your name to continue
+            </p>
+          )}
         </div>
 
         {error && (
@@ -102,36 +113,45 @@ export function PartyLanding({
           <button
             type="button"
             onClick={handleCreate}
-            disabled={!canSubmit || submitting !== null}
+            disabled={!canCreate || submitting !== null}
             className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-semibold text-black transition-all duration-200 hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
             style={{ backgroundColor: ACCENT }}
           >
             <Users className="h-4 w-4" />
-            {submitting === "create" ? "Starting…" : "Host a party"}
+            {submitting === "create" ? "Starting…" : "Create a Room"}
           </button>
 
           <div className="flex items-center gap-3 text-[10px] tracking-widest text-white/30 uppercase">
             <span className="h-px flex-1 bg-white/10" />
-            or join with a code
+            or join an existing room
             <span className="h-px flex-1 bg-white/10" />
           </div>
 
-          <form onSubmit={handleJoin} className="flex gap-2">
+          <form onSubmit={handleJoin} className="space-y-2">
+            <label className="mb-1 block text-[11px] tracking-wide text-white/40" htmlFor="room-code">
+              ROOM CODE
+            </label>
             <input
+              id="room-code"
               type="text"
               value={roomId}
               onChange={(e) => setRoomId(e.target.value.toUpperCase())}
-              placeholder="ROOM CODE"
+              placeholder="Paste or type a code"
               maxLength={6}
-              className="w-full flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm tracking-[0.3em] text-white placeholder-white/30 uppercase outline-none transition-colors focus:border-white/30"
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm tracking-[0.3em] text-white placeholder-white/30 uppercase outline-none transition-colors focus:border-white/30"
             />
+            {showCodeHint && (
+              <p className="text-[11px] text-white/30">
+                At least 4 characters
+              </p>
+            )}
             <button
               type="submit"
-              disabled={!canSubmit || submitting !== null || roomId.trim().length < 4}
-              aria-label="Join party"
-              className="flex items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 text-white transition-all duration-200 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+              disabled={!canJoin || submitting !== null}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-3.5 text-sm font-medium text-white/80 transition-all duration-200 hover:bg-white/10 hover:text-white active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
             >
               <Link2 className="h-4 w-4" />
+              {submitting === "join" ? "Joining…" : "Join Room"}
             </button>
           </form>
 
