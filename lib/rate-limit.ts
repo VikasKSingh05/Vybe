@@ -49,7 +49,6 @@ export function rateLimit(
   const elapsed = now - bucket.lastRefill;
   const refill = (elapsed / 1000) * config.refillRate;
   bucket.tokens = Math.min(config.maxTokens, bucket.tokens + refill);
-  bucket.lastRefill = now;
 
   if (bucket.tokens < 1) {
     const deficit = 1 - bucket.tokens;
@@ -58,6 +57,7 @@ export function rateLimit(
   }
 
   bucket.tokens -= 1;
+  bucket.lastRefill = now;
   return { allowed: true, retryAfterMs: 0 };
 }
 

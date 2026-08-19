@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOut, WifiOff, RefreshCw } from "lucide-react";
 import type { Track } from "@/data/types";
 import { getVibeTheme } from "@/data/vibes";
 import { Background } from "@/components/Background";
@@ -115,7 +115,7 @@ function LeaveModal({ onStay, onLeave }: LeaveModalProps) {
 }
 
 export function PartyRoom({ party }: PartyRoomProps) {
-  const { state, member, isHost, send, leaveParty } = party;
+  const { state, member, isHost, send, leaveParty, status, error: partyError } = party;
   const router = useRouter();
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const { copy } = useCopyToClipboard();
@@ -190,6 +190,30 @@ export function PartyRoom({ party }: PartyRoomProps) {
   return (
     <div className="relative h-dvh flex flex-col overflow-hidden text-white font-sans antialiased select-none">
       <Background theme={theme} />
+
+      {(status === "closed" || status === "reconnecting") && (
+        <div className="fixed inset-x-0 top-[52px] z-40 flex items-center justify-center gap-3 bg-black/80 px-4 py-3 text-sm backdrop-blur-sm">
+          {status === "closed" ? (
+            <>
+              <WifiOff className="h-4 w-4 text-red-300" />
+              <span className="text-white/70">{partyError ?? "Connection lost"}</span>
+              <button
+                type="button"
+                onClick={leaveParty}
+                className="ml-2 inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-white/15 cursor-pointer"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Rejoin
+              </button>
+            </>
+          ) : (
+            <>
+              <RefreshCw className="h-4 w-4 animate-spin text-amber-300" />
+              <span className="text-white/70">Reconnecting…</span>
+            </>
+          )}
+        </div>
+      )}
 
       <PartyTopNav
         roomId={state?.roomId ?? ""}
