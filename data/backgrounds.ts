@@ -1,7 +1,5 @@
 import type { VibeId, VibeTheme } from "./types";
 
-export type { VibeTheme as BackgroundTheme };
-
 export const backgroundThemes: Record<VibeId, VibeTheme> = {
   all: {
     id: "all",

@@ -76,7 +76,7 @@ export const bollywoodPlaylist: PlaylistEntry[] = [
   {
     jiosaavnId: "J0XfWpCT",
     title: "Ishq Sufiyana (Female)",
-    artist: "Vishal &amp; Shekhar, Sunidhi Chauhan",
+    artist: "Vishal & Shekhar, Sunidhi Chauhan",
     energy: 5,
   },
   {
@@ -112,7 +112,7 @@ export const bollywoodPlaylist: PlaylistEntry[] = [
   {
     jiosaavnId: "E3K8KWYi",
     title: "Tera Rastaa Chhodoon Na",
-    artist: "Vishal &amp; Shekhar, Amitabh Bhattacharya, Anusha Mani",
+    artist: "Vishal & Shekhar, Amitabh Bhattacharya, Anusha Mani",
     energy: 4,
   },
   {
@@ -165,20 +165,20 @@ export const bollywoodPlaylist: PlaylistEntry[] = [
   },
   {
     jiosaavnId: "I8KzJ_ya",
-    title: "Kinna Sona (From &quot;Bhaag Johnny&quot;)",
+    title: 'Kinna Sona (From "Bhaag Johnny")',
     artist: "Sunil Kamath, Mithoon, Amitabh Varma",
     energy: 4,
   },
   {
     jiosaavnId: "LYBC0vEH",
-    title: "Tera Mera Rishta -  New Version (From &quot;Awarapan 2&quot;)",
+    title: 'Tera Mera Rishta -  New Version (From "Awarapan 2")',
     artist: "Mithoon, Pritam, Mustafa Zahid, Sayeed Quadri, Saaj Bhatt, Subodhh Sharma",
     energy: 4,
   },
   {
     jiosaavnId: "Fy1Afntv",
     title: "Chammak Challo",
-    artist: "Vishal &amp; Shekhar, Akon",
+    artist: "Vishal & Shekhar, Akon",
     energy: 4,
   },
   {
@@ -225,7 +225,7 @@ export const bollywoodPlaylist: PlaylistEntry[] = [
   },
   {
     jiosaavnId: "D2kT-ZYQ",
-    title: "Badi Mushkil Hai (From &quot;Jhooth Bole Kauwa Kaate&quot;)",
+    title: 'Badi Mushkil Hai (From "Jhooth Bole Kauwa Kaate")',
     artist: "Udit Narayan, Alka Yagnik, Vinod Rathod, Abhijeet",
     energy: 5,
   },
@@ -400,7 +400,7 @@ export const bollywoodPlaylist: PlaylistEntry[] = [
   {
     jiosaavnId: "WCpI6Pg8",
     title: "Ishq Bulaava",
-    artist: "Vishal &amp; Shekhar, Sanam Puri, Shipra Goyal",
+    artist: "Vishal & Shekhar, Sanam Puri, Shipra Goyal",
     energy: 5,
   },
   {
