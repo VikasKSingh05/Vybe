@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut, WifiOff, RefreshCw } from "lucide-react";
-import type { Track } from "@/data/types";
+import gsap from "gsap";
+import type { Track, VibeId } from "@/data/types";
 import { getVibeTheme } from "@/data/vibes";
+import { PARTY_VIBES } from "@/lib/party/types";
 import { Background } from "@/components/Background";
 import { usePartyAudio } from "@/hooks/usePartyAudio";
 import { usePartyActivity } from "@/hooks/usePartyActivity";
@@ -30,10 +32,19 @@ interface LeaveModalProps {
 function LeaveModal({ onStay, onLeave }: LeaveModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const stayRef = useRef<HTMLButtonElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     stayRef.current?.focus();
     const prev = document.activeElement as HTMLElement | null;
+
+    if (dialogRef.current) {
+      gsap.fromTo(dialogRef.current, { scale: 0.95, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.2, ease: "power2.out" });
+    }
+    if (backdropRef.current) {
+      gsap.fromTo(backdropRef.current, { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power2.out" });
+    }
+
     return () => prev?.focus();
   }, []);
 
@@ -72,6 +83,7 @@ function LeaveModal({ onStay, onLeave }: LeaveModalProps) {
 
   return (
     <div
+      ref={backdropRef}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
       onClick={onStay}
     >
@@ -191,6 +203,21 @@ export function PartyRoom({ party }: PartyRoomProps) {
   const handleReact = useCallback((emoji: string) => send("reaction", { emoji }), [send]);
   const handleRemove = useCallback((queueId: string) => send("removeTrack", { queueId }), [send]);
 
+  const VIBE_CYCLE = useMemo(() => PARTY_VIBES as readonly VibeId[], []);
+  const handleSetVibe = useCallback(() => {
+    if (!isHost || !state) return;
+    const idx = VIBE_CYCLE.indexOf(state.vibeId);
+    const next = VIBE_CYCLE[(idx + 1) % VIBE_CYCLE.length];
+    send("setVibe", { vibeId: next });
+  }, [isHost, state?.vibeId, send, VIBE_CYCLE]);
+
+  const handleClearQueue = useCallback(() => {
+    if (!isHost) return;
+    if (window.confirm("Clear all tracks from the queue?")) {
+      send("clearQueue");
+    }
+  }, [isHost, send]);
+
   const handleInvite = useCallback(() => {
     if (!state) return;
     copy(`${window.location.origin}/party/${state.roomId}`);
@@ -247,11 +274,14 @@ export function PartyRoom({ party }: PartyRoomProps) {
               isPlaying={audio.isPlaying}
               volume={audio.volume}
               isMuted={audio.isMuted}
+              vibeId={state?.vibeId ?? "all"}
               onTogglePlay={handleTogglePlay}
               onPrev={handlePrev}
               onNext={handleNext}
               onVolumeChange={audio.setVolume}
               onToggleMute={audio.toggleMute}
+              onSetVibe={handleSetVibe}
+              onClearQueue={handleClearQueue}
             />
           </div>
 

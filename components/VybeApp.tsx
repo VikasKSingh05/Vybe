@@ -50,6 +50,12 @@ export function VybeApp() {
         onVolumeChange={player.changeVolume}
         onToggleMute={player.toggleMute}
       />
+
+      {player.error && (
+        <div className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2 text-xs text-red-300 backdrop-blur-md">
+          {player.error}
+        </div>
+      )}
     </div>
   );
 }
