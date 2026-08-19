@@ -121,6 +121,9 @@ export function useParty() {
           const patch = JSON.parse((ev as MessageEvent<string>).data) as Partial<PartyState> & { version: number; serverNow: number };
           setState((prev) => {
             if (!prev) return null;
+            if (typeof patch.version === "number" && typeof (prev as PartyState & { version?: number }).version === "number" && patch.version < (prev as PartyState & { version: number }).version) {
+              return prev;
+            }
             return { ...prev, ...patch };
           });
         } catch {
@@ -154,7 +157,10 @@ export function useParty() {
           ) + Math.random() * 1_000;
           reconnectTimerRef.current = setTimeout(() => {
             reconnectTimerRef.current = null;
-            openStreamRef.current?.(session);
+            const current = sessionRef.current;
+            if (current && current.roomId === session.roomId) {
+              openStreamRef.current?.(current);
+            }
           }, delay);
         }
       };
