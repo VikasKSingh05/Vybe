@@ -80,10 +80,10 @@ function apply(roomId: string, mutator: (s: PartyState) => void): PartyState | n
   const state = rooms.get(roomId);
   if (!state) return null;
 
-  const prevMembers = state.members;
-  const prevQueue = state.queue;
+  const prevMembers = state.members.slice();
+  const prevQueue = state.queue.slice();
   const prevPlayback = state.playback;
-  const prevReactions = state.reactions;
+  const prevReactions = state.reactions.slice();
   const prevHostId = state.hostId;
   const prevVibeId = state.vibeId;
 
@@ -99,10 +99,10 @@ function apply(roomId: string, mutator: (s: PartyState) => void): PartyState | n
 
     if (prevHostId !== wire.hostId) { patch.hostId = wire.hostId; hasDiff = true; }
     if (prevVibeId !== wire.vibeId) { patch.vibeId = wire.vibeId; hasDiff = true; }
-    if (prevMembers !== state.members) { patch.members = wire.members; hasDiff = true; }
-    if (prevQueue !== state.queue) { patch.queue = wire.queue; hasDiff = true; }
+    if (JSON.stringify(prevMembers) !== JSON.stringify(wire.members)) { patch.members = wire.members; hasDiff = true; }
+    if (JSON.stringify(prevQueue) !== JSON.stringify(wire.queue)) { patch.queue = wire.queue; hasDiff = true; }
     if (prevPlayback !== state.playback) { patch.playback = wire.playback; hasDiff = true; }
-    if (prevReactions !== state.reactions) { patch.reactions = wire.reactions; hasDiff = true; }
+    if (JSON.stringify(prevReactions) !== JSON.stringify(wire.reactions)) { patch.reactions = wire.reactions; hasDiff = true; }
 
     if (!hasDiff) return wire;
 

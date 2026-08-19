@@ -9,8 +9,8 @@ import { memoryStore } from "./store-memory";
 let instance: PartyStore | null = null;
 
 function getRedisStore(): PartyStore {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const ioredis = require("ioredis");
+  // eslint-disable-next-line no-eval
+  const ioredis = eval('require("ioredis")');
   const Redis = ioredis.default ?? ioredis;
   const { createRedisStore } = require("./store-redis") as typeof import("./store-redis");
   const url = process.env.REDIS_URL!;

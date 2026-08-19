@@ -14,10 +14,10 @@ export {
 export type { DispatchResult, Envelope, JoinResult, PartyStore } from "./store-interface";
 
 // Kick off maintenance on import (preserves original singleton pattern).
+// Use a global sentinel so HMR re-evaluation doesn't double-start the timer.
 import { getStore } from "./store-factory";
 
-let maintenanceStarted = false;
-if (!maintenanceStarted) {
-  maintenanceStarted = true;
-  setInterval(() => getStore().startMaintenance(), 25_000);
+const g = globalThis as unknown as { __vybe_maintenance?: ReturnType<typeof setInterval> };
+if (!g.__vybe_maintenance) {
+  g.__vybe_maintenance = setInterval(() => getStore().startMaintenance(), 25_000);
 }

@@ -124,10 +124,10 @@ export function createRedisStore(redis: RedisClient): PartyStore {
     let hasDiff = false;
     if (prev.hostId !== wire.hostId) { patch.hostId = wire.hostId; hasDiff = true; }
     if (prev.vibeId !== wire.vibeId) { patch.vibeId = wire.vibeId; hasDiff = true; }
-    if (prev.members !== wire.members) { patch.members = wire.members; hasDiff = true; }
-    if (prev.queue !== wire.queue) { patch.queue = wire.queue; hasDiff = true; }
-    if (prev.playback !== wire.playback) { patch.playback = wire.playback; hasDiff = true; }
-    if (prev.reactions !== wire.reactions) { patch.reactions = wire.reactions; hasDiff = true; }
+    if (JSON.stringify(prev.members) !== JSON.stringify(wire.members)) { patch.members = wire.members; hasDiff = true; }
+    if (JSON.stringify(prev.queue) !== JSON.stringify(wire.queue)) { patch.queue = wire.queue; hasDiff = true; }
+    if (JSON.stringify(prev.playback) !== JSON.stringify(wire.playback)) { patch.playback = wire.playback; hasDiff = true; }
+    if (JSON.stringify(prev.reactions) !== JSON.stringify(wire.reactions)) { patch.reactions = wire.reactions; hasDiff = true; }
     return hasDiff ? patch : null;
   }
 
