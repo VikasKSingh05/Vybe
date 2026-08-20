@@ -62,7 +62,7 @@ export const RoomCodeCard = memo(function RoomCodeCard({
     <div className="h-full flex flex-col justify-center rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">
       <div className="flex flex-col items-center px-6 pb-6 text-center">
         <div
-          className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg"
+          className="mb-4 mt-3 flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg"
           style={{
             backgroundColor: accent,
             boxShadow: `0 8px 32px ${accent}44`,
@@ -110,7 +110,7 @@ export const RoomCodeCard = memo(function RoomCodeCard({
         </button>
       </div>
 
-      <div className="mx-5 my-8 h-px bg-white/10" />
+      <div className="mx-5 my-5 h-px bg-white/10" />
 
       <div className="px-5 py-5">
         <div className="flex justify-center items-center gap-2 mb-2">
