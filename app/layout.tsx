@@ -40,7 +40,6 @@ export const viewport = {
   themeColor: "#0a0a0a",
   width: "device-width" as const,
   initialScale: 1,
-  maximumScale: 1,
 };
 
 export default function RootLayout({
@@ -55,6 +54,12 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full" suppressHydrationWarning>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:text-black focus:shadow-lg"
+        >
+          Skip to content
+        </a>
         {children}
       </body>
     </html>
