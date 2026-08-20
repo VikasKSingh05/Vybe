@@ -1,11 +1,10 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import type { Activity } from "@/hooks/usePartyActivity";
 
 interface ActivityFeedProps {
   activities: Activity[];
-  accent: string;
 }
 
 function formatRelativeTime(timestamp: number): string {
@@ -28,7 +27,14 @@ const TYPE_CONFIG: Record<
   member_left: { icon: "👋", verb: "left" },
 };
 
-export const ActivityFeed = memo(function ActivityFeed({ activities, accent }: ActivityFeedProps) {
+export const ActivityFeed = memo(function ActivityFeed({ activities }: ActivityFeedProps) {
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="h-full rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden flex flex-col">
       <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3">

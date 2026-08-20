@@ -265,7 +265,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
       />
 
       {/* Viewport-locked content area */}
-      <div className="relative z-10 flex-1 min-h-0 flex flex-col px-4 sm:px-5 lg:px-6 pt-18 pb-4">
+      <div className="relative z-10 flex-1 min-h-0 flex flex-col px-4 sm:px-5 lg:px-6 pt-[52px] pb-4">
 
         {/* ─── BENTO GRID — single row, three columns ─── */}
         <div className="flex-1 min-h-0 grid gap-4 lg:gap-5 grid-cols-1 lg:grid-cols-[280px_1fr_260px]">
@@ -320,7 +320,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
           </div>
 
           {/* RIGHT — Members + Activity */}
-          <div className="flex flex-col gap-2 min-h-0">
+          <div className="flex flex-col gap-2 min-h-0 overflow-hidden">
             <div className="flex-none">
               <PartyMembers
                 members={state?.members ?? []}
@@ -333,7 +333,6 @@ export function PartyRoom({ party }: PartyRoomProps) {
             <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">
               <ActivityFeed
                 activities={activities}
-                accent={theme.accent}
               />
             </div>
           </div>

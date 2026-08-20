@@ -29,6 +29,7 @@ export function usePlayer({
 
   const songCacheRef = useRef<Map<string, Song>>(new Map());
   const failCountRef = useRef(0);
+  const vibeGenerationRef = useRef(0);
   const activePlaylistRef = useRef(playlist);
   activePlaylistRef.current = playlist;
   const currentIndexRef = useRef(currentIndex);
@@ -158,6 +159,7 @@ export function usePlayer({
       setPlaylist(newPlaylist);
       failCountRef.current = 0;
       setCurrentIndex(0);
+      const generation = ++vibeGenerationRef.current;
 
       if (audioRef.current) {
         audioRef.current.pause();
@@ -166,9 +168,10 @@ export function usePlayer({
 
       setTimeout(() => {
         const entry = newPlaylist[0];
-        if (entry) {
+        if (entry && vibeGenerationRef.current === generation) {
           setExtraLoading(true);
           resolveSong(entry).then((song) => {
+            if (vibeGenerationRef.current !== generation) return;
             if (song?.streamUrl && audioRef.current) {
               setCurrentSong(song);
               audioRef.current.src = song.streamUrl;

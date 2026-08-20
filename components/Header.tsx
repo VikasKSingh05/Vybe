@@ -19,11 +19,15 @@ export function Header({ className, inParty = false, onExitParty }: HeaderProps)
   useEffect(() => {
     if (!headerRef.current) return;
 
-    gsap.fromTo(
-      headerRef.current,
-      { opacity: 0, y: -10 },
-      { opacity: 1, y: 0, duration: 0.75, ease: "power2.out" },
-    );
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        headerRef.current!,
+        { opacity: 0, y: -10 },
+        { opacity: 1, y: 0, duration: 0.75, ease: "power2.out" },
+      );
+    }, headerRef);
+
+    return () => ctx.revert();
   }, []);
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useRef, useState } from "react";
 import { Music2, X, Play } from "lucide-react";
 import type { PartyState } from "@/lib/party/types";
 import { AlbumArt } from "@/components/AlbumArt";
@@ -28,15 +28,17 @@ export const PartyQueue = memo(function PartyQueue({
 }: PartyQueueProps) {
   const queue = state?.queue ?? [];
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const confirmingRef = useRef<string | null>(null);
+  confirmingRef.current = confirmingId;
 
   const handleRemove = useCallback((queueId: string) => {
-    if (confirmingId === queueId) {
+    if (confirmingRef.current === queueId) {
       setConfirmingId(null);
       onRemove(queueId);
     } else {
       setConfirmingId(queueId);
     }
-  }, [confirmingId, onRemove]);
+  }, [onRemove]);
 
   return (
     <div className={cn("flex flex-col min-h-0 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl", className)}>
@@ -138,7 +140,7 @@ export const PartyQueue = memo(function PartyQueue({
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); handleRemove(track.queueId); }}
-                    onBlur={() => { if (confirmingId === track.queueId) setConfirmingId(null); }}
+                    onBlur={() => { if (confirmingRef.current === track.queueId) setConfirmingId(null); }}
                     aria-label={confirmingId === track.queueId ? `Confirm remove ${track.song.title}` : `Remove ${track.song.title}`}
                     className={`rounded-full p-1.5 opacity-0 transition-all group-hover:opacity-100 cursor-pointer focus:opacity-100 ${
                       confirmingId === track.queueId

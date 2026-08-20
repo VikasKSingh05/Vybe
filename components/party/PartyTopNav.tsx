@@ -24,7 +24,7 @@ export const PartyTopNav = memo(function PartyTopNav({
   const handleCopy = () => copy(roomId.toUpperCase());
 
   return (
-    <header className="fixed top-0 right-0 left-0 z-30 flex items-center gap-2 sm:gap-4 border-b border-white/[0.06] bg-black/50 px-3 sm:px-4 py-3 backdrop-blur-xl sm:px-6">
+    <header className="fixed top-0 right-0 left-0 z-30 flex items-center gap-2 sm:gap-4 border-b border-white/[0.06] bg-black/50 px-3 sm:px-6 py-3 backdrop-blur-xl">
       {/* Left section */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <span className="font-display text-sm font-semibold tracking-tight text-white/90 shrink-0">

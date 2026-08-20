@@ -49,6 +49,8 @@ export function GenrePills({
     >
       <div
         ref={pillsRef}
+        role="radiogroup"
+        aria-label="Select vibe"
         className="scrollbar-hide flex items-center justify-start sm:justify-center gap-2 overflow-x-auto py-2 px-1 scroll-smooth"
       >
         {vibeThemes.map((vibe) => {
