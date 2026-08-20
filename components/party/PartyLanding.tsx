@@ -104,7 +104,7 @@ export function PartyLanding({
         </div>
 
         {error && (
-          <div className="mb-4 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-xs text-red-300">
+          <div role="alert" className="mb-4 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-xs text-red-300">
             {error}
           </div>
         )}
@@ -141,7 +141,7 @@ export function PartyLanding({
               className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm tracking-[0.3em] text-white placeholder-white/30 uppercase outline-none transition-colors focus:border-white/30"
             />
             {showCodeHint && (
-              <p className="text-[11px] text-white/30">
+              <p className="text-[11px] text-white/40">
                 At least 4 characters
               </p>
             )}

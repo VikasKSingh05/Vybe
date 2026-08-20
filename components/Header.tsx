@@ -30,7 +30,7 @@ export function Header({ className, inParty = false, onExitParty }: HeaderProps)
     <header
       ref={headerRef}
       className={cn(
-        "fixed top-0 right-0 left-0 z-30 flex items-center justify-between px-5 py-5 sm:px-8 sm:py-6 select-none",
+        "fixed top-0 right-0 left-0 z-30 flex items-center justify-between px-5 py-5 sm:px-8 sm:py-6",
         className,
       )}
     >

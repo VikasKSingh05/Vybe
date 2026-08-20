@@ -224,11 +224,11 @@ export function PartyRoom({ party }: PartyRoomProps) {
   }, [state?.roomId, copy]);
 
   return (
-    <div className="relative h-dvh flex flex-col overflow-hidden text-white font-sans antialiased select-none">
+    <div className="relative h-dvh flex flex-col overflow-hidden text-white font-sans antialiased">
       <Background theme={theme} />
 
       {(status === "closed" || status === "reconnecting") && (
-        <div className="fixed inset-x-0 top-[52px] z-40 flex items-center justify-center gap-3 bg-black/80 px-4 py-3 text-sm backdrop-blur-sm">
+        <div role="alert" className="fixed inset-x-0 top-[52px] z-40 flex items-center justify-center gap-3 bg-black/80 px-4 py-3 text-sm backdrop-blur-sm">
           {status === "closed" ? (
             <>
               <WifiOff className="h-4 w-4 text-red-300" />

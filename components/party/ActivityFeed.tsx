@@ -37,13 +37,13 @@ export const ActivityFeed = memo(function ActivityFeed({ activities, accent }: A
         </p>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 scrollbar-hide">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 scrollbar-hide" aria-live="polite">
         {activities.length === 0 ? (
           <p className="text-xs text-white/25 py-2 text-center">
             Activity will appear here as people interact.
           </p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-2" aria-label="Recent activity">
             {activities.slice(0, 8).map((activity) => {
               const config = TYPE_CONFIG[activity.type];
               return (
@@ -66,7 +66,7 @@ export const ActivityFeed = memo(function ActivityFeed({ activities, accent }: A
                         <span className="text-white/45">{activity.trackName}</span>
                       )}
                     </p>
-                    <p className="text-[10px] text-white/25 mt-0.5">
+                    <p className="text-[10px] text-white/40 mt-0.5">
                       {formatRelativeTime(activity.timestamp)}
                     </p>
                   </div>

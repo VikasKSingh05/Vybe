@@ -55,7 +55,7 @@ export const PartyQueue = memo(function PartyQueue({
           </p>
         </div>
       ) : (
-        <ul className="min-h-0 flex-1 divide-y divide-white/5 overflow-y-auto scrollbar-hide">
+        <ul className="min-h-0 flex-1 divide-y divide-white/5 overflow-y-auto scrollbar-hide" aria-label="Queue">
           {queue.map((track, index) => {
             const isCurrent = state?.playback?.queueId === track.queueId;
             const canRemove = isHost || track.addedBy === memberId;
@@ -122,7 +122,7 @@ export const PartyQueue = memo(function PartyQueue({
                 )}
 
                 {/* Added by */}
-                <span className="shrink-0 text-[10px] text-white/25 hidden md:inline max-w-24 truncate">
+                <span className="shrink-0 text-[10px] text-white/40 hidden md:inline max-w-24 truncate">
                   {isCurrent ? (
                     <span className="inline-flex items-center gap-1" style={{ color: accent }}>
                       <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: accent }} />

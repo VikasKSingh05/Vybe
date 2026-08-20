@@ -28,7 +28,7 @@ export function VolumeControl({
         onClick={onToggleMute}
         aria-label={isMuted ? "Unmute" : "Mute"}
         className={`rounded-full transition-colors duration-200 hover:bg-white/10 hover:text-white/80 cursor-pointer ${
-          isSmall ? "p-1.5 text-white/40" : "p-2 text-white/50 hover:text-white/90"
+          isSmall ? "p-2.5 text-white/40 min-h-[44px] min-w-[44px] flex items-center justify-center" : "p-2 text-white/50 hover:text-white/90"
         }`}
       >
         {isMuted || volume === 0 ? (
@@ -45,7 +45,7 @@ export function VolumeControl({
         value={isMuted ? 0 : volume}
         onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
         aria-label="Volume"
-        className={`volume-slider ${isSmall ? "hidden w-16 sm:block" : "w-24"}`}
+        className={`volume-slider ${isSmall ? "w-16" : "w-24"}`}
         style={{ "--accent": accent } as React.CSSProperties}
       />
     </div>

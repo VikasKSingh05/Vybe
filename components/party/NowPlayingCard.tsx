@@ -77,7 +77,7 @@ export const NowPlayingCard = memo(function NowPlayingCard({
   }
 
   return (
-    <div className="shrink-0 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">
+    <div className="shrink-0 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden" aria-live="polite">
       <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-2.5">
         <p className="text-[10px] tracking-widest text-white/40 uppercase">
           Now Playing
@@ -140,7 +140,7 @@ export const NowPlayingCard = memo(function NowPlayingCard({
           <p className="text-[10px] tracking-widest text-white/35 uppercase">
             Reactions
           </p>
-          <p className="text-[10px] text-white/30">
+          <p className="text-[10px] text-white/45">
             {memberCount} {memberCount === 1 ? "person" : "people"} listening
           </p>
         </div>
@@ -152,6 +152,7 @@ export const NowPlayingCard = memo(function NowPlayingCard({
                 key={emoji}
                 type="button"
                 onClick={() => onReact(emoji)}
+                aria-label={`React with ${emoji}`}
                 className={cn(
                   "flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm transition-all duration-150 hover:scale-105 active:scale-95 cursor-pointer",
                   count > 0
