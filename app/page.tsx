@@ -1,5 +1,5 @@
-import { VybeApp } from "@/components/VybeApp";
+import { LazyVybeApp } from "@/components/LazyVybeApp";
 
 export default function Home() {
-  return <VybeApp />;
+  return <LazyVybeApp />;
 }

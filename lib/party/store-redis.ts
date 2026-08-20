@@ -32,6 +32,7 @@ interface RedisClient {
   set(key: string, value: string, ...args: (string | number)[]): Promise<unknown>;
   del(key: string): Promise<unknown>;
   keys(pattern: string): Promise<string[]>;
+  scan(cursor: string, ...args: (string | number)[]): Promise<[string, string[]]>;
 }
 
 export function createRedisStore(redis: RedisClient): PartyStore {
@@ -195,7 +196,14 @@ export function createRedisStore(redis: RedisClient): PartyStore {
     },
 
     async startMaintenance() {
-      const keys = await redis.keys(ROOM_KEY_PREFIX + "*");
+      const keys: string[] = [];
+      let cursor = "0";
+      do {
+        const [nextCursor, batch] = await redis.scan(cursor, "MATCH", ROOM_KEY_PREFIX + "*", "COUNT", 100);
+        cursor = nextCursor;
+        keys.push(...batch);
+      } while (cursor !== "0");
+
       const now = Date.now();
       for (const key of keys) {
         const raw = await redis.get(key);

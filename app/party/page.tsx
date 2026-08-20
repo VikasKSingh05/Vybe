@@ -1,4 +1,4 @@
-import { PartyView } from "@/components/party/PartyView";
+import { LazyPartyView } from "@/components/LazyPartyView";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function PartyPage() {
-  return <PartyView />;
+  return <LazyPartyView />;
 }

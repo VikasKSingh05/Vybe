@@ -50,7 +50,6 @@ export function usePlayer({
     onError: () => {
       const audio = audioRef.current;
       if (!audio?.src || audio.error?.code === 1) return;
-      console.warn("[VYBE Audio] Real playback error for audio source:", audio.error);
       failCountRef.current += 1;
       const currentList = activePlaylistRef.current;
       if (failCountRef.current >= currentList.length) {
@@ -114,7 +113,6 @@ export function usePlayer({
       const song = await resolveSong(entry);
 
       if (!song || !song.streamUrl) {
-        console.warn(`[VYBE] Track "${entry.title}" failed to resolve stream.`);
         failCountRef.current += 1;
 
         if (failCountRef.current >= currentList.length) {
@@ -140,9 +138,7 @@ export function usePlayer({
           .then(() => {
             preloadNextSong(safeIndex + 1);
           })
-          .catch((err) => {
-            console.warn("[VYBE] Autoplay error:", err);
-          });
+          .catch(() => {});
       }
     },
     [resolveSong, preloadNextSong, userInteracted, audioRef],
@@ -204,7 +200,7 @@ export function usePlayer({
       } else {
         audio
           .play()
-          .catch((err) => console.warn("[VYBE] Play failed:", err));
+          .catch(() => {});
       }
     }
   }, [isPlaying, currentSong, currentIndex, loadSongAtIndex, audioRef]);
@@ -218,7 +214,7 @@ export function usePlayer({
     } else {
       audio
         .play()
-        .catch((err) => console.warn("[VYBE] Play failed:", err));
+        .catch(() => {});
     }
   }, [currentSong, currentIndex, loadSongAtIndex, audioRef]);
 
