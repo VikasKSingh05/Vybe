@@ -1,10 +1,20 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import dynamic from "next/dynamic";
 import { useParty, type PartyStatus } from "@/hooks/useParty";
 import type { VibeId } from "@/data/types";
 import { PartyLanding } from "./PartyLanding";
-import { PartyRoom } from "./PartyRoom";
+
+const PartyRoom = dynamic(() => import("./PartyRoom").then((m) => m.PartyRoom), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-dvh flex-col items-center justify-center gap-4 text-white/60">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/15 border-t-white/60" />
+      <p className="text-sm">Loading room…</p>
+    </div>
+  ),
+});
 
 interface PartyViewProps {
   initialRoomId?: string;

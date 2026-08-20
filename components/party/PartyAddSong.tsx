@@ -89,6 +89,21 @@ export function PartyAddSong({ accent, onAdd }: PartyAddSongProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // "/" keyboard shortcut to focus search
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const tag = (e.target as HTMLElement)?.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+        e.preventDefault();
+        inputRef.current?.focus();
+        setOpen(true);
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const handleAdd = useCallback(
     async (song: Song) => {
       setFailedIds((prev) => { const next = new Set(prev); next.delete(song.id); return next; });
@@ -128,7 +143,7 @@ export function PartyAddSong({ accent, onAdd }: PartyAddSongProps) {
             value={query}
             onChange={(e) => handleChange(e.target.value)}
             onFocus={() => query.trim() && setOpen(true)}
-            placeholder="Search for songs, artists, albums..."
+            placeholder="Search songs, artists… ( / )"
             aria-label="Search for songs, artists, albums"
             className="w-full rounded-xl border border-white/10 bg-black/40 backdrop-blur-xl py-2.5 pl-9 pr-9 text-sm text-white placeholder-white/25 outline-none transition-colors focus:border-white/25"
           />

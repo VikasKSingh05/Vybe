@@ -19,6 +19,7 @@ import { PartyQueue } from "./PartyQueue";
 import { PartyAddSong } from "./PartyAddSong";
 import { PartyMembers } from "./PartyMembers";
 import { ActivityFeed } from "./ActivityFeed";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface PartyRoomProps {
   party: ReturnType<typeof useParty>;
@@ -130,6 +131,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
   const { state, member, isHost, send, leaveParty, status, error: partyError } = party;
   const router = useRouter();
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const { copy } = useCopyToClipboard();
 
   const theme = getVibeTheme(state?.vibeId ?? "all");
@@ -213,10 +215,13 @@ export function PartyRoom({ party }: PartyRoomProps) {
 
   const handleClearQueue = useCallback(() => {
     if (!isHost) return;
-    if (window.confirm("Clear all tracks from the queue?")) {
-      send("clearQueue");
-    }
-  }, [isHost, send]);
+    setShowClearConfirm(true);
+  }, [isHost]);
+
+  const confirmClearQueue = useCallback(() => {
+    setShowClearConfirm(false);
+    send("clearQueue");
+  }, [send]);
 
   const handleInvite = useCallback(() => {
     if (!state) return;
@@ -349,6 +354,16 @@ export function PartyRoom({ party }: PartyRoomProps) {
       {showLeaveConfirm && (
         <LeaveModal onStay={() => setShowLeaveConfirm(false)} onLeave={confirmLeave} />
       )}
+
+      {/* Clear queue confirm modal */}
+      <ConfirmDialog
+        open={showClearConfirm}
+        title="Clear queue?"
+        message="All tracks will be removed from the queue."
+        confirmLabel="Clear"
+        onConfirm={confirmClearQueue}
+        onCancel={() => setShowClearConfirm(false)}
+      />
     </div>
   );
 }
