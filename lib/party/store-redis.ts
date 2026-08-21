@@ -32,6 +32,7 @@ interface RedisClient {
   set(key: string, value: string, ...args: (string | number)[]): Promise<unknown>;
   del(key: string): Promise<unknown>;
   keys(pattern: string): Promise<string[]>;
+  scan(cursor: string, ...args: (string | number)[]): Promise<[string, string[]]>;
 }
 
 export function createRedisStore(redis: RedisClient): PartyStore {
@@ -77,9 +78,14 @@ export function createRedisStore(redis: RedisClient): PartyStore {
     return hasDiff ? patch : null;
   }
 
-  async function apply(roomId: string, mutator: (s: PartyState) => void): Promise<PartyState | null> {
+  async function apply(roomId: string, mutator: (s: PartyState) => void, memberId?: string): Promise<PartyState | null> {
     const state = await loadRoom(roomId);
     if (!state) return null;
+
+    if (memberId) {
+      const member = state.members.find((m) => m.id === memberId);
+      if (member) member.lastSeen = Date.now();
+    }
 
     const prevSnapshot = {
       hostId: state.hostId,
@@ -147,6 +153,9 @@ export function createRedisStore(redis: RedisClient): PartyStore {
         };
         const wire = await apply(roomId, (s) => {
           s.members.push(member);
+          if (s.members.length === 1) {
+            s.hostId = member.id;
+          }
         });
         if (!wire) return { ok: false as const, status: 404, error: "Room not found" };
         return { ok: true as const, member, state: wire };
@@ -182,39 +191,51 @@ export function createRedisStore(redis: RedisClient): PartyStore {
         if (!state) return { ok: false, status: 404, error: "Room not found" };
         const member = state.members.find((m) => m.id === memberId) ?? null;
         if (!member) return { ok: false, status: 403, error: "Not a member of this room" };
-        member.lastSeen = Date.now();
 
         if (command === "heartbeat") {
+          member.lastSeen = Date.now();
           await saveRoom(state);
           return { ok: true, state: toWireState(state) };
         }
 
-        const asyncApply: ApplyFn = (mutator) => apply(roomId, mutator);
+        const asyncApply: ApplyFn = (mutator) => apply(roomId, mutator, memberId);
         return dispatchCommand(state, member, command, payload, asyncApply);
       })();
     },
 
     async startMaintenance() {
-      const keys = await redis.keys(ROOM_KEY_PREFIX + "*");
+      const keys: string[] = [];
+      let cursor = "0";
+      do {
+        const [nextCursor, batch] = await redis.scan(cursor, "MATCH", ROOM_KEY_PREFIX + "*", "COUNT", 100);
+        cursor = nextCursor;
+        keys.push(...batch);
+      } while (cursor !== "0");
+
       const now = Date.now();
       for (const key of keys) {
-        const raw = await redis.get(key);
-        if (!raw) continue;
-        const state = JSON.parse(raw) as PartyState;
-        const alive = state.members.filter((m) => now - m.lastSeen < PARTY_MEMBER_IDLE_MS);
+        try {
+          const raw = await redis.get(key);
+          if (!raw) continue;
+          const state = JSON.parse(raw) as PartyState;
+          const alive = state.members.filter((m) => now - m.lastSeen < PARTY_MEMBER_IDLE_MS);
 
-        if (alive.length > 0) {
-          alive[0].isHost = true;
-          state.hostId = alive[0].id;
-        }
-        state.reactions = state.reactions.filter((r) => now - r.at < PARTY_REACTION_TTL_MS);
-        state.members = alive;
+          if (alive.length > 0) {
+            alive[0].isHost = true;
+            state.hostId = alive[0].id;
+          }
+          state.reactions = state.reactions.filter((r) => now - r.at < PARTY_REACTION_TTL_MS);
+          state.members = alive;
 
-        if (state.members.length === 0 && now - state.createdAt > PARTY_ROOM_TTL_MS) {
-          await redis.del(key);
-          continue;
+          if (state.members.length === 0 && now - state.createdAt > PARTY_ROOM_TTL_MS) {
+            await redis.del(key);
+            subscribers.delete(key.slice(ROOM_KEY_PREFIX.length));
+            continue;
+          }
+          await saveRoom(state);
+        } catch {
+          // Skip corrupted room to avoid blocking cleanup of other rooms
         }
-        await saveRoom(state);
       }
     },
   };

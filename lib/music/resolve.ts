@@ -26,8 +26,8 @@ export async function resolveSong(
       cache.set(cacheKey, data);
       return data;
     }
-  } catch (err) {
-    console.warn(`[VYBE] Failed to resolve song "${entry.title}":`, err);
+  } catch {
+    // resolution failed; caller handles null return
   }
 
   return null;

@@ -62,7 +62,7 @@ export const RoomCodeCard = memo(function RoomCodeCard({
     <div className="h-full flex flex-col justify-center rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">
       <div className="flex flex-col items-center px-6 pb-6 text-center">
         <div
-          className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg"
+          className="mb-4 mt-3 flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg"
           style={{
             backgroundColor: accent,
             boxShadow: `0 8px 32px ${accent}44`,
@@ -76,7 +76,7 @@ export const RoomCodeCard = memo(function RoomCodeCard({
         <p className="font-mono text-2xl font-bold tracking-[0.3em] text-white">
           {roomId.toUpperCase().split("").join(" ")}
         </p>
-        <p className="mt-2 text-xs text-white/35">
+        <p className="mt-2 text-xs text-white/45">
           Share this code with friends
         </p>
       </div>
@@ -110,7 +110,7 @@ export const RoomCodeCard = memo(function RoomCodeCard({
         </button>
       </div>
 
-      <div className="mx-5 my-8 h-px bg-white/10" />
+      <div className="mx-5 my-5 h-px bg-white/10" />
 
       <div className="px-5 py-5">
         <div className="flex justify-center items-center gap-2 mb-2">
@@ -120,11 +120,11 @@ export const RoomCodeCard = memo(function RoomCodeCard({
           </span>
         </div>
         {isHost ? (
-          <p className="text-[11px] text-white/35 mb-4">
+          <p className="text-[11px] text-white/50 mb-4">
             You control playback for everyone in the room.
           </p>
         ) : (
-          <p className="text-[11px] text-white/35 mb-4">
+          <p className="text-[11px] text-white/50 mb-4">
             Only the host can control playback.
           </p>
         )}
@@ -154,7 +154,8 @@ export const RoomCodeCard = memo(function RoomCodeCard({
               <button
                 type="button"
                 onClick={onSetVibe}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-medium text-white/60 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+                aria-label="Cycle vibe theme"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 min-h-[44px] text-[11px] font-medium text-white/60 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
               >
                 <Palette className="h-3 w-3" />
                 {vibeId.charAt(0).toUpperCase() + vibeId.slice(1)}
@@ -162,7 +163,8 @@ export const RoomCodeCard = memo(function RoomCodeCard({
               <button
                 type="button"
                 onClick={onClearQueue}
-                className="flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-medium text-white/60 transition-colors hover:bg-red-400/10 hover:text-red-300 cursor-pointer"
+                aria-label="Clear queue"
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 min-h-[44px] min-w-[44px] text-[11px] font-medium text-white/60 transition-colors hover:bg-red-400/10 hover:text-red-300 cursor-pointer"
               >
                 <Trash2 className="h-3 w-3" />
               </button>

@@ -32,31 +32,33 @@ export function CinematicBackground({
   useEffect(() => {
     if (!currentLayerRef.current) return;
 
-    // Animate current layer in
-    gsap.fromTo(
-      currentLayerRef.current,
-      { opacity: 0, scale: 1.07 },
-      {
-        opacity: 1,
-        scale: 1.0,
-        duration: 0.85,
-        ease: "power2.out",
-        clearProps: "transform",
-      },
-    );
-
-    // Animate previous layer out
-    if (prevLayerRef.current) {
-      gsap.to(prevLayerRef.current, {
-        opacity: 0,
-        scale: 1.04,
-        duration: 0.85,
-        ease: "power2.inOut",
-        onComplete: () => {
-          setPrevTheme(null);
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        currentLayerRef.current!,
+        { opacity: 0, scale: 1.07 },
+        {
+          opacity: 1,
+          scale: 1.0,
+          duration: 0.85,
+          ease: "power2.out",
+          clearProps: "transform",
         },
-      });
-    }
+      );
+
+      if (prevLayerRef.current) {
+        gsap.to(prevLayerRef.current, {
+          opacity: 0,
+          scale: 1.04,
+          duration: 0.85,
+          ease: "power2.inOut",
+          onComplete: () => {
+            setPrevTheme(null);
+          },
+        });
+      }
+    });
+
+    return () => ctx.revert();
   }, [currentTheme]);
 
   return (

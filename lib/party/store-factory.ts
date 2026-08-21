@@ -9,10 +9,12 @@ import { memoryStore } from "./store-memory";
 let instance: PartyStore | null = null;
 
 function getRedisStore(): PartyStore {
+  // ioredis is optional — only installed when REDIS_URL is set. eval() hides
+  // the require from Turbopack/webpack so it doesn't try to resolve at build time.
   // eslint-disable-next-line no-eval
   const ioredis = eval('require("ioredis")');
   const Redis = ioredis.default ?? ioredis;
-  const { createRedisStore } = require("./store-redis") as typeof import("./store-redis");
+  const { createRedisStore } = eval('require("./store-redis")') as typeof import("./store-redis");
   const url = process.env.REDIS_URL!;
   const redis = new Redis(url, { maxRetriesPerRequest: 3 });
   return createRedisStore(redis);

@@ -34,7 +34,7 @@ export function HeroSection({ className }: HeroSectionProps) {
   return (
     <section
       className={cn(
-        "flex flex-col items-center px-6 text-center select-none",
+        "flex flex-col items-center px-6 text-center",
         className,
       )}
     >

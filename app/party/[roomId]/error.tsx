@@ -25,6 +25,12 @@ export default function RoomError({ error, reset }: ErrorBoundaryProps) {
           This room may have been closed or the code is invalid.
         </p>
         <a
+          href="/"
+          className="mt-4 inline-block text-xs text-white/30 transition-colors hover:text-white/50"
+        >
+          Go home
+        </a>
+        <a
           href="/party"
           className="mt-6 inline-block rounded-xl bg-white/10 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-white/20"
         >

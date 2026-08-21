@@ -2,6 +2,18 @@ import { normalizeSong } from "./normalize";
 import type { Song } from "@/types/music";
 import type { JioSaavnApiResponse, JioSaavnRawSong } from "./types";
 
+const FETCH_TIMEOUT_MS = 8_000;
+
+async function fetchWithTimeout(url: string, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function fetchJioSaavnSong(songId?: string, fallbackQuery?: string): Promise<Song | null> {
   const baseUrl = process.env.JIOSAAVN_API_URL || "http://localhost:3000";
   const cleanBaseUrl = baseUrl.replace(/\/+$/, "");
@@ -20,7 +32,7 @@ export async function fetchJioSaavnSong(songId?: string, fallbackQuery?: string)
 
     for (const url of endpoints) {
       try {
-        const res = await fetch(url, {
+        const res = await fetchWithTimeout(url, {
           headers: { Accept: "application/json" },
           next: { revalidate: 3600 },
         });
@@ -61,7 +73,7 @@ export async function fetchJioSaavnSong(songId?: string, fallbackQuery?: string)
   if (fallbackQuery && fallbackQuery.trim()) {
     try {
       const searchUrl = `${cleanBaseUrl}/api/search/songs?query=${encodeURIComponent(fallbackQuery.trim())}`;
-      const res = await fetch(searchUrl, {
+      const res = await fetchWithTimeout(searchUrl, {
         headers: { Accept: "application/json" },
         next: { revalidate: 3600 },
       });
@@ -103,7 +115,7 @@ export async function searchJioSaavnSongs(query: string): Promise<Song[]> {
 
   for (const url of urls) {
     try {
-      const res = await fetch(url, {
+      const res = await fetchWithTimeout(url, {
         headers: { Accept: "application/json" },
         next: { revalidate: 3600 },
       });

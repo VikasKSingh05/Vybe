@@ -19,6 +19,7 @@ import { PartyQueue } from "./PartyQueue";
 import { PartyAddSong } from "./PartyAddSong";
 import { PartyMembers } from "./PartyMembers";
 import { ActivityFeed } from "./ActivityFeed";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface PartyRoomProps {
   party: ReturnType<typeof useParty>;
@@ -130,6 +131,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
   const { state, member, isHost, send, leaveParty, status, error: partyError } = party;
   const router = useRouter();
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const { copy } = useCopyToClipboard();
 
   const theme = getVibeTheme(state?.vibeId ?? "all");
@@ -213,10 +215,13 @@ export function PartyRoom({ party }: PartyRoomProps) {
 
   const handleClearQueue = useCallback(() => {
     if (!isHost) return;
-    if (window.confirm("Clear all tracks from the queue?")) {
-      send("clearQueue");
-    }
-  }, [isHost, send]);
+    setShowClearConfirm(true);
+  }, [isHost]);
+
+  const confirmClearQueue = useCallback(() => {
+    setShowClearConfirm(false);
+    send("clearQueue");
+  }, [send]);
 
   const handleInvite = useCallback(() => {
     if (!state) return;
@@ -224,11 +229,11 @@ export function PartyRoom({ party }: PartyRoomProps) {
   }, [state?.roomId, copy]);
 
   return (
-    <div className="relative h-dvh flex flex-col overflow-hidden text-white font-sans antialiased select-none">
+    <div className="relative h-dvh flex flex-col overflow-hidden text-white font-sans antialiased">
       <Background theme={theme} />
 
       {(status === "closed" || status === "reconnecting") && (
-        <div className="fixed inset-x-0 top-[52px] z-40 flex items-center justify-center gap-3 bg-black/80 px-4 py-3 text-sm backdrop-blur-sm">
+        <div role="alert" className="fixed inset-x-0 top-[52px] z-40 flex items-center justify-center gap-3 bg-black/80 px-4 py-3 text-sm backdrop-blur-sm">
           {status === "closed" ? (
             <>
               <WifiOff className="h-4 w-4 text-red-300" />
@@ -260,7 +265,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
       />
 
       {/* Viewport-locked content area */}
-      <div className="relative z-10 flex-1 min-h-0 flex flex-col px-4 sm:px-5 lg:px-6 pt-[60px] pb-4">
+      <div className="relative z-10 flex-1 min-h-0 flex flex-col px-4 sm:px-5 lg:px-6 pt-[52px] pb-4">
 
         {/* ─── BENTO GRID — single row, three columns ─── */}
         <div className="flex-1 min-h-0 grid gap-4 lg:gap-5 grid-cols-1 lg:grid-cols-[280px_1fr_260px]">
@@ -315,7 +320,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
           </div>
 
           {/* RIGHT — Members + Activity */}
-          <div className="flex flex-col gap-2 min-h-0">
+          <div className="flex flex-col gap-2 min-h-0 overflow-hidden">
             <div className="flex-none">
               <PartyMembers
                 members={state?.members ?? []}
@@ -328,7 +333,6 @@ export function PartyRoom({ party }: PartyRoomProps) {
             <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">
               <ActivityFeed
                 activities={activities}
-                accent={theme.accent}
               />
             </div>
           </div>
@@ -349,6 +353,16 @@ export function PartyRoom({ party }: PartyRoomProps) {
       {showLeaveConfirm && (
         <LeaveModal onStay={() => setShowLeaveConfirm(false)} onLeave={confirmLeave} />
       )}
+
+      {/* Clear queue confirm modal */}
+      <ConfirmDialog
+        open={showClearConfirm}
+        title="Clear queue?"
+        message="All tracks will be removed from the queue."
+        confirmLabel="Clear"
+        onConfirm={confirmClearQueue}
+        onCancel={() => setShowClearConfirm(false)}
+      />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Background } from "@/components/Background";
 import { FloatingPlayer } from "@/components/FloatingPlayer";
 import { GenrePills } from "@/components/GenrePills";
@@ -9,6 +10,17 @@ import { usePlayer } from "@/hooks/usePlayer";
 
 export function VybeApp() {
   const player = usePlayer({ initialVibeId: "all", autoPlay: false });
+  const [visibleError, setVisibleError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (player.error) {
+      setVisibleError(player.error);
+      const timer = setTimeout(() => setVisibleError(null), 6_000);
+      return () => clearTimeout(timer);
+    } else {
+      setVisibleError(null);
+    }
+  }, [player.error]);
 
   return (
     <div className="relative min-h-dvh overflow-hidden text-white font-sans antialiased select-none">
@@ -19,7 +31,7 @@ export function VybeApp() {
       <Header />
 
       {/* Main Single Page Content */}
-      <main className="relative z-10 flex h-dvh flex-col items-center justify-center pb-44 sm:pb-48 md:pb-52">
+      <main id="main-content" className="relative z-10 flex h-dvh flex-col items-center justify-center pb-44 sm:pb-48 md:pb-52">
         {/* Editorial Hero */}
         <HeroSection />
 
@@ -51,8 +63,8 @@ export function VybeApp() {
         onToggleMute={player.toggleMute}
       />
 
-      {player.error && (
-        <div className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2 text-xs text-red-300 backdrop-blur-md">
+      {visibleError && (
+        <div role="alert" className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2 text-xs text-red-300 backdrop-blur-md">
           {player.error}
         </div>
       )}

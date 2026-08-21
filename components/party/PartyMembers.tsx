@@ -39,7 +39,7 @@ export const PartyMembers = memo(function PartyMembers({ members, hostId, meId, 
         {members.length === 0 ? (
           <p className="text-xs text-white/30 py-2">Nobody else yet — share the code.</p>
         ) : (
-          <ul className="space-y-1">
+          <ul className="space-y-1" aria-label="Party members">
             {members.map((member) => {
               const isHost = member.id === hostId;
               const isMe = member.id === meId;

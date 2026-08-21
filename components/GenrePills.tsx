@@ -43,12 +43,14 @@ export function GenrePills({
   return (
     <div
       className={cn(
-        "relative mx-auto w-full max-w-3xl px-4 sm:px-6 md:px-8 select-none",
+        "relative mx-auto w-full max-w-3xl px-4 sm:px-6 md:px-8",
         className,
       )}
     >
       <div
         ref={pillsRef}
+        role="radiogroup"
+        aria-label="Select vibe"
         className="scrollbar-hide flex items-center justify-start sm:justify-center gap-2 overflow-x-auto py-2 px-1 scroll-smooth"
       >
         {vibeThemes.map((vibe) => {
@@ -58,15 +60,16 @@ export function GenrePills({
               key={vibe.id}
               data-vibe-id={vibe.id}
               type="button"
-              role="switch"
+              role="radio"
               aria-checked={isActive}
+              aria-label={`${vibe.label} vibe${isActive ? " (selected)" : ""}`}
               onClick={() => onChange(vibe.id)}
               className={cn(
-                "group relative shrink-0 rounded-full px-4 py-2 text-[11px] font-medium tracking-[0.2em] uppercase transition-all duration-300 ease-out cursor-pointer",
+                "group relative shrink-0 rounded-full px-4 py-2.5 min-h-[44px] text-[11px] font-medium tracking-[0.2em] uppercase transition-all duration-300 ease-out cursor-pointer",
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
                 isActive
                   ? "border border-white/20 bg-white/15 text-white shadow-lg backdrop-blur-md"
-                  : "border border-white/5 bg-black/20 text-white/50 hover:border-white/15 hover:bg-white/10 hover:text-white/85 hover:-translate-y-0.5",
+                  : "border border-white/5 bg-black/20 text-white/60 hover:border-white/15 hover:bg-white/10 hover:text-white/90 hover:-translate-y-0.5",
               )}
               style={
                 isActive

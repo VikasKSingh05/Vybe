@@ -1,4 +1,4 @@
-import { PartyView } from "@/components/party/PartyView";
+import { LazyPartyView } from "@/components/LazyPartyView";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -12,5 +12,5 @@ export default async function PartyRoomPage({
   params: Promise<{ roomId: string }>;
 }) {
   const { roomId } = await params;
-  return <PartyView initialRoomId={roomId} />;
+  return <LazyPartyView initialRoomId={roomId} />;
 }

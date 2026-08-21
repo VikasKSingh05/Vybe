@@ -29,6 +29,7 @@ export function usePlayer({
 
   const songCacheRef = useRef<Map<string, Song>>(new Map());
   const failCountRef = useRef(0);
+  const vibeGenerationRef = useRef(0);
   const activePlaylistRef = useRef(playlist);
   activePlaylistRef.current = playlist;
   const currentIndexRef = useRef(currentIndex);
@@ -50,7 +51,6 @@ export function usePlayer({
     onError: () => {
       const audio = audioRef.current;
       if (!audio?.src || audio.error?.code === 1) return;
-      console.warn("[VYBE Audio] Real playback error for audio source:", audio.error);
       failCountRef.current += 1;
       const currentList = activePlaylistRef.current;
       if (failCountRef.current >= currentList.length) {
@@ -114,7 +114,6 @@ export function usePlayer({
       const song = await resolveSong(entry);
 
       if (!song || !song.streamUrl) {
-        console.warn(`[VYBE] Track "${entry.title}" failed to resolve stream.`);
         failCountRef.current += 1;
 
         if (failCountRef.current >= currentList.length) {
@@ -140,9 +139,7 @@ export function usePlayer({
           .then(() => {
             preloadNextSong(safeIndex + 1);
           })
-          .catch((err) => {
-            console.warn("[VYBE] Autoplay error:", err);
-          });
+          .catch(() => {});
       }
     },
     [resolveSong, preloadNextSong, userInteracted, audioRef],
@@ -162,6 +159,7 @@ export function usePlayer({
       setPlaylist(newPlaylist);
       failCountRef.current = 0;
       setCurrentIndex(0);
+      const generation = ++vibeGenerationRef.current;
 
       if (audioRef.current) {
         audioRef.current.pause();
@@ -170,9 +168,10 @@ export function usePlayer({
 
       setTimeout(() => {
         const entry = newPlaylist[0];
-        if (entry) {
+        if (entry && vibeGenerationRef.current === generation) {
           setExtraLoading(true);
           resolveSong(entry).then((song) => {
+            if (vibeGenerationRef.current !== generation) return;
             if (song?.streamUrl && audioRef.current) {
               setCurrentSong(song);
               audioRef.current.src = song.streamUrl;
@@ -204,7 +203,7 @@ export function usePlayer({
       } else {
         audio
           .play()
-          .catch((err) => console.warn("[VYBE] Play failed:", err));
+          .catch(() => {});
       }
     }
   }, [isPlaying, currentSong, currentIndex, loadSongAtIndex, audioRef]);
@@ -218,7 +217,7 @@ export function usePlayer({
     } else {
       audio
         .play()
-        .catch((err) => console.warn("[VYBE] Play failed:", err));
+        .catch(() => {});
     }
   }, [currentSong, currentIndex, loadSongAtIndex, audioRef]);
 

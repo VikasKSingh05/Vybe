@@ -32,7 +32,7 @@ export function TransportControls({
         aria-label="Previous track"
         className={`rounded-full transition-all duration-200 hover:scale-105 hover:bg-white/10 hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 disabled:hover:bg-transparent cursor-pointer ${
           isSmall
-            ? "p-2 text-white/50"
+            ? "p-2.5 text-white/50 min-h-[44px] min-w-[44px] flex items-center justify-center"
             : "p-2.5 text-white/60"
         }`}
       >
@@ -68,11 +68,11 @@ export function TransportControls({
         aria-label="Next track"
         className={`rounded-full transition-all duration-200 hover:scale-105 hover:bg-white/10 hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 disabled:hover:bg-transparent cursor-pointer ${
           isSmall
-            ? "p-2 text-white/50"
+            ? "p-2.5 text-white/50 min-h-[44px] min-w-[44px] flex items-center justify-center"
             : "p-2.5 text-white/60"
         }`}
       >
-        <SkipForward className={`${isSmall ? "h-4 w-4" : "h-5 h-5"} fill-current`} />
+        <SkipForward className={`${isSmall ? "h-4 w-4" : "h-5 w-5"} fill-current`} />
       </button>
     </div>
   );

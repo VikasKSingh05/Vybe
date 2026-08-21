@@ -116,6 +116,9 @@ export const memoryStore: PartyStore = {
     };
     const wire = apply(roomId, (s) => {
       s.members.push(member);
+      if (s.members.length === 1) {
+        s.hostId = member.id;
+      }
     });
     if (!wire) return { ok: false, status: 404, error: "Room not found" };
     return { ok: true, member, state: wire };
@@ -164,35 +167,39 @@ export const memoryStore: PartyStore = {
   startMaintenance() {
     const now = Date.now();
     for (const [roomId, state] of rooms) {
-      const alive = state.members.filter((m) => now - m.lastSeen < PARTY_MEMBER_IDLE_MS);
-      const changed = alive.length !== state.members.length || state.hostId !== alive[0]?.id;
+      try {
+        const alive = state.members.filter((m) => now - m.lastSeen < PARTY_MEMBER_IDLE_MS);
+        const changed = alive.length !== state.members.length || state.hostId !== alive[0]?.id;
 
-      if (alive.length > 0) {
-        alive[0].isHost = true;
-        alive[0].lastSeen = Math.max(alive[0].lastSeen, now);
-        state.hostId = alive[0].id;
-      }
+        if (alive.length > 0) {
+          alive[0].isHost = true;
+          alive[0].lastSeen = Math.max(alive[0].lastSeen, now);
+          state.hostId = alive[0].id;
+        }
 
-      const beforeLen = state.reactions.length;
-      state.reactions = state.reactions.filter((r) => now - r.at < PARTY_REACTION_TTL_MS);
-      const reactionsChanged = beforeLen !== state.reactions.length;
+        const beforeLen = state.reactions.length;
+        state.reactions = state.reactions.filter((r) => now - r.at < PARTY_REACTION_TTL_MS);
+        const reactionsChanged = beforeLen !== state.reactions.length;
 
-      state.members = alive;
+        state.members = alive;
 
-      if (state.members.length === 0 && now - state.createdAt > PARTY_ROOM_TTL_MS) {
-        rooms.delete(roomId);
-        subscribers.delete(roomId);
-        continue;
-      }
+        if (state.members.length === 0 && now - state.createdAt > PARTY_ROOM_TTL_MS) {
+          rooms.delete(roomId);
+          subscribers.delete(roomId);
+          continue;
+        }
 
-      if (changed || reactionsChanged) {
-        state.version += 1;
-      }
+        if (changed || reactionsChanged) {
+          state.version += 1;
+        }
 
-      const wire = toWireState(state, now);
-      const set = subscribers.get(roomId);
-      if (set && set.size > 0) {
-        for (const sub of set) sub.enqueue({ event: "state", data: wire });
+        const wire = toWireState(state, now);
+        const set = subscribers.get(roomId);
+        if (set && set.size > 0) {
+          for (const sub of set) sub.enqueue({ event: "state", data: wire });
+        }
+      } catch {
+        // Skip corrupted room to avoid blocking cleanup of other rooms
       }
     }
   },
