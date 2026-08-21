@@ -8,6 +8,7 @@ export const vibeThemes: VibeTheme[] = [
   backgroundThemes.bollywood,
   backgroundThemes.indie,
   backgroundThemes.chill,
+  backgroundThemes.random,
 ];
 
 export function getVibeTheme(id: VibeId): VibeTheme {

@@ -28,6 +28,7 @@ export const playlistsByGenre: Record<VibeId, PlaylistEntry[]> = {
   bollywood: bollywoodPlaylist,
   indie: indiePlaylist,
   chill: chillPlaylist,
+  random: [],
 };
 
 export function getPlaylistForGenre(genre: VibeId): PlaylistEntry[] {

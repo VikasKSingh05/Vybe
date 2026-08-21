@@ -49,4 +49,12 @@ export const backgroundThemes: Record<VibeId, VibeTheme> = {
     accent: "#5b8fa8",
     description: "Dreamy coastal ocean at blue hour with silhouette palm trees and gentle waves.",
   },
+  random: {
+    id: "random",
+    label: "RANDOM",
+    background: "/backgrounds/fields.jpg",
+    overlay: "linear-gradient(180deg, rgba(20,0,40,0.35) 0%, rgba(0,0,0,0.72) 100%)",
+    accent: "#b06cff",
+    description: "Your personal queue. Search, add, vibe.",
+  },
 };

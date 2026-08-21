@@ -4,7 +4,8 @@ export type VibeId =
   | "lofi"
   | "bollywood"
   | "indie"
-  | "chill";
+  | "chill"
+  | "random";
 
 export interface Track {
   id: string;
@@ -14,6 +15,17 @@ export interface Track {
   cover?: string;
   streamUrl?: string;
   accent: string;
+}
+
+export interface QueueItem {
+  queueItemId: string;
+  title: string;
+  artist: string;
+  jiosaavnId?: string;
+  artwork?: string;
+  duration?: number;
+  mood?: string;
+  energy?: number;
 }
 
 export interface VibeTheme {
