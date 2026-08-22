@@ -256,7 +256,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
       />
 
       {/* Viewport-locked content area */}
-      <div className="relative z-10 flex-1 min-h-0 flex flex-col px-4 sm:px-5 lg:px-6 pt-[64px] pb-4">
+      <div className="relative z-10 flex-1 min-h-0 flex flex-col px-4 sm:px-5 lg:px-6 pt-16 pb-4">
 
         {/* ─── BENTO GRID — single row, three columns ─── */}
         <div className="flex-1 min-h-0 grid gap-4 lg:gap-5 grid-cols-1 lg:grid-cols-[280px_1fr_260px] mb-3">

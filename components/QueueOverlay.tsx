@@ -29,9 +29,20 @@ export function QueueOverlay({
 }: QueueOverlayProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
+  const hasMounted = useRef(false);
 
   useEffect(() => {
     if (!panelRef.current || !backdropRef.current) return;
+
+    if (!hasMounted.current) {
+      hasMounted.current = true;
+      if (!isOpen) {
+        gsap.set(panelRef.current, { y: "100%" });
+        gsap.set(backdropRef.current, { opacity: 0 });
+      }
+      return;
+    }
+
     const ctx = gsap.context(() => {
       if (isOpen) {
         gsap.fromTo(
@@ -79,7 +90,7 @@ export function QueueOverlay({
       <div
         ref={backdropRef}
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        style={{ opacity: isOpen ? 1 : 0 }}
+        style={{ opacity: 0 }}
         onClick={onClose}
         aria-hidden="true"
       />
@@ -87,6 +98,7 @@ export function QueueOverlay({
       <div
         ref={panelRef}
         className="relative max-h-[60vh] rounded-t-2xl border-t border-white/10 bg-[#0d0d0d]/95 backdrop-blur-xl shadow-2xl overflow-hidden"
+        style={{ transform: "translateY(100%)" }}
         role="dialog"
         aria-label="Queue"
       >
