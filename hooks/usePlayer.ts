@@ -35,6 +35,8 @@ export function usePlayer({
   activePlaylistRef.current = playlist;
   const currentIndexRef = useRef(currentIndex);
   currentIndexRef.current = currentIndex;
+  const isCustomQueueRef = useRef(isCustomQueue);
+  isCustomQueueRef.current = isCustomQueue;
   const loadSongAtIndexRef = useRef<((index: number, shouldPlay?: boolean) => Promise<void>) | null>(null);
 
   const theme = getVibeTheme(vibeId);
@@ -46,6 +48,13 @@ export function usePlayer({
     onEnded: () => {
       const currentList = activePlaylistRef.current;
       if (currentList.length === 0) return;
+      if (
+        isCustomQueueRef.current &&
+        currentIndexRef.current >= currentList.length - 1
+      ) {
+        if (audioRef.current) audioRef.current.pause();
+        return;
+      }
       const nextIndex = (currentIndexRef.current + 1) % currentList.length;
       loadSongAtIndexRef.current?.(nextIndex, true);
     },
@@ -253,9 +262,13 @@ export function usePlayer({
       seek(0);
       return;
     }
+    if (isCustomQueue && currentIndex === 0) {
+      seek(0);
+      return;
+    }
     const prevIdx = (currentIndex - 1 + playlist.length) % playlist.length;
     loadSongAtIndex(prevIdx, true);
-  }, [currentTime, seek, currentIndex, playlist.length, loadSongAtIndex]);
+  }, [isCustomQueue, currentTime, seek, currentIndex, playlist.length, loadSongAtIndex]);
 
   const changeVolume = useCallback((v: number) => {
     const clamped = Math.max(0, Math.min(1, v));
@@ -268,7 +281,7 @@ export function usePlayer({
   }, []);
 
   const addToQueue = useCallback(
-    (entry: PlaylistEntry, resolvedSong?: Song, forcePlay = false) => {
+    (entry: PlaylistEntry, resolvedSong?: Song, forcePlay = false, isDiscovery = false) => {
       if (resolvedSong) {
         const cacheKey =
           entry.jiosaavnId?.trim() ||
@@ -280,7 +293,7 @@ export function usePlayer({
       const newIndex = newPlaylist.length - 1;
       setPlaylist(newPlaylist);
       activePlaylistRef.current = newPlaylist;
-      setIsCustomQueue(true);
+      if (!isDiscovery) setIsCustomQueue(true);
       if (wasEmpty || forcePlay) {
         setUserInteracted(true);
         const targetIndex = wasEmpty ? 0 : newIndex;
@@ -319,18 +332,13 @@ export function usePlayer({
   );
 
   const clearCustomQueue = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.removeAttribute("src");
-    }
     setPlaylist([]);
     activePlaylistRef.current = [];
     setCurrentIndex(0);
-    setCurrentSong(null);
     setIsCustomQueue(false);
     setExtraLoading(false);
     setErrorState(null);
-  }, [audioRef]);
+  }, []);
 
   const playAtIndex = useCallback(
     (index: number) => {
