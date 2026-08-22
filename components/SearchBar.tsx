@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
-import { Plus, Search, Loader2, X, Play } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Plus, Search, Loader2, X, Play, Music } from "lucide-react";
 import type { Song } from "@/types/music";
 import { AlbumArt } from "@/components/AlbumArt";
 import { cn } from "@/lib/cn";
@@ -33,6 +33,8 @@ export function SearchBar({
 }: SearchBarProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -60,13 +62,26 @@ export function SearchBar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const hasDropdown =
+    (isSearching || error || hasSearched || results.length > 0) && query.trim();
+
+  useEffect(() => {
+    if (!hasDropdown || !containerRef.current) {
+      setDropdownPosition(null);
+      return;
+    }
+    const rect = containerRef.current.getBoundingClientRect();
+    setDropdownPosition({
+      top: rect.bottom + window.scrollY + 8,
+      left: rect.left + window.scrollX,
+      width: rect.width,
+    });
+  }, [hasDropdown, query]);
+
   const handleClear = useCallback(() => {
     onQueryChange("");
     inputRef.current?.focus();
   }, [onQueryChange]);
-
-  const hasDropdown =
-    (isSearching || error || hasSearched || results.length > 0) && query.trim();
 
   return (
     <div ref={containerRef} className={cn("relative w-full max-w-xl", className)}>
@@ -95,19 +110,26 @@ export function SearchBar({
       </div>
 
       {hasDropdown && (
-        <div className="absolute top-full left-0 right-0 mt-2 max-h-[40vh] overflow-y-auto rounded-xl border border-white/10 bg-[#0a0a0a]/95 backdrop-blur-xl shadow-2xl scrollbar-hide z-50">
+        <div
+          ref={dropdownRef}
+          className="absolute top-full left-0 right-0 mt-2 max-h-[40vh] overflow-y-auto rounded-xl border border-white/10 bg-[#0a0a0a]/95 backdrop-blur-xl shadow-2xl scrollbar-hide z-[100]"
+          style={{ visibility: dropdownPosition ? "visible" : "hidden" }}
+        >
           {error && (
             <p className="px-4 py-3 text-xs text-red-300">{error}</p>
           )}
 
           {!isSearching && hasSearched && results.length === 0 && !error && (
-            <p className="px-4 py-3 text-xs text-white/30">
-              No results for &ldquo;{query.trim()}&rdquo;.
-            </p>
+            <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
+              <Music className="h-6 w-6 text-white/15" />
+              <p className="text-xs text-white/30">
+                No results for &ldquo;{query.trim()}&rdquo;.
+              </p>
+            </div>
           )}
 
           {isSearching && results.length === 0 && (
-            <div className="flex items-center justify-center gap-2 px-4 py-5 text-xs text-white/30">
+            <div className="flex items-center justify-center gap-2 px-4 py-5 text-xs text-white/40">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               Searching...
             </div>
@@ -118,7 +140,7 @@ export function SearchBar({
               {results.map((song) => (
                 <li
                   key={song.id}
-                  className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-white/[0.04]"
+                  className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white/[0.04]"
                 >
                   <AlbumArt
                     src={song.artwork}
@@ -127,10 +149,10 @@ export function SearchBar({
                     size="sm"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm text-white/85">
+                    <p className="truncate text-sm font-medium text-white">
                       {song.title}
                     </p>
-                    <p className="truncate text-xs text-white/40">
+                    <p className="truncate text-xs text-white/50">
                       {song.artist}
                     </p>
                   </div>

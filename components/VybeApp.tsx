@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Song } from "@/types/music";
 import { Background } from "@/components/Background";
 import { FloatingPlayer } from "@/components/FloatingPlayer";
@@ -11,10 +11,23 @@ import { QueueOverlay } from "@/components/QueueOverlay";
 import { SearchBar } from "@/components/SearchBar";
 import { usePlayer } from "@/hooks/usePlayer";
 import { useSearch } from "@/hooks/useSearch";
+import { useDiscoveryQueue } from "@/hooks/useDiscoveryQueue";
 
 export function VybeApp() {
-  const player = usePlayer({ initialVibeId: "all", autoPlay: false });
+  const player = usePlayer({ initialVibeId: "bollywood", autoPlay: false });
   const search = useSearch();
+
+  const queueItemIds = useMemo(
+    () => player.queueItems.map((item) => item.jiosaavnId ?? item.queueItemId),
+    [player.queueItems],
+  );
+
+  useDiscoveryQueue({
+    vibeId: player.vibeId,
+    queueItemIds,
+    addToQueue: player.addToQueue,
+  });
+
   const [visibleError, setVisibleError] = useState<string | null>(null);
   const [queueOpen, setQueueOpen] = useState(false);
 

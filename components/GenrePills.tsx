@@ -49,53 +49,53 @@ export function GenrePills({
         className,
       )}
     >
-      {activeId === "random" && searchBar ? (
-        <div className="flex items-center justify-center py-2">
-          {searchBar}
-        </div>
-      ) : (
-        <div
-          ref={pillsRef}
-          role="radiogroup"
-          aria-label="Select vibe"
-          className="scrollbar-hide flex items-center justify-start sm:justify-center gap-2 overflow-x-auto py-2 px-1 scroll-smooth"
-        >
-          {vibeThemes.map((vibe) => {
-            const isActive = vibe.id === activeId;
-            return (
-              <button
-                key={vibe.id}
-                data-vibe-id={vibe.id}
-                type="button"
-                role="radio"
-                aria-checked={isActive}
-                aria-label={`${vibe.label} vibe${isActive ? " (selected)" : ""}`}
-                onClick={() => onChange(vibe.id)}
-                className={cn(
-                  "group relative shrink-0 rounded-full px-4 py-2.5 min-h-[44px] text-[11px] font-medium tracking-[0.2em] uppercase transition-all duration-300 ease-out cursor-pointer",
-                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
-                  isActive
-                    ? "border border-white/20 bg-white/15 text-white shadow-lg backdrop-blur-md"
-                    : "border border-white/5 bg-black/20 text-white/60 hover:border-white/15 hover:bg-white/10 hover:text-white/90 hover:-translate-y-0.5",
-                )}
-                style={
-                  isActive
-                    ? {
-                        boxShadow: `0 4px 20px rgba(0,0,0,0.3), 0 0 16px ${accent}44, inset 0 0 0 1px ${accent}66`,
-                      }
-                    : undefined
-                }
-              >
-                {isActive && (
-                  <span
-                    className="inline-block h-1.5 w-1.5 rounded-full mr-2 transition-all"
-                    style={{ backgroundColor: accent, boxShadow: `0 0 8px ${accent}` }}
-                  />
-                )}
-                <span>{vibe.label}</span>
-              </button>
-            );
-          })}
+      <div
+        ref={pillsRef}
+        role="radiogroup"
+        aria-label="Select vibe"
+        className="scrollbar-hide flex items-center justify-start sm:justify-center gap-2 overflow-x-auto py-2 px-1 scroll-smooth"
+      >
+        {vibeThemes.map((vibe) => {
+          const isActive = vibe.id === activeId;
+          return (
+            <button
+              key={vibe.id}
+              data-vibe-id={vibe.id}
+              type="button"
+              role="radio"
+              aria-checked={isActive}
+              aria-label={`${vibe.label} vibe${isActive ? " (selected)" : ""}`}
+              onClick={() => onChange(vibe.id)}
+              className={cn(
+                "group relative shrink-0 rounded-full px-4 py-2.5 min-h-[44px] text-[11px] font-medium tracking-[0.2em] uppercase transition-all duration-300 ease-out cursor-pointer",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
+                isActive
+                  ? "border border-white/20 bg-white/15 text-white shadow-lg backdrop-blur-md"
+                  : "border border-white/5 bg-black/20 text-white/60 hover:border-white/15 hover:bg-white/10 hover:text-white/90 hover:-translate-y-0.5",
+              )}
+              style={
+                isActive
+                  ? {
+                      boxShadow: `0 4px 20px rgba(0,0,0,0.3), 0 0 16px ${accent}44, inset 0 0 0 1px ${accent}66`,
+                    }
+                  : undefined
+              }
+            >
+              {isActive && (
+                <span
+                  className="inline-block h-1.5 w-1.5 rounded-full mr-2 transition-all"
+                  style={{ backgroundColor: accent, boxShadow: `0 0 8px ${accent}` }}
+                />
+              )}
+              <span>{vibe.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {activeId === "random" && searchBar && (
+        <div className="mt-1 flex justify-center">
+          <div className="w-full max-w-xl">{searchBar}</div>
         </div>
       )}
     </div>
