@@ -28,6 +28,7 @@ export function useDiscoveryQueue({
   const fetchInProgressRef = useRef(false);
   const mountedRef = useRef(true);
   const excludeIdsRef = useRef<Set<string>>(new Set());
+  const pausedRef = useRef(false);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -72,7 +73,7 @@ export function useDiscoveryQueue({
   );
 
   const generateBatch = useCallback(async () => {
-    if (fetchInProgressRef.current) return;
+    if (fetchInProgressRef.current || pausedRef.current) return;
     fetchInProgressRef.current = true;
     if (mountedRef.current) setIsGenerating(true);
     if (mountedRef.current) setError(null);
@@ -93,8 +94,16 @@ export function useDiscoveryQueue({
     }
   }, [batchSize, fetchSongs, addSongsToQueue]);
 
+  const pause = useCallback(() => {
+    pausedRef.current = true;
+  }, []);
+
+  const resume = useCallback(() => {
+    pausedRef.current = false;
+  }, []);
+
   useEffect(() => {
-    if (!isRandom) return;
+    if (!isRandom || pausedRef.current) return;
     if (queueItemIds.length < REFILL_THRESHOLD && !fetchInProgressRef.current) {
       const timer = setTimeout(() => { void generateBatch(); }, FETCH_DELAY_MS);
       return () => clearTimeout(timer);
@@ -102,7 +111,8 @@ export function useDiscoveryQueue({
   }, [isRandom, queueItemIds.length, generateBatch]);
 
   useEffect(() => {
-    if (isRandom && queueItemIds.length === 0 && !fetchInProgressRef.current) {
+    if (!isRandom || pausedRef.current) return;
+    if (queueItemIds.length === 0 && !fetchInProgressRef.current) {
       const timer = setTimeout(() => { void generateBatch(); }, 50);
       return () => clearTimeout(timer);
     }
@@ -110,6 +120,7 @@ export function useDiscoveryQueue({
 
   useEffect(() => {
     if (!isRandom) {
+      pausedRef.current = false;
       setError(null);
     }
   }, [isRandom]);
@@ -117,5 +128,7 @@ export function useDiscoveryQueue({
   return {
     isGenerating,
     error,
+    pause,
+    resume,
   };
 }

@@ -22,7 +22,7 @@ export function VybeApp() {
     [player.queueItems],
   );
 
-  useDiscoveryQueue({
+  const { pause, resume } = useDiscoveryQueue({
     vibeId: player.vibeId,
     queueItemIds,
     addToQueue: player.addToQueue,
@@ -56,16 +56,18 @@ export function VybeApp() {
     (song: Song) => {
       player.addToQueue(songToEntry(song), song, true);
       search.clear();
+      resume();
     },
-    [player, songToEntry, search],
+    [player, songToEntry, search, resume],
   );
 
   const handleAddToQueue = useCallback(
     (song: Song) => {
       player.addToQueue(songToEntry(song), song);
       search.clear();
+      resume();
     },
-    [player, songToEntry, search],
+    [player, songToEntry, search, resume],
   );
 
   const handlePlayQueueItem = useCallback(
@@ -87,9 +89,15 @@ export function VybeApp() {
       player.changeVibe(id);
       search.clear();
       setQueueOpen(false);
+      resume();
     },
-    [player, search],
+    [player, search, resume],
   );
+
+  const handleClearQueue = useCallback(() => {
+    player.clearCustomQueue();
+    pause();
+  }, [player, pause]);
 
   const searchBar = (
     <SearchBar
@@ -153,7 +161,7 @@ export function VybeApp() {
         onClose={() => setQueueOpen(false)}
         onRemove={handleRemoveFromQueue}
         onPlayItem={handlePlayQueueItem}
-        onClear={player.isRandomMode ? player.clearCustomQueue : undefined}
+        onClear={player.isRandomMode ? handleClearQueue : undefined}
       />
 
       {visibleError && (
