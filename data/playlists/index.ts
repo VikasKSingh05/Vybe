@@ -13,16 +13,7 @@ export * from "./bollywood";
 export * from "./indie";
 export * from "./chill";
 
-export const allPlaylist: PlaylistEntry[] = [
-  ...phonkPlaylist,
-  ...loFiPlaylist,
-  ...bollywoodPlaylist,
-  ...indiePlaylist,
-  ...chillPlaylist,
-];
-
 export const playlistsByGenre: Record<VibeId, PlaylistEntry[]> = {
-  all: allPlaylist,
   phonk: phonkPlaylist,
   lofi: loFiPlaylist,
   bollywood: bollywoodPlaylist,
@@ -32,5 +23,5 @@ export const playlistsByGenre: Record<VibeId, PlaylistEntry[]> = {
 };
 
 export function getPlaylistForGenre(genre: VibeId): PlaylistEntry[] {
-  return playlistsByGenre[genre] ?? playlistsByGenre.all;
+  return playlistsByGenre[genre] ?? playlistsByGenre.phonk;
 }

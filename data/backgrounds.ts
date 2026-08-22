@@ -1,14 +1,6 @@
 import type { VibeId, VibeTheme } from "./types";
 
 export const backgroundThemes: Record<VibeId, VibeTheme> = {
-  all: {
-    id: "all",
-    label: "ALL",
-    background: "/backgrounds/fields.jpg",
-    overlay: "linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.68) 100%)",
-    accent: "#e07a3a",
-    description: "Cinematic golden hour Indian street with vintage warmth and nostalgic architecture.",
-  },
   phonk: {
     id: "phonk",
     label: "PHONK",

@@ -1,5 +1,4 @@
 export type VibeId =
-  | "all"
   | "phonk"
   | "lofi"
   | "bollywood"
