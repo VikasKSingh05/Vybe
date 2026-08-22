@@ -4,12 +4,12 @@ import { PARTY_MAX_MEMBERS } from "@/lib/party/types";
 
 describe("createRoom", () => {
   it("creates a room with a host member", async () => {
-    const result = await createRoom("Test Host", "all");
+    const result = await createRoom("Test Host", "phonk");
     expect(result.roomId).toBeTruthy();
     expect(result.member.isHost).toBe(true);
     expect(result.member.name).toBe("Test Host");
     expect(result.state.hostId).toBe(result.member.id);
-    expect(result.state.vibeId).toBe("all");
+    expect(result.state.vibeId).toBe("phonk");
     expect(result.state.members).toHaveLength(1);
   });
 
@@ -28,7 +28,7 @@ describe("joinRoom", () => {
   let roomId: string;
 
   beforeEach(async () => {
-    roomId = (await createRoom("Host", "all")).roomId;
+    roomId = (await createRoom("Host", "phonk")).roomId;
   });
 
   it("allows joining an existing room", async () => {
@@ -70,7 +70,7 @@ describe("joinRoom", () => {
 
 describe("getRoom", () => {
   it("returns serialized state for existing room", async () => {
-    const { roomId } = await createRoom("Host", "all");
+    const { roomId } = await createRoom("Host", "phonk");
     const state = await getRoom(roomId);
     expect(state).not.toBeNull();
     expect(state!.roomId).toBe(roomId);
@@ -87,7 +87,7 @@ describe("dispatch", () => {
   let memberId: string;
 
   beforeEach(async () => {
-    const room = await createRoom("Host", "all");
+    const room = await createRoom("Host", "phonk");
     roomId = room.roomId;
     memberId = room.member.id;
   });

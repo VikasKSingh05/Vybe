@@ -18,7 +18,7 @@ function makeState(overrides: Partial<PartyState> = {}): PartyState {
     roomId: "abc123",
     createdAt: 0,
     hostId: "host1",
-    vibeId: "all",
+    vibeId: "phonk",
     members: [],
     queue: [],
     playback: null,
