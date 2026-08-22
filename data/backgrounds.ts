@@ -1,5 +1,14 @@
 import type { VibeId, VibeTheme } from "./types";
 
+export const partyTheme: VibeTheme = {
+  id: "bollywood",
+  label: "PARTY",
+  background: "/backgrounds/fields.jpg",
+  overlay: "linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.68) 100%)",
+  accent: "#e07a3a",
+  description: "Party mode — orange themed.",
+};
+
 export const backgroundThemes: Record<VibeId, VibeTheme> = {
   phonk: {
     id: "phonk",
