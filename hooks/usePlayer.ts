@@ -169,6 +169,12 @@ export function usePlayer({
 
   const addToQueue = useCallback(
     (entry: PlaylistEntry, resolvedSong?: Song, forcePlay = false) => {
+      if (entry.jiosaavnId) {
+        const exists = activePlaylistRef.current.some(
+          (e) => e.jiosaavnId === entry.jiosaavnId,
+        );
+        if (exists) return;
+      }
       if (resolvedSong) {
         const cacheKey =
           entry.jiosaavnId?.trim() ||

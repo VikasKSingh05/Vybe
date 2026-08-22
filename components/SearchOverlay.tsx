@@ -195,8 +195,9 @@ export function SearchOverlay({
   const handleQueue = useCallback(
     (song: Song) => {
       onAddToQueue(song);
+      handleClose();
     },
-    [onAddToQueue],
+    [onAddToQueue, handleClose],
   );
 
   const handleClearQuery = useCallback(() => {
