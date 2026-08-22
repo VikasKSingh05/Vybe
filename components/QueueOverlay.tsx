@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { X, Music } from "lucide-react";
+import { X, Music, Trash2 } from "lucide-react";
 import gsap from "gsap";
 import type { QueueItem } from "@/data/types";
 import { AlbumArt } from "@/components/AlbumArt";
@@ -16,6 +16,7 @@ interface QueueOverlayProps {
   onClose: () => void;
   onRemove: (index: number) => void;
   onPlayItem: (index: number) => void;
+  onClear?: () => void;
 }
 
 export function QueueOverlay({
@@ -26,6 +27,7 @@ export function QueueOverlay({
   onClose,
   onRemove,
   onPlayItem,
+  onClear,
 }: QueueOverlayProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
@@ -111,14 +113,26 @@ export function QueueOverlay({
               {queue.length}
             </span>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full p-2 text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
-            aria-label="Close queue"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            {onClear && queue.length > 0 && (
+              <button
+                type="button"
+                onClick={onClear}
+                className="rounded-full p-2 text-white/25 hover:text-red-400 hover:bg-white/5 transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
+                aria-label="Clear queue"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full p-2 text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label="Close queue"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         <div className="overflow-y-auto max-h-[calc(60vh-60px)] scrollbar-hide">

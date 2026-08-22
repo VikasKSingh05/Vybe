@@ -153,6 +153,7 @@ export function VybeApp() {
         onClose={() => setQueueOpen(false)}
         onRemove={handleRemoveFromQueue}
         onPlayItem={handlePlayQueueItem}
+        onClear={player.isRandomMode ? player.clearCustomQueue : undefined}
       />
 
       {visibleError && (
