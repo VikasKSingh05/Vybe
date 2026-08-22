@@ -13,7 +13,7 @@ interface PartyLandingProps {
   onJoin: (roomId: string, name: string) => void;
 }
 
-const ACCENT = backgroundThemes["all"].accent;
+const ACCENT = backgroundThemes["bollywood"].accent;
 
 export function PartyLanding({
   initialRoomId,
@@ -38,7 +38,7 @@ export function PartyLanding({
       if (!canCreate || submitting) return;
       setSubmitting("create");
       try {
-        await onCreate(name.trim(), "all");
+        await onCreate(name.trim(), "bollywood");
       } finally {
         setSubmitting(null);
       }

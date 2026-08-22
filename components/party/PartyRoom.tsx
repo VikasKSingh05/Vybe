@@ -134,7 +134,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const { copy } = useCopyToClipboard();
 
-  const theme = getVibeTheme(state?.vibeId ?? "all");
+  const theme = getVibeTheme(state?.vibeId ?? "bollywood");
 
   const onTrackEnded = useCallback(() => {
     if (isHost) send("next");
@@ -279,7 +279,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
               isPlaying={audio.isPlaying}
               volume={audio.volume}
               isMuted={audio.isMuted}
-              vibeId={state?.vibeId ?? "all"}
+              vibeId={state?.vibeId ?? "bollywood"}
               onTogglePlay={handleTogglePlay}
               onPrev={handlePrev}
               onNext={handleNext}

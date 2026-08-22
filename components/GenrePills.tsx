@@ -11,6 +11,7 @@ interface GenrePillsProps {
   onChange: (id: VibeId) => void;
   accent: string;
   className?: string;
+  searchBar?: React.ReactNode;
 }
 
 export function GenrePills({
@@ -18,6 +19,7 @@ export function GenrePills({
   onChange,
   accent,
   className,
+  searchBar,
 }: GenrePillsProps) {
   const pillsRef = useRef<HTMLDivElement>(null);
 
@@ -91,6 +93,12 @@ export function GenrePills({
           );
         })}
       </div>
+
+      {activeId === "random" && searchBar && (
+        <div className="mt-1 flex justify-center">
+          <div className="w-full max-w-xl">{searchBar}</div>
+        </div>
+      )}
     </div>
   );
 }
