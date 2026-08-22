@@ -14,7 +14,7 @@ import { useSearch } from "@/hooks/useSearch";
 import { useDiscoveryQueue } from "@/hooks/useDiscoveryQueue";
 
 export function VybeApp() {
-  const player = usePlayer({ initialVibeId: "bollywood", autoPlay: false });
+  const player = usePlayer({ initialVibeId: "random", autoPlay: false });
   const search = useSearch();
 
   const queueItemIds = useMemo(
@@ -63,8 +63,9 @@ export function VybeApp() {
   const handleAddToQueue = useCallback(
     (song: Song) => {
       player.addToQueue(songToEntry(song), song);
+      search.clear();
     },
-    [player, songToEntry],
+    [player, songToEntry, search],
   );
 
   const handlePlayQueueItem = useCallback(

@@ -14,7 +14,7 @@ interface UsePlayerOptions {
 }
 
 export function usePlayer({
-  initialVibeId = "bollywood",
+  initialVibeId = "random",
   autoPlay = false,
 }: UsePlayerOptions = {}) {
   const [vibeId, setVibeId] = useState<VibeId>(initialVibeId);
