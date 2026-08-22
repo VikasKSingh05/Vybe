@@ -14,7 +14,7 @@ interface UsePlayerOptions {
 }
 
 export function usePlayer({
-  initialVibeId = "all",
+  initialVibeId = "bollywood",
   autoPlay = false,
 }: UsePlayerOptions = {}) {
   const [vibeId, setVibeId] = useState<VibeId>(initialVibeId);
@@ -393,6 +393,7 @@ export function usePlayer({
     changeVolume,
     toggleMute,
     isCustomQueue,
+    isRandomMode: vibeId === "random",
     queueItems,
     queueLength: playlist.length,
     currentIndex,
