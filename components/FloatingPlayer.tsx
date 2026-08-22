@@ -2,6 +2,7 @@
 
 import { memo, useEffect, useRef } from "react";
 import gsap from "gsap";
+import { ListMusic } from "lucide-react";
 import type { Track } from "@/data/types";
 import { AlbumArt } from "@/components/AlbumArt";
 import { ProgressBar } from "@/components/player/ProgressBar";
@@ -21,12 +22,14 @@ interface FloatingPlayerProps {
   isMuted: boolean;
   accent: string;
   locked?: boolean;
+  queueCount?: number;
   onTogglePlay: () => void;
   onPrev: () => void;
   onNext: () => void;
   onSeek: (time: number) => void;
   onVolumeChange: (volume: number) => void;
   onToggleMute: () => void;
+  onToggleQueue?: () => void;
   className?: string;
 }
 
@@ -40,12 +43,14 @@ export const FloatingPlayer = memo(function FloatingPlayer({
   isMuted,
   accent,
   locked = false,
+  queueCount = 0,
   onTogglePlay,
   onPrev,
   onNext,
   onSeek,
   onVolumeChange,
   onToggleMute,
+  onToggleQueue,
   className,
 }: FloatingPlayerProps) {
   const trackInfoRef = useRef<HTMLDivElement>(null);
@@ -124,7 +129,26 @@ export const FloatingPlayer = memo(function FloatingPlayer({
             onNext={onNext}
           />
 
-          <div className="hidden sm:block w-20" aria-hidden="true" />
+          {onToggleQueue ? (
+            <button
+              type="button"
+              onClick={onToggleQueue}
+              className="relative flex items-center justify-center w-20 min-h-[44px] text-white/40 hover:text-white/70 transition-colors cursor-pointer"
+              aria-label={`Queue, ${queueCount} songs`}
+            >
+              <ListMusic className="h-5 w-5" />
+              {queueCount > 0 && (
+                <span
+                  className="absolute -top-1 right-2 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold text-black"
+                  style={{ backgroundColor: accent }}
+                >
+                  {queueCount}
+                </span>
+              )}
+            </button>
+          ) : (
+            <div className="hidden sm:block w-20" aria-hidden="true" />
+          )}
         </div>
       </div>
     </div>

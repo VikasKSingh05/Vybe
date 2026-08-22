@@ -4,9 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut, WifiOff, RefreshCw } from "lucide-react";
 import gsap from "gsap";
-import type { Track, VibeId } from "@/data/types";
-import { getVibeTheme } from "@/data/vibes";
-import { PARTY_VIBES } from "@/lib/party/types";
+import type { Track } from "@/data/types";
+import { partyTheme } from "@/data/backgrounds";
 import { Background } from "@/components/Background";
 import { usePartyAudio } from "@/hooks/usePartyAudio";
 import { usePartyActivity } from "@/hooks/usePartyActivity";
@@ -134,7 +133,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const { copy } = useCopyToClipboard();
 
-  const theme = getVibeTheme(state?.vibeId ?? "all");
+  const theme = partyTheme;
 
   const onTrackEnded = useCallback(() => {
     if (isHost) send("next");
@@ -205,14 +204,6 @@ export function PartyRoom({ party }: PartyRoomProps) {
   const handleReact = useCallback((emoji: string) => send("reaction", { emoji }), [send]);
   const handleRemove = useCallback((queueId: string) => send("removeTrack", { queueId }), [send]);
 
-  const VIBE_CYCLE = useMemo(() => PARTY_VIBES as readonly VibeId[], []);
-  const handleSetVibe = useCallback(() => {
-    if (!isHost || !state) return;
-    const idx = VIBE_CYCLE.indexOf(state.vibeId);
-    const next = VIBE_CYCLE[(idx + 1) % VIBE_CYCLE.length];
-    send("setVibe", { vibeId: next });
-  }, [isHost, state?.vibeId, send, VIBE_CYCLE]);
-
   const handleClearQueue = useCallback(() => {
     if (!isHost) return;
     setShowClearConfirm(true);
@@ -233,7 +224,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
       <Background theme={theme} />
 
       {(status === "closed" || status === "reconnecting") && (
-        <div role="alert" className="fixed inset-x-0 top-[52px] z-40 flex items-center justify-center gap-3 bg-black/80 px-4 py-3 text-sm backdrop-blur-sm">
+        <div role="alert" className="fixed inset-x-0 top-[64px] z-40 flex items-center justify-center gap-3 bg-black/80 px-4 py-3 text-sm backdrop-blur-sm">
           {status === "closed" ? (
             <>
               <WifiOff className="h-4 w-4 text-red-300" />
@@ -265,10 +256,10 @@ export function PartyRoom({ party }: PartyRoomProps) {
       />
 
       {/* Viewport-locked content area */}
-      <div className="relative z-10 flex-1 min-h-0 flex flex-col px-4 sm:px-5 lg:px-6 pt-[52px] pb-4">
+      <div className="relative z-10 flex-1 min-h-0 flex flex-col px-4 sm:px-5 lg:px-6 pt-16 pb-4">
 
         {/* ─── BENTO GRID — single row, three columns ─── */}
-        <div className="flex-1 min-h-0 grid gap-4 lg:gap-5 grid-cols-1 lg:grid-cols-[280px_1fr_260px]">
+        <div className="flex-1 min-h-0 grid gap-4 lg:gap-5 grid-cols-1 lg:grid-cols-[280px_1fr_260px] mb-3">
 
           {/* LEFT — Room + Host Controls (full height) */}
           <div className="min-h-0 overflow-y-auto scrollbar-hide">
@@ -279,13 +270,11 @@ export function PartyRoom({ party }: PartyRoomProps) {
               isPlaying={audio.isPlaying}
               volume={audio.volume}
               isMuted={audio.isMuted}
-              vibeId={state?.vibeId ?? "all"}
               onTogglePlay={handleTogglePlay}
               onPrev={handlePrev}
               onNext={handleNext}
               onVolumeChange={audio.setVolume}
               onToggleMute={audio.toggleMute}
-              onSetVibe={handleSetVibe}
               onClearQueue={handleClearQueue}
             />
           </div>

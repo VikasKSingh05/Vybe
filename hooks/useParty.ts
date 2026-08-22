@@ -183,12 +183,22 @@ export function useParty() {
 
   openStreamRef.current = openStream;
 
-  // Auto-rejoin a persisted session on mount (deferred out of the effect
-  // body to satisfy react-hooks/set-state-in-effect).
+  // Auto-rejoin a persisted session on mount. Validate the room still
+  // exists before opening the SSE stream to avoid the retry-timeout loop.
   useEffect(() => {
     const session = loadSession();
     if (!session) return;
-    const t = setTimeout(() => {
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/party/${session.roomId}`);
+        if (!res.ok) {
+          clearSession();
+          return;
+        }
+      } catch {
+        clearSession();
+        return;
+      }
       setStatus("connecting");
       openStream(session);
     }, 0);

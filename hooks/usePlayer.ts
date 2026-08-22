@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Track, VibeId } from "@/data/types";
+import type { QueueItem, Track, VibeId } from "@/data/types";
 import { getVibeTheme } from "@/data/vibes";
 import { getPlaylistForGenre, type PlaylistEntry } from "@/data/playlists";
 import type { Song } from "@/types/music";
@@ -14,7 +14,7 @@ interface UsePlayerOptions {
 }
 
 export function usePlayer({
-  initialVibeId = "all",
+  initialVibeId = "bollywood",
   autoPlay = false,
 }: UsePlayerOptions = {}) {
   const [vibeId, setVibeId] = useState<VibeId>(initialVibeId);
@@ -26,6 +26,7 @@ export function usePlayer({
   const [extraLoading, setExtraLoading] = useState(false);
   const [errorState, setErrorState] = useState<string | null>(null);
   const [userInteracted, setUserInteracted] = useState(autoPlay);
+  const [isCustomQueue, setIsCustomQueue] = useState(false);
 
   const songCacheRef = useRef<Map<string, Song>>(new Map());
   const failCountRef = useRef(0);
@@ -34,6 +35,8 @@ export function usePlayer({
   activePlaylistRef.current = playlist;
   const currentIndexRef = useRef(currentIndex);
   currentIndexRef.current = currentIndex;
+  const isCustomQueueRef = useRef(isCustomQueue);
+  isCustomQueueRef.current = isCustomQueue;
   const loadSongAtIndexRef = useRef<((index: number, shouldPlay?: boolean) => Promise<void>) | null>(null);
 
   const theme = getVibeTheme(vibeId);
@@ -45,6 +48,13 @@ export function usePlayer({
     onEnded: () => {
       const currentList = activePlaylistRef.current;
       if (currentList.length === 0) return;
+      if (
+        isCustomQueueRef.current &&
+        currentIndexRef.current >= currentList.length - 1
+      ) {
+        if (audioRef.current) audioRef.current.pause();
+        return;
+      }
       const nextIndex = (currentIndexRef.current + 1) % currentList.length;
       loadSongAtIndexRef.current?.(nextIndex, true);
     },
@@ -155,6 +165,7 @@ export function usePlayer({
     (newVibeId: VibeId) => {
       setUserInteracted(true);
       setVibeId(newVibeId);
+      setIsCustomQueue(false);
       const newPlaylist = getPlaylistForGenre(newVibeId);
       setPlaylist(newPlaylist);
       failCountRef.current = 0;
@@ -236,9 +247,13 @@ export function usePlayer({
   const next = useCallback(() => {
     setUserInteracted(true);
     failCountRef.current = 0;
+    if (isCustomQueue && currentIndex >= playlist.length - 1) {
+      if (audioRef.current) audioRef.current.pause();
+      return;
+    }
     const nextIdx = (currentIndex + 1) % playlist.length;
     loadSongAtIndex(nextIdx, true);
-  }, [currentIndex, playlist.length, loadSongAtIndex]);
+  }, [isCustomQueue, currentIndex, playlist.length, loadSongAtIndex, audioRef]);
 
   const prev = useCallback(() => {
     setUserInteracted(true);
@@ -247,9 +262,13 @@ export function usePlayer({
       seek(0);
       return;
     }
+    if (isCustomQueue && currentIndex === 0) {
+      seek(0);
+      return;
+    }
     const prevIdx = (currentIndex - 1 + playlist.length) % playlist.length;
     loadSongAtIndex(prevIdx, true);
-  }, [currentTime, seek, currentIndex, playlist.length, loadSongAtIndex]);
+  }, [isCustomQueue, currentTime, seek, currentIndex, playlist.length, loadSongAtIndex]);
 
   const changeVolume = useCallback((v: number) => {
     const clamped = Math.max(0, Math.min(1, v));
@@ -260,6 +279,77 @@ export function usePlayer({
   const toggleMute = useCallback(() => {
     setIsMutedState((prev) => !prev);
   }, []);
+
+  const addToQueue = useCallback(
+    (entry: PlaylistEntry, resolvedSong?: Song, forcePlay = false, isDiscovery = false) => {
+      if (resolvedSong) {
+        const cacheKey =
+          entry.jiosaavnId?.trim() ||
+          `${entry.title}-${entry.artist}`.toLowerCase();
+        songCacheRef.current.set(cacheKey, resolvedSong);
+      }
+      const wasEmpty = activePlaylistRef.current.length === 0;
+      const newPlaylist = [...activePlaylistRef.current, entry];
+      const newIndex = newPlaylist.length - 1;
+      setPlaylist(newPlaylist);
+      activePlaylistRef.current = newPlaylist;
+      if (!isDiscovery) setIsCustomQueue(true);
+      if (wasEmpty || forcePlay) {
+        setUserInteracted(true);
+        const targetIndex = wasEmpty ? 0 : newIndex;
+        setTimeout(() => loadSongAtIndexRef.current?.(targetIndex, true), 50);
+      }
+    },
+    [],
+  );
+
+  const removeFromQueue = useCallback(
+    (index: number) => {
+      const list = activePlaylistRef.current;
+      const newPlaylist = list.filter((_, i) => i !== index);
+      setPlaylist(newPlaylist);
+      activePlaylistRef.current = newPlaylist;
+
+      if (newPlaylist.length === 0) {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.removeAttribute("src");
+        }
+        setCurrentSong(null);
+        setCurrentIndex(0);
+        setIsCustomQueue(false);
+        return;
+      }
+
+      if (index < currentIndexRef.current) {
+        setCurrentIndex((prev) => prev - 1);
+      } else if (index === currentIndexRef.current) {
+        const nextIdx = currentIndexRef.current % newPlaylist.length;
+        loadSongAtIndexRef.current?.(nextIdx, true);
+      }
+    },
+    [audioRef],
+  );
+
+  const clearCustomQueue = useCallback(() => {
+    setPlaylist([]);
+    activePlaylistRef.current = [];
+    setCurrentIndex(0);
+    setIsCustomQueue(false);
+    setExtraLoading(false);
+    setErrorState(null);
+  }, []);
+
+  const playAtIndex = useCallback(
+    (index: number) => {
+      setUserInteracted(true);
+      failCountRef.current = 0;
+      const list = activePlaylistRef.current;
+      if (index < 0 || index >= list.length) return;
+      loadSongAtIndexRef.current?.(index, true);
+    },
+    [],
+  );
 
   const activeEntry = playlist[currentIndex] || {
     title: "VYBE Radio",
@@ -278,6 +368,17 @@ export function usePlayer({
 
   const currentDuration = duration > 0 ? duration : track.duration;
   const clampedTime = Math.min(currentDuration, Math.max(0, currentTime));
+
+  const queueItems: QueueItem[] = playlist.map((entry, i) => ({
+    queueItemId: `${entry.title}-${entry.artist}-${i}`,
+    title: entry.title,
+    artist: entry.artist,
+    jiosaavnId: entry.jiosaavnId,
+    artwork: entry.artwork,
+    duration: entry.duration,
+    mood: entry.mood,
+    energy: entry.energy,
+  }));
 
   return {
     vibeId,
@@ -299,6 +400,15 @@ export function usePlayer({
     changeVibe,
     changeVolume,
     toggleMute,
+    isCustomQueue,
+    isRandomMode: vibeId === "random",
+    queueItems,
+    queueLength: playlist.length,
+    currentIndex,
+    addToQueue,
+    removeFromQueue,
+    clearCustomQueue,
+    playAtIndex,
     progress:
       currentDuration > 0
         ? Math.min(100, Math.max(0, (clampedTime / currentDuration) * 100))
