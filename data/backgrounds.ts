@@ -50,3 +50,12 @@ export const backgroundThemes: Record<VibeId, VibeTheme> = {
     description: "Your personal queue. Search, add, vibe.",
   },
 };
+
+export const partyTheme: VibeTheme = {
+  id: "phonk",
+  label: "PARTY",
+  background: "/backgrounds/fields.jpg",
+  overlay: "linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.68) 100%)",
+  accent: "#e07a3a",
+  description: "Vibe together — golden hour warmth for the crew.",
+};

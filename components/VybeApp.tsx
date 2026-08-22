@@ -14,7 +14,7 @@ import { useSearch } from "@/hooks/useSearch";
 import { useDiscoveryQueue } from "@/hooks/useDiscoveryQueue";
 
 export function VybeApp() {
-  const player = usePlayer({ initialVibeId: "random", autoPlay: false });
+  const player = usePlayer({ initialVibeId: "bollywood", autoPlay: false });
   const search = useSearch();
 
   const queueItemIds = useMemo(

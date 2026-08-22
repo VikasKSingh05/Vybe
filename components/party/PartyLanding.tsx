@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { Users, Link2, Sparkles } from "lucide-react";
-import { backgroundThemes } from "@/data/backgrounds";
+import { partyTheme } from "@/data/backgrounds";
 import type { VibeId } from "@/data/types";
 
 interface PartyLandingProps {
@@ -13,7 +13,7 @@ interface PartyLandingProps {
   onJoin: (roomId: string, name: string) => void;
 }
 
-const ACCENT = backgroundThemes["phonk"].accent;
+const ACCENT = partyTheme.accent;
 
 export function PartyLanding({
   initialRoomId,

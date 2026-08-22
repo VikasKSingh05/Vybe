@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { LogOut, WifiOff, RefreshCw } from "lucide-react";
 import gsap from "gsap";
 import type { Track } from "@/data/types";
-import { getVibeTheme } from "@/data/vibes";
+import { partyTheme } from "@/data/backgrounds";
 import { Background } from "@/components/Background";
 import { usePartyAudio } from "@/hooks/usePartyAudio";
 import { usePartyActivity } from "@/hooks/usePartyActivity";
@@ -133,7 +133,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const { copy } = useCopyToClipboard();
 
-  const theme = getVibeTheme(state?.vibeId ?? "phonk");
+  const theme = partyTheme;
 
   const onTrackEnded = useCallback(() => {
     if (isHost) send("next");
