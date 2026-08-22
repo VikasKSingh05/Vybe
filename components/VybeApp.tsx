@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Song } from "@/types/music";
 import { Background } from "@/components/Background";
 import { FloatingPlayer } from "@/components/FloatingPlayer";
@@ -8,7 +8,7 @@ import { GenrePills } from "@/components/GenrePills";
 import { Header } from "@/components/Header";
 import { HeroSection } from "@/components/HeroSection";
 import { QueueOverlay } from "@/components/QueueOverlay";
-import { SearchBar } from "@/components/SearchBar";
+import { SearchOverlay } from "@/components/SearchOverlay";
 import { usePlayer } from "@/hooks/usePlayer";
 import { useSearch } from "@/hooks/useSearch";
 
@@ -83,8 +83,8 @@ export function VybeApp() {
     player.clearCustomQueue();
   }, [player]);
 
-  const searchBar = (
-    <SearchBar
+  const searchOverlay = (
+    <SearchOverlay
       query={search.query}
       results={search.results}
       isSearching={search.isSearching}
@@ -113,7 +113,7 @@ export function VybeApp() {
             activeId={player.vibeId}
             onChange={handleVibeChange}
             accent={player.theme.accent}
-            searchBar={searchBar}
+            searchOverlay={searchOverlay}
           />
         </div>
       </main>
