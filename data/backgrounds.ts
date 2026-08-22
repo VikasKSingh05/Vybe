@@ -1,14 +1,6 @@
 import type { VibeId, VibeTheme } from "./types";
 
 export const backgroundThemes: Record<VibeId, VibeTheme> = {
-  all: {
-    id: "all",
-    label: "ALL",
-    background: "/backgrounds/fields.jpg",
-    overlay: "linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.68) 100%)",
-    accent: "#e07a3a",
-    description: "Cinematic golden hour Indian street with vintage warmth and nostalgic architecture.",
-  },
   phonk: {
     id: "phonk",
     label: "PHONK",
@@ -48,5 +40,13 @@ export const backgroundThemes: Record<VibeId, VibeTheme> = {
     overlay: "linear-gradient(180deg, rgba(5,15,30,0.35) 0%, rgba(0,0,0,0.72) 100%)",
     accent: "#5b8fa8",
     description: "Dreamy coastal ocean at blue hour with silhouette palm trees and gentle waves.",
+  },
+  random: {
+    id: "random",
+    label: "RANDOM",
+    background: "/backgrounds/fields.jpg",
+    overlay: "linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.68) 100%)",
+    accent: "#b06cff",
+    description: "A surprise mix of everything — let VYBE pick what plays next.",
   },
 };

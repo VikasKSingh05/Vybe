@@ -2,12 +2,12 @@ import { backgroundThemes } from "./backgrounds";
 import type { VibeId, VibeTheme } from "./types";
 
 export const vibeThemes: VibeTheme[] = [
-  backgroundThemes.all,
   backgroundThemes.phonk,
   backgroundThemes.lofi,
   backgroundThemes.bollywood,
   backgroundThemes.indie,
   backgroundThemes.chill,
+  backgroundThemes.random,
 ];
 
 export function getVibeTheme(id: VibeId): VibeTheme {
