@@ -11,6 +11,7 @@ import { QueueOverlay } from "@/components/QueueOverlay";
 import { SearchOverlay } from "@/components/SearchOverlay";
 import { usePlayer } from "@/hooks/usePlayer";
 import { useSearch } from "@/hooks/useSearch";
+import { cn } from "@/lib/cn";
 
 export function VybeApp() {
   const player = usePlayer({ initialVibeId: "bollywood", autoPlay: false });
@@ -18,6 +19,7 @@ export function VybeApp() {
 
   const [visibleError, setVisibleError] = useState<string | null>(null);
   const [queueOpen, setQueueOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     if (player.error) {
@@ -94,6 +96,7 @@ export function VybeApp() {
       onQueryChange={search.setQuery}
       onPlaySong={handlePlaySong}
       onAddToQueue={handleAddToQueue}
+      onOpenChange={setSearchOpen}
     />
   );
 
@@ -135,6 +138,10 @@ export function VybeApp() {
         onVolumeChange={player.changeVolume}
         onToggleMute={player.toggleMute}
         onToggleQueue={() => setQueueOpen((o) => !o)}
+        className={cn(
+          "transition-opacity duration-300",
+          searchOpen && "opacity-0 pointer-events-none",
+        )}
       />
 
       <QueueOverlay

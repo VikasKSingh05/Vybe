@@ -17,6 +17,7 @@ interface SearchOverlayProps {
   onQueryChange: (query: string) => void;
   onPlaySong: (song: Song) => void;
   onAddToQueue: (song: Song) => void;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function SearchOverlay({
@@ -29,6 +30,7 @@ export function SearchOverlay({
   onQueryChange,
   onPlaySong,
   onAddToQueue,
+  onOpenChange,
 }: SearchOverlayProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -100,7 +102,8 @@ export function SearchOverlay({
     );
 
     setIsOpen(true);
-  }, [isOpen]);
+    onOpenChange?.(true);
+  }, [isOpen, onOpenChange]);
 
   const handleClose = useCallback(() => {
     if (isAnimating.current || !isOpen) return;
@@ -108,6 +111,9 @@ export function SearchOverlay({
     const panel = panelRef.current;
     const backdrop = backdropRef.current;
     if (!panel || !backdrop) return;
+
+    // Clear query before collapse so input empties smoothly
+    onQueryChange("");
 
     // Use stored or fresh trigger rect
     const rect = trigger?.getBoundingClientRect() ?? startRectRef.current;
@@ -117,6 +123,7 @@ export function SearchOverlay({
       onComplete: () => {
         isAnimating.current = false;
         setIsOpen(false);
+        onOpenChange?.(false);
         gsap.set(panel, { pointerEvents: "none" });
         gsap.set(backdrop, { pointerEvents: "none" });
       },
@@ -133,14 +140,14 @@ export function SearchOverlay({
             width: rect.width,
             height: rect.height,
             borderRadius: "9999px",
-            duration: 0.35,
-            ease: "power2.in",
+            duration: 0.4,
+            ease: "power3.in",
           }
-        : { opacity: 0, scale: 0.95, duration: 0.25, ease: "power2.in" },
+        : { opacity: 0, scale: 0.95, duration: 0.3, ease: "power3.in" },
       0,
     );
-    tl.to(backdrop, { opacity: 0, duration: 0.3, ease: "power2.in" }, 0);
-  }, [isOpen]);
+    tl.to(backdrop, { opacity: 0, duration: 0.35, ease: "power3.in" }, 0.05);
+  }, [isOpen, onOpenChange, onQueryChange]);
 
   // Escape to close
   useEffect(() => {
@@ -215,7 +222,7 @@ export function SearchOverlay({
       {/* ─── OVERLAY ─── */}
       <div
         ref={backdropRef}
-        className="fixed inset-0 z-[59] bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 z-[59] bg-black/80 backdrop-blur-sm"
         style={{ opacity: 0, pointerEvents: "none" }}
         onClick={handleClose}
         aria-hidden="true"
