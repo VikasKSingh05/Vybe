@@ -135,6 +135,27 @@ describe("dispatch", () => {
     }
   });
 
+  it("rejects adding a track already in queue", async () => {
+    const song = {
+      id: "s1",
+      title: "Test",
+      artist: "Artist",
+      streamUrl: "https://example.com/stream",
+    };
+    const first = await dispatch(roomId, memberId, "addTrack", { song });
+    expect(first.ok).toBe(true);
+
+    const duplicate = await dispatch(roomId, memberId, "addTrack", { song });
+    expect(duplicate.ok).toBe(false);
+    if (!duplicate.ok) {
+      expect(duplicate.status).toBe(409);
+      expect(duplicate.error).toBe("This song is already in the queue");
+    }
+
+    const state = await getRoom(roomId);
+    expect(state!.queue).toHaveLength(1);
+  });
+
   it("rejects invalid song payload", async () => {
     const result = await dispatch(roomId, memberId, "addTrack", { song: {} });
     expect(result.ok).toBe(false);

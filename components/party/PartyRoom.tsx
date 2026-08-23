@@ -219,6 +219,11 @@ export function PartyRoom({ party }: PartyRoomProps) {
     copy(`${window.location.origin}/party/${state.roomId}`);
   }, [state?.roomId, copy]);
 
+  const queuedSongIds = useMemo(
+    () => new Set(state?.queue.map((t) => t.song.id) ?? []),
+    [state?.queue],
+  );
+
   return (
     <div className="relative h-dvh flex flex-col overflow-hidden text-white font-sans antialiased">
       <Background theme={theme} />
@@ -332,6 +337,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
           <div className="w-full max-w-lg">
             <PartyAddSong
               accent={theme.accent}
+              queuedIds={queuedSongIds}
               onAdd={(song) => send("addTrack", { song })}
             />
           </div>
