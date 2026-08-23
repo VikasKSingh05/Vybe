@@ -117,6 +117,9 @@ export function SearchOverlay({
     // Clear query before collapse so input empties smoothly
     onQueryChange("");
 
+    // Release focus so keystrokes ("/" or text) can't land in the hidden input
+    inputRef.current?.blur();
+
     // Use stored or fresh trigger rect
     const rect = trigger?.getBoundingClientRect() ?? startRectRef.current;
     isAnimating.current = true;
@@ -135,6 +138,8 @@ export function SearchOverlay({
           pointerEvents: "none",
         });
         gsap.set(backdrop, { pointerEvents: "none" });
+        // Return focus to the invoking control (standard dialog a11y)
+        triggerRef.current?.focus();
       },
     });
 
