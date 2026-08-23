@@ -124,7 +124,14 @@ export function SearchOverlay({
         isAnimating.current = false;
         setIsOpen(false);
         onOpenChange?.(false);
-        gsap.set(panel, { pointerEvents: "none" });
+        // Full reset so panel never lingers over the trigger
+        gsap.set(panel, {
+          opacity: 0,
+          scale: 0.95,
+          xPercent: 0,
+          yPercent: 0,
+          pointerEvents: "none",
+        });
         gsap.set(backdrop, { pointerEvents: "none" });
       },
     });
@@ -140,13 +147,17 @@ export function SearchOverlay({
             width: rect.width,
             height: rect.height,
             borderRadius: "9999px",
-            duration: 0.4,
+            duration: 0.45,
             ease: "power3.in",
           }
         : { opacity: 0, scale: 0.95, duration: 0.3, ease: "power3.in" },
       0,
     );
-    tl.to(backdrop, { opacity: 0, duration: 0.35, ease: "power3.in" }, 0.05);
+
+    // Crossfade panel out during the last third of the collapse
+    tl.to(panel, { opacity: 0, duration: 0.18, ease: "power2.in" }, 0.27);
+
+    tl.to(backdrop, { opacity: 0, duration: 0.3, ease: "power3.in" }, 0);
   }, [isOpen, onOpenChange, onQueryChange]);
 
   // Escape to close
