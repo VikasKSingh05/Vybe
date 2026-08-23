@@ -26,6 +26,7 @@ export function usePlayer({
   const [extraLoading, setExtraLoading] = useState(false);
   const [errorState, setErrorState] = useState<string | null>(null);
   const [userInteracted, setUserInteracted] = useState(autoPlay);
+  const [isCustomQueue, setIsCustomQueue] = useState(false);
 
   const songCacheRef = useRef<Map<string, Song>>(new Map());
   const failCountRef = useRef(0);
@@ -234,6 +235,7 @@ export function usePlayer({
     (newVibeId: VibeId) => {
       setUserInteracted(true);
       setVibeId(newVibeId);
+      setIsCustomQueue(false);
       const newPlaylist = getPlaylistForGenre(newVibeId);
       setPlaylist(newPlaylist);
       activePlaylistRef.current = newPlaylist;
@@ -348,7 +350,7 @@ export function usePlayer({
     }
     const prevIdx = (currentIndex - 1 + playlist.length) % playlist.length;
     loadSongAtIndex(prevIdx, true);
-  }, [currentTime, seek, currentIndex, playlist.length, loadSongAtIndex]);
+  }, [isCustomQueue, currentTime, seek, currentIndex, playlist.length, loadSongAtIndex]);
 
   const changeVolume = useCallback((v: number) => {
     const clamped = Math.max(0, Math.min(1, v));

@@ -81,7 +81,6 @@ export function GenrePills({
                   : undefined
               }
             >
-              {/* Subtle active pill dot indicator */}
               {isActive && (
                 <span
                   className="inline-block h-1.5 w-1.5 rounded-full mr-2 transition-all"

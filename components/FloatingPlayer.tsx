@@ -23,6 +23,7 @@ interface FloatingPlayerProps {
   accent: string;
   queueCount?: number;
   locked?: boolean;
+  queueCount?: number;
   onTogglePlay: () => void;
   onPrev: () => void;
   onNext: () => void;
@@ -44,6 +45,7 @@ export const FloatingPlayer = memo(function FloatingPlayer({
   accent,
   queueCount,
   locked = false,
+  queueCount = 0,
   onTogglePlay,
   onPrev,
   onNext,
