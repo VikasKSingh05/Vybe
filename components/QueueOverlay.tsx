@@ -17,7 +17,6 @@ interface QueueOverlayProps {
   onRemove: (index: number) => void;
   onPlayItem: (index: number) => void;
   onClear?: () => void;
-  onDiscover?: () => void;
 }
 
 export function QueueOverlay({
@@ -29,7 +28,6 @@ export function QueueOverlay({
   onRemove,
   onPlayItem,
   onClear,
-  onDiscover,
 }: QueueOverlayProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
@@ -142,23 +140,8 @@ export function QueueOverlay({
             <div className="flex flex-col items-center justify-center gap-3 px-4 py-12 text-center">
               <Music className="h-8 w-8 text-white/15" />
               <p className="text-xs text-white/30">
-                Your queue is empty.
+                Your queue is empty. Search for songs to add.
               </p>
-              <div className="flex items-center gap-1.5">
-                <p className="text-[10px] text-white/20">Search for songs to add</p>
-                {onDiscover && (
-                  <>
-                    <span className="text-[10px] text-white/10">or</span>
-                    <button
-                      type="button"
-                      onClick={onDiscover}
-                      className="text-[10px] font-medium text-white/50 hover:text-white/80 underline underline-offset-2 transition-colors cursor-pointer"
-                    >
-                      Discover
-                    </button>
-                  </>
-                )}
-              </div>
             </div>
           ) : (
             <ul className="divide-y divide-white/5">

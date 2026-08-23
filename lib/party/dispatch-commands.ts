@@ -111,6 +111,9 @@ export function dispatchCommand(
       const song = payload?.song;
       if (!isValidSong(song)) return err(400, "Invalid song payload");
       if (state.queue.length >= PARTY_MAX_QUEUE) return err(429, "Queue is full");
+      if (state.queue.some((t) => t.song.id === song.id)) {
+        return err(409, "This song is already in the queue");
+      }
       const wire = apply((s) => {
         s.queue.push({
           queueId: generateId(10),

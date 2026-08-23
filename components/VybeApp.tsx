@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Song } from "@/types/music";
 import { Background } from "@/components/Background";
 import { FloatingPlayer } from "@/components/FloatingPlayer";
@@ -8,35 +8,18 @@ import { GenrePills } from "@/components/GenrePills";
 import { Header } from "@/components/Header";
 import { HeroSection } from "@/components/HeroSection";
 import { QueueOverlay } from "@/components/QueueOverlay";
-import { SearchBar } from "@/components/SearchBar";
+import { SearchOverlay } from "@/components/SearchOverlay";
 import { usePlayer } from "@/hooks/usePlayer";
 import { useSearch } from "@/hooks/useSearch";
-import { useDiscoveryQueue } from "@/hooks/useDiscoveryQueue";
+import { cn } from "@/lib/cn";
 
 export function VybeApp() {
   const player = usePlayer({ initialVibeId: "bollywood", autoPlay: false });
   const search = useSearch();
 
-  const queueItemIds = useMemo(
-    () => player.queueItems.map((item) => item.jiosaavnId ?? item.queueItemId),
-    [player.queueItems],
-  );
-
-  const discoveryAddToQueue = useCallback(
-    (entry: import("@/data/playlists").PlaylistEntry, resolvedSong?: Song) => {
-      player.addToQueue(entry, resolvedSong, false, true);
-    },
-    [player],
-  );
-
-  const { pause, resume } = useDiscoveryQueue({
-    vibeId: player.vibeId,
-    queueItemIds,
-    addToQueue: discoveryAddToQueue,
-  });
-
   const [visibleError, setVisibleError] = useState<string | null>(null);
   const [queueOpen, setQueueOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     if (player.error) {
@@ -63,18 +46,16 @@ export function VybeApp() {
     (song: Song) => {
       player.addToQueue(songToEntry(song), song, true);
       search.clear();
-      resume();
     },
-    [player, songToEntry, search, resume],
+    [player, songToEntry, search],
   );
 
   const handleAddToQueue = useCallback(
     (song: Song) => {
       player.addToQueue(songToEntry(song), song);
       search.clear();
-      resume();
     },
-    [player, songToEntry, search, resume],
+    [player, songToEntry, search],
   );
 
   const handlePlayQueueItem = useCallback(
@@ -96,22 +77,16 @@ export function VybeApp() {
       player.changeVibe(id);
       search.clear();
       setQueueOpen(false);
-      resume();
     },
-    [player, search, resume],
+    [player, search],
   );
 
   const handleClearQueue = useCallback(() => {
     player.clearCustomQueue();
-    pause();
-  }, [player, pause]);
+  }, [player]);
 
-  const handleDiscover = useCallback(() => {
-    resume();
-  }, [resume]);
-
-  const searchBar = (
-    <SearchBar
+  const searchOverlay = (
+    <SearchOverlay
       query={search.query}
       results={search.results}
       isSearching={search.isSearching}
@@ -121,6 +96,7 @@ export function VybeApp() {
       onQueryChange={search.setQuery}
       onPlaySong={handlePlaySong}
       onAddToQueue={handleAddToQueue}
+      onOpenChange={setSearchOpen}
     />
   );
 
@@ -140,7 +116,7 @@ export function VybeApp() {
             activeId={player.vibeId}
             onChange={handleVibeChange}
             accent={player.theme.accent}
-            searchBar={searchBar}
+            searchOverlay={searchOverlay}
           />
         </div>
       </main>
@@ -162,6 +138,10 @@ export function VybeApp() {
         onVolumeChange={player.changeVolume}
         onToggleMute={player.toggleMute}
         onToggleQueue={() => setQueueOpen((o) => !o)}
+        className={cn(
+          "transition-opacity duration-300",
+          searchOpen && "opacity-0 pointer-events-none",
+        )}
       />
 
       <QueueOverlay
@@ -173,7 +153,6 @@ export function VybeApp() {
         onRemove={handleRemoveFromQueue}
         onPlayItem={handlePlayQueueItem}
         onClear={player.isRandomMode ? handleClearQueue : undefined}
-        onDiscover={player.isRandomMode ? handleDiscover : undefined}
       />
 
       {visibleError && (

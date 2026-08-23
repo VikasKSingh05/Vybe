@@ -1,5 +1,14 @@
 import type { VibeId, VibeTheme } from "./types";
 
+export const partyTheme: VibeTheme = {
+  id: "bollywood",
+  label: "PARTY",
+  background: "/backgrounds/fields.jpg",
+  overlay: "linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.68) 100%)",
+  accent: "#e07a3a",
+  description: "Party mode — orange themed.",
+};
+
 export const backgroundThemes: Record<VibeId, VibeTheme> = {
   phonk: {
     id: "phonk",
@@ -45,17 +54,8 @@ export const backgroundThemes: Record<VibeId, VibeTheme> = {
     id: "random",
     label: "RANDOM",
     background: "/backgrounds/fields.jpg",
-    overlay: "linear-gradient(180deg, rgba(20,0,40,0.35) 0%, rgba(0,0,0,0.72) 100%)",
+    overlay: "linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.68) 100%)",
     accent: "#b06cff",
-    description: "Your personal queue. Search, add, vibe.",
+    description: "A surprise mix of everything — let VYBE pick what plays next.",
   },
-};
-
-export const partyTheme: VibeTheme = {
-  id: "phonk",
-  label: "PARTY",
-  background: "/backgrounds/fields.jpg",
-  overlay: "linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.68) 100%)",
-  accent: "#e07a3a",
-  description: "Vibe together — golden hour warmth for the crew.",
 };

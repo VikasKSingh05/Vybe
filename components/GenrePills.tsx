@@ -11,7 +11,7 @@ interface GenrePillsProps {
   onChange: (id: VibeId) => void;
   accent: string;
   className?: string;
-  searchBar?: React.ReactNode;
+  searchOverlay?: React.ReactNode;
 }
 
 export function GenrePills({
@@ -19,7 +19,7 @@ export function GenrePills({
   onChange,
   accent,
   className,
-  searchBar,
+  searchOverlay,
 }: GenrePillsProps) {
   const pillsRef = useRef<HTMLDivElement>(null);
 
@@ -81,6 +81,7 @@ export function GenrePills({
                   : undefined
               }
             >
+              {/* Subtle active pill dot indicator */}
               {isActive && (
                 <span
                   className="inline-block h-1.5 w-1.5 rounded-full mr-2 transition-all"
@@ -93,9 +94,9 @@ export function GenrePills({
         })}
       </div>
 
-      {activeId === "random" && searchBar && (
+      {activeId === "random" && searchOverlay && (
         <div className="mt-1 flex justify-center">
-          <div className="w-full max-w-xl">{searchBar}</div>
+          <div className="w-full max-w-xl">{searchOverlay}</div>
         </div>
       )}
     </div>

@@ -38,7 +38,7 @@ export function PartyLanding({
       if (!canCreate || submitting) return;
       setSubmitting("create");
       try {
-        await onCreate(name.trim(), "phonk");
+        await onCreate(name.trim(), "bollywood");
       } finally {
         setSubmitting(null);
       }

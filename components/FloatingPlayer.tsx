@@ -21,8 +21,8 @@ interface FloatingPlayerProps {
   volume: number;
   isMuted: boolean;
   accent: string;
-  locked?: boolean;
   queueCount?: number;
+  locked?: boolean;
   onTogglePlay: () => void;
   onPrev: () => void;
   onNext: () => void;
@@ -42,8 +42,8 @@ export const FloatingPlayer = memo(function FloatingPlayer({
   volume,
   isMuted,
   accent,
+  queueCount,
   locked = false,
-  queueCount = 0,
   onTogglePlay,
   onPrev,
   onNext,
@@ -129,26 +129,23 @@ export const FloatingPlayer = memo(function FloatingPlayer({
             onNext={onNext}
           />
 
-          {onToggleQueue ? (
-            <button
-              type="button"
-              onClick={onToggleQueue}
-              className="relative flex items-center justify-center w-20 min-h-[44px] text-white/40 hover:text-white/70 transition-colors cursor-pointer"
-              aria-label={`Queue, ${queueCount} songs`}
-            >
-              <ListMusic className="h-5 w-5" />
-              {queueCount > 0 && (
-                <span
-                  className="absolute -top-1 right-2 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold text-black"
-                  style={{ backgroundColor: accent }}
-                >
-                  {queueCount}
-                </span>
-              )}
-            </button>
-          ) : (
-            <div className="hidden sm:block w-20" aria-hidden="true" />
-          )}
+          <div className="flex items-center gap-2 w-20 justify-end">
+            {onToggleQueue && (
+              <button
+                type="button"
+                onClick={onToggleQueue}
+                className="relative rounded-full p-2 text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
+                aria-label="Open queue"
+              >
+                <ListMusic className="h-4 w-4" />
+                {queueCount != null && queueCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-white/20 px-1 text-[8px] font-medium text-white/70">
+                    {queueCount}
+                  </span>
+                )}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

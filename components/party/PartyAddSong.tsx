@@ -1,19 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Plus, Search, Loader2, X } from "lucide-react";
+import { Plus, Search, Loader2, X, Check } from "lucide-react";
 import type { Song } from "@/types/music";
 import { AlbumArt } from "@/components/AlbumArt";
 import { cn } from "@/lib/cn";
 
 interface PartyAddSongProps {
   accent: string;
+  queuedIds?: Set<string>;
   onAdd: (song: Song) => Promise<boolean>;
 }
 
 const DEBOUNCE_MS = 450;
 
-export function PartyAddSong({ accent, onAdd }: PartyAddSongProps) {
+export function PartyAddSong({ accent, queuedIds, onAdd }: PartyAddSongProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Song[]>([]);
   const [searching, setSearching] = useState(false);
@@ -205,6 +206,7 @@ export function PartyAddSong({ accent, onAdd }: PartyAddSongProps) {
               {results.map((song) => {
                 const added = addedIds.has(song.id);
                 const failed = failedIds.has(song.id);
+                const inQueue = queuedIds?.has(song.id) ?? false;
                 return (
                   <li
                     key={song.id}
@@ -223,19 +225,31 @@ export function PartyAddSong({ accent, onAdd }: PartyAddSongProps) {
                     <button
                       type="button"
                       onClick={() => handleAdd(song)}
-                      disabled={added || failed}
+                      disabled={added || failed || inQueue}
                       className={cn(
-                        "flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-medium transition-all duration-200 cursor-pointer shrink-0",
+                        "flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-medium transition-all duration-200 shrink-0",
                         added
                           ? "bg-white/10 text-white/60"
                           : failed
                             ? "bg-red-400/20 text-red-300"
-                            : "text-black hover:brightness-110",
+                            : inQueue
+                              ? "bg-white/[0.07] text-white/50 cursor-default"
+                              : "text-black hover:brightness-110 cursor-pointer",
                       )}
-                      style={!added && !failed ? { backgroundColor: accent } : undefined}
+                      style={!added && !failed && !inQueue ? { backgroundColor: accent } : undefined}
                     >
-                      <Plus className="h-3 w-3" />
-                      {added ? "Added" : failed ? "Failed" : "Add"}
+                      {inQueue ? (
+                        <Check className="h-3 w-3" />
+                      ) : (
+                        <Plus className="h-3 w-3" />
+                      )}
+                      {inQueue
+                        ? "In queue"
+                        : added
+                          ? "Added"
+                          : failed
+                            ? "Failed"
+                            : "Add"}
                     </button>
                   </li>
                 );

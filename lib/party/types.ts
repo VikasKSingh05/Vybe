@@ -66,7 +66,7 @@ export const PARTY_MEMBER_IDLE_MS = 10 * 60 * 1000;
 export const PARTY_ROOM_TTL_MS = 30 * 60 * 1000;
 export const PARTY_REACTION_TTL_MS = 30 * 1000;
 
-export const PARTY_VIBES: VibeId[] = ["phonk", "lofi", "bollywood", "indie", "chill"];
+export const PARTY_VIBES: VibeId[] = ["phonk", "lofi", "bollywood", "indie", "chill", "random"];
 
 /** Delta-sync patch: only fields that changed since the last broadcast. */
 export type PartyPatch = Partial<Pick<PartyState, "hostId" | "vibeId" | "members" | "queue" | "playback" | "reactions">> & {

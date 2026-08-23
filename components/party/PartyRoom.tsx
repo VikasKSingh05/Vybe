@@ -219,12 +219,17 @@ export function PartyRoom({ party }: PartyRoomProps) {
     copy(`${window.location.origin}/party/${state.roomId}`);
   }, [state?.roomId, copy]);
 
+  const queuedSongIds = useMemo(
+    () => new Set(state?.queue.map((t) => t.song.id) ?? []),
+    [state?.queue],
+  );
+
   return (
     <div className="relative h-dvh flex flex-col overflow-hidden text-white font-sans antialiased">
       <Background theme={theme} />
 
       {(status === "closed" || status === "reconnecting") && (
-        <div role="alert" className="fixed inset-x-0 top-[64px] z-40 flex items-center justify-center gap-3 bg-black/80 px-4 py-3 text-sm backdrop-blur-sm">
+        <div role="alert" className="fixed inset-x-0 top-[52px] z-40 flex items-center justify-center gap-3 bg-black/80 px-4 py-3 text-sm backdrop-blur-sm">
           {status === "closed" ? (
             <>
               <WifiOff className="h-4 w-4 text-red-300" />
@@ -256,10 +261,10 @@ export function PartyRoom({ party }: PartyRoomProps) {
       />
 
       {/* Viewport-locked content area */}
-      <div className="relative z-10 flex-1 min-h-0 flex flex-col px-4 sm:px-5 lg:px-6 pt-16 pb-4">
+      <div className="relative z-10 flex-1 min-h-0 flex flex-col px-4 sm:px-5 lg:px-6 pt-[60px] pb-4">
 
         {/* ─── BENTO GRID — single row, three columns ─── */}
-        <div className="flex-1 min-h-0 grid gap-4 lg:gap-5 grid-cols-1 lg:grid-cols-[280px_1fr_260px] mb-3">
+        <div className="flex-1 min-h-0 grid gap-4 lg:gap-5 grid-cols-1 lg:grid-cols-[280px_1fr_260px]">
 
           {/* LEFT — Room + Host Controls (full height) */}
           <div className="min-h-0 overflow-y-auto scrollbar-hide">
@@ -332,6 +337,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
           <div className="w-full max-w-lg">
             <PartyAddSong
               accent={theme.accent}
+              queuedIds={queuedSongIds}
               onAdd={(song) => send("addTrack", { song })}
             />
           </div>

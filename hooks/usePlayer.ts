@@ -26,7 +26,6 @@ export function usePlayer({
   const [extraLoading, setExtraLoading] = useState(false);
   const [errorState, setErrorState] = useState<string | null>(null);
   const [userInteracted, setUserInteracted] = useState(autoPlay);
-  const [isCustomQueue, setIsCustomQueue] = useState(false);
 
   const songCacheRef = useRef<Map<string, Song>>(new Map());
   const failCountRef = useRef(0);
@@ -35,8 +34,8 @@ export function usePlayer({
   activePlaylistRef.current = playlist;
   const currentIndexRef = useRef(currentIndex);
   currentIndexRef.current = currentIndex;
-  const isCustomQueueRef = useRef(isCustomQueue);
-  isCustomQueueRef.current = isCustomQueue;
+  const vibeIdRef = useRef(vibeId);
+  vibeIdRef.current = vibeId;
   const loadSongAtIndexRef = useRef<((index: number, shouldPlay?: boolean) => Promise<void>) | null>(null);
 
   const theme = getVibeTheme(vibeId);
@@ -44,12 +43,25 @@ export function usePlayer({
   const [volume, setVolumeState] = useState(0.75);
   const [isMuted, setIsMutedState] = useState(false);
 
+  const resolveSong = useCallback(
+    (entry: PlaylistEntry) => resolveSongFn(songCacheRef.current, entry),
+    [],
+  );
+
+  const fetchRandomSongInProgressRef = useRef(false);
+  const fetchRandomSongRef = useRef<(() => Promise<void>) | null>(null);
+
   const { audioRef, currentTime, duration, isPlaying, isLoading: audioLoading } = useAudioElement({
     onEnded: () => {
       const currentList = activePlaylistRef.current;
-      if (currentList.length === 0) return;
+      if (currentList.length === 0) {
+        if (vibeIdRef.current === "random") {
+          fetchRandomSongRef.current?.();
+        }
+        return;
+      }
       if (
-        isCustomQueueRef.current &&
+        vibeIdRef.current === "random" &&
         currentIndexRef.current >= currentList.length - 1
       ) {
         if (audioRef.current) audioRef.current.pause();
@@ -78,11 +90,6 @@ export function usePlayer({
     }
   }, [volume, isMuted, audioRef]);
 
-  const resolveSong = useCallback(
-    (entry: PlaylistEntry) => resolveSongFn(songCacheRef.current, entry),
-    [],
-  );
-
   const preloadNextSong = useCallback(
     async (nextIdx: number) => {
       const currentList = activePlaylistRef.current;
@@ -107,7 +114,6 @@ export function usePlayer({
 
       const currentList = activePlaylistRef.current;
       if (currentList.length === 0) {
-        setErrorState("Playlist is empty");
         setExtraLoading(false);
         return;
       }
@@ -161,13 +167,76 @@ export function usePlayer({
     loadSongAtIndex(0, false);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const addToQueue = useCallback(
+    (entry: PlaylistEntry, resolvedSong?: Song, forcePlay = false) => {
+      if (entry.jiosaavnId) {
+        const exists = activePlaylistRef.current.some(
+          (e) => e.jiosaavnId === entry.jiosaavnId,
+        );
+        if (exists) return;
+      }
+      if (resolvedSong) {
+        const cacheKey =
+          entry.jiosaavnId?.trim() ||
+          `${entry.title}-${entry.artist}`.toLowerCase();
+        songCacheRef.current.set(cacheKey, resolvedSong);
+      }
+      const wasEmpty = activePlaylistRef.current.length === 0;
+      const newPlaylist = [...activePlaylistRef.current, entry];
+      const newIndex = newPlaylist.length - 1;
+      setPlaylist(newPlaylist);
+      activePlaylistRef.current = newPlaylist;
+      if (wasEmpty || forcePlay) {
+        setUserInteracted(true);
+        const targetIndex = wasEmpty ? 0 : newIndex;
+        setTimeout(() => loadSongAtIndexRef.current?.(targetIndex, true), 50);
+      }
+    },
+    [],
+  );
+
+  const fetchRandomSong = useCallback(async () => {
+    if (fetchRandomSongInProgressRef.current) return;
+    fetchRandomSongInProgressRef.current = true;
+    try {
+      const exclude = activePlaylistRef.current
+        .map((e) => e.jiosaavnId)
+        .filter(Boolean)
+        .join(",");
+      const params = new URLSearchParams({ count: "1" });
+      if (exclude) params.set("exclude", exclude);
+      const res = await fetch(`/api/music/discover?${params}`);
+      if (!res.ok) return;
+      const data = (await res.json().catch(() => null)) as { songs?: Song[] } | null;
+      const song = data?.songs?.[0];
+      if (!song) return;
+      addToQueue(
+        {
+          jiosaavnId: song.id,
+          title: song.title,
+          artist: song.artist,
+          artwork: song.artwork,
+          duration: song.duration,
+        },
+        song,
+        true,
+      );
+    } catch {
+      // Silent fail — user can press play or search manually
+    } finally {
+      fetchRandomSongInProgressRef.current = false;
+    }
+  }, [addToQueue]);
+
+  fetchRandomSongRef.current = fetchRandomSong;
+
   const changeVibe = useCallback(
     (newVibeId: VibeId) => {
       setUserInteracted(true);
       setVibeId(newVibeId);
-      setIsCustomQueue(false);
       const newPlaylist = getPlaylistForGenre(newVibeId);
       setPlaylist(newPlaylist);
+      activePlaylistRef.current = newPlaylist;
       failCountRef.current = 0;
       setCurrentIndex(0);
       const generation = ++vibeGenerationRef.current;
@@ -175,6 +244,12 @@ export function usePlayer({
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.removeAttribute("src");
+      }
+
+      if (newVibeId === "random") {
+        setCurrentSong(null);
+        setExtraLoading(false);
+        return;
       }
 
       setTimeout(() => {
@@ -210,11 +285,13 @@ export function usePlayer({
       audio.pause();
     } else {
       if (!currentSong || !audio.src) {
-        loadSongAtIndex(currentIndex, true);
+        if (vibeIdRef.current === "random" && activePlaylistRef.current.length === 0) {
+          fetchRandomSongRef.current?.();
+        } else {
+          loadSongAtIndex(currentIndex, true);
+        }
       } else {
-        audio
-          .play()
-          .catch(() => {});
+        audio.play().catch(() => {});
       }
     }
   }, [isPlaying, currentSong, currentIndex, loadSongAtIndex, audioRef]);
@@ -224,11 +301,13 @@ export function usePlayer({
     const audio = audioRef.current;
     if (!audio) return;
     if (!currentSong || !audio.src) {
-      loadSongAtIndex(currentIndex, true);
+      if (vibeIdRef.current === "random" && activePlaylistRef.current.length === 0) {
+        fetchRandomSongRef.current?.();
+      } else {
+        loadSongAtIndex(currentIndex, true);
+      }
     } else {
-      audio
-        .play()
-        .catch(() => {});
+      audio.play().catch(() => {});
     }
   }, [currentSong, currentIndex, loadSongAtIndex, audioRef]);
 
@@ -247,13 +326,14 @@ export function usePlayer({
   const next = useCallback(() => {
     setUserInteracted(true);
     failCountRef.current = 0;
-    if (isCustomQueue && currentIndex >= playlist.length - 1) {
+    const isRandom = vibeIdRef.current === "random";
+    if (isRandom && currentIndex >= playlist.length - 1) {
       if (audioRef.current) audioRef.current.pause();
       return;
     }
     const nextIdx = (currentIndex + 1) % playlist.length;
     loadSongAtIndex(nextIdx, true);
-  }, [isCustomQueue, currentIndex, playlist.length, loadSongAtIndex, audioRef]);
+  }, [currentIndex, playlist.length, loadSongAtIndex, audioRef]);
 
   const prev = useCallback(() => {
     setUserInteracted(true);
@@ -262,13 +342,13 @@ export function usePlayer({
       seek(0);
       return;
     }
-    if (isCustomQueue && currentIndex === 0) {
+    if (vibeIdRef.current === "random" && currentIndex === 0) {
       seek(0);
       return;
     }
     const prevIdx = (currentIndex - 1 + playlist.length) % playlist.length;
     loadSongAtIndex(prevIdx, true);
-  }, [isCustomQueue, currentTime, seek, currentIndex, playlist.length, loadSongAtIndex]);
+  }, [currentTime, seek, currentIndex, playlist.length, loadSongAtIndex]);
 
   const changeVolume = useCallback((v: number) => {
     const clamped = Math.max(0, Math.min(1, v));
@@ -279,29 +359,6 @@ export function usePlayer({
   const toggleMute = useCallback(() => {
     setIsMutedState((prev) => !prev);
   }, []);
-
-  const addToQueue = useCallback(
-    (entry: PlaylistEntry, resolvedSong?: Song, forcePlay = false, isDiscovery = false) => {
-      if (resolvedSong) {
-        const cacheKey =
-          entry.jiosaavnId?.trim() ||
-          `${entry.title}-${entry.artist}`.toLowerCase();
-        songCacheRef.current.set(cacheKey, resolvedSong);
-      }
-      const wasEmpty = activePlaylistRef.current.length === 0;
-      const newPlaylist = [...activePlaylistRef.current, entry];
-      const newIndex = newPlaylist.length - 1;
-      setPlaylist(newPlaylist);
-      activePlaylistRef.current = newPlaylist;
-      if (!isDiscovery) setIsCustomQueue(true);
-      if (wasEmpty || forcePlay) {
-        setUserInteracted(true);
-        const targetIndex = wasEmpty ? 0 : newIndex;
-        setTimeout(() => loadSongAtIndexRef.current?.(targetIndex, true), 50);
-      }
-    },
-    [],
-  );
 
   const removeFromQueue = useCallback(
     (index: number) => {
@@ -317,7 +374,6 @@ export function usePlayer({
         }
         setCurrentSong(null);
         setCurrentIndex(0);
-        setIsCustomQueue(false);
         return;
       }
 
@@ -335,7 +391,6 @@ export function usePlayer({
     setPlaylist([]);
     activePlaylistRef.current = [];
     setCurrentIndex(0);
-    setIsCustomQueue(false);
     setExtraLoading(false);
     setErrorState(null);
   }, []);
@@ -391,6 +446,10 @@ export function usePlayer({
     duration: currentDuration,
     volume,
     isMuted,
+    isRandomMode: vibeId === "random",
+    queueItems,
+    queueLength: playlist.length,
+    currentIndex,
     togglePlay,
     play,
     pause,
@@ -400,11 +459,6 @@ export function usePlayer({
     changeVibe,
     changeVolume,
     toggleMute,
-    isCustomQueue,
-    isRandomMode: vibeId === "random",
-    queueItems,
-    queueLength: playlist.length,
-    currentIndex,
     addToQueue,
     removeFromQueue,
     clearCustomQueue,

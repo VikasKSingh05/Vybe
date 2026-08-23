@@ -61,28 +61,6 @@ export function Header({ className, inParty = false, onExitParty }: HeaderProps)
             Host Party
           </Link>
         )}
-        <a
-          href="https://open.spotify.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group flex items-center gap-1 text-[11px] tracking-wide text-white/50 transition-colors duration-300 hover:text-white/90"
-        >
-          Spotify
-          <span className="text-[10px] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
-            ↗
-          </span>
-        </a>
-        <a
-          href="https://music.youtube.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group flex items-center gap-1 text-[11px] tracking-wide text-white/50 transition-colors duration-300 hover:text-white/90"
-        >
-          YouTube Music
-          <span className="text-[10px] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
-            ↗
-          </span>
-        </a>
       </nav>
     </header>
   );

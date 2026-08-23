@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const countParam = request.nextUrl.searchParams.get("count");
-    const count = Math.min(Math.max(Number(countParam) || 10, 1), 30);
+    const count = Math.min(Math.max(Number(countParam) || 1, 1), 30);
 
     const excludeParam = request.nextUrl.searchParams.get("exclude") || "";
     const excludeIds = new Set(

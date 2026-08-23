@@ -44,7 +44,6 @@ const SEED_TERMS = [
   "sleep ambient hindi",
 ];
 
-const MAX_CONCURRENT = 3;
 const SEARCH_DELAY_MS = 200;
 
 function shuffleArray<T>(arr: T[]): T[] {
@@ -68,7 +67,7 @@ export async function discoverRandomSongs(
   count: number,
   excludeIds: Set<string> = new Set(),
 ): Promise<Song[]> {
-  const seeds = pickRandom(SEED_TERMS, Math.min(MAX_CONCURRENT, Math.ceil(count / 5)));
+  const seeds = pickRandom(SEED_TERMS, Math.min(3, Math.ceil(count / 5)));
   const allResults: Song[] = [];
 
   for (let i = 0; i < seeds.length; i++) {

@@ -144,15 +144,17 @@ export const RoomCodeCard = memo(function RoomCodeCard({
               onToggleMute={onToggleMute}
             />
 
-            <button
-              type="button"
-              onClick={onClearQueue}
-              aria-label="Clear queue"
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 min-h-[44px] text-[11px] font-medium text-white/60 transition-colors hover:bg-red-400/10 hover:text-red-300 cursor-pointer"
-            >
-              <Trash2 className="h-3 w-3" />
-              Clear queue
-            </button>
+            <div className="flex gap-2 w-full">
+              <button
+                type="button"
+                onClick={onClearQueue}
+                aria-label="Clear queue"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 min-h-[44px] text-[11px] font-medium text-white/60 transition-colors hover:bg-red-400/10 hover:text-red-300 cursor-pointer"
+              >
+                <Trash2 className="h-3 w-3" />
+                Clear queue
+              </button>
+            </div>
           </div>
         ) : (
           <div className="rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3 text-center text-xs text-white/30">
