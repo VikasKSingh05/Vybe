@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Search, X, Music, Loader2 } from "lucide-react";
+import { Search, X, Music, Loader2, Eraser } from "lucide-react";
 import gsap from "gsap";
 import type { Song } from "@/types/music";
 import { AlbumArt } from "@/components/AlbumArt";
@@ -281,7 +281,7 @@ export function SearchOverlay({
                 onClick={handleClearQuery}
                 className="rounded-full p-1.5 text-white/30 hover:text-white/60 transition-colors cursor-pointer"
               >
-                <X className="h-3.5 w-3.5" />
+                <Eraser className="h-3.5 w-3.5" />
               </button>
             )}
             <button
