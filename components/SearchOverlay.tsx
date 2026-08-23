@@ -35,6 +35,7 @@ export function SearchOverlay({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const startRectRef = useRef<DOMRect | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -50,7 +51,6 @@ export function SearchOverlay({
       gsap.set(backdropRef.current, { opacity: 0, pointerEvents: "none" });
     }
   }, []);
-
   const handleOpen = useCallback(() => {
     if (isAnimating.current || isOpen) return;
     const trigger = triggerRef.current;
@@ -76,6 +76,8 @@ export function SearchOverlay({
       pointerEvents: "auto",
     });
     gsap.set(backdrop, { opacity: 0, pointerEvents: "auto" });
+    // Restore content in case a previous close was interrupted
+    if (contentRef.current) gsap.set(contentRef.current, { opacity: 1 });
 
     const tl = gsap.timeline({
       onComplete: () => {
@@ -136,6 +138,12 @@ export function SearchOverlay({
       },
     });
 
+    // Content dissolves instantly — no clipped-text mush during shrink
+    if (contentRef.current) {
+      tl.to(contentRef.current, { opacity: 0, duration: 0.18, ease: "power2.in" }, 0);
+    }
+
+    // Shell stays fully opaque while flying home — S-curve, gentle lift-off/landing
     tl.to(
       panel,
       rect
@@ -147,17 +155,18 @@ export function SearchOverlay({
             width: rect.width,
             height: rect.height,
             borderRadius: "9999px",
-            duration: 0.45,
-            ease: "power3.in",
+            duration: 0.5,
+            ease: "power2.inOut",
           }
-        : { opacity: 0, scale: 0.95, duration: 0.3, ease: "power3.in" },
+        : { opacity: 0, scale: 0.95, duration: 0.3, ease: "power2.inOut" },
       0,
     );
 
-    // Crossfade panel out during the last third of the collapse
-    tl.to(panel, { opacity: 0, duration: 0.18, ease: "power2.in" }, 0.27);
+    // Blur lifts in sync with the shrink, landing together (~0.5s)
+    tl.to(backdrop, { opacity: 0, duration: 0.45, ease: "power2.inOut" }, 0.05);
 
-    tl.to(backdrop, { opacity: 0, duration: 0.3, ease: "power3.in" }, 0);
+    // Final 12% only — invisible handoff from dark glass pill to trigger pill
+    tl.to(panel, { opacity: 0, duration: 0.12, ease: "power1.in" }, 0.38);
   }, [isOpen, onOpenChange, onQueryChange]);
 
   // Escape to close
@@ -216,8 +225,6 @@ export function SearchOverlay({
     inputRef.current?.focus();
   }, [onQueryChange]);
 
-  const showDropdown = hasSearched || isSearching;
-
   return (
     <>
       {/* ─── TRIGGER BUTTON ─── */}
@@ -251,38 +258,39 @@ export function SearchOverlay({
         role="dialog"
         aria-label="Search songs"
       >
-        {/* ─── INPUT BAR ─── */}
-        <div className="flex items-center gap-2 border-b border-white/5 px-4 py-3">
-          <Search className="h-4 w-4 shrink-0 text-white/30" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => handleQueryChange(e.target.value)}
-            placeholder="Search songs..."
-            className="flex-1 bg-transparent text-sm text-white/90 placeholder-white/30 outline-none"
-          />
-          {query && (
+        <div ref={contentRef} className="flex min-h-0 flex-1 flex-col">
+          {/* ─── INPUT BAR ─── */}
+          <div className="flex items-center gap-2 border-b border-white/5 px-4 py-3">
+            <Search className="h-4 w-4 shrink-0 text-white/30" />
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => handleQueryChange(e.target.value)}
+              placeholder="Search songs..."
+              className="flex-1 bg-transparent text-sm text-white/90 placeholder-white/30 outline-none"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={handleClearQuery}
+                className="rounded-full p-1.5 text-white/30 hover:text-white/60 transition-colors cursor-pointer"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
             <button
               type="button"
-              onClick={handleClearQuery}
-              className="rounded-full p-1.5 text-white/30 hover:text-white/60 transition-colors cursor-pointer"
+              onClick={handleClose}
+              className="ml-1 rounded-full p-1.5 text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors cursor-pointer"
+              aria-label="Close search"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-4 w-4" />
             </button>
-          )}
-          <button
-            type="button"
-            onClick={handleClose}
-            className="ml-1 rounded-full p-1.5 text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors cursor-pointer"
-            aria-label="Close search"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+          </div>
 
-        {/* ─── RESULTS ─── */}
-        <div className="flex-1 overflow-y-auto scrollbar-hide">
+          {/* ─── RESULTS ─── */}
+          <div className="flex-1 overflow-y-auto scrollbar-hide">
           {isSearching && results.length === 0 && (
             <div className="flex items-center justify-center gap-2 px-4 py-12">
               <Loader2 className="h-4 w-4 animate-spin text-white/30" />
@@ -355,6 +363,7 @@ export function SearchOverlay({
               ))}
             </ul>
           )}
+          </div>
         </div>
       </div>
     </>
