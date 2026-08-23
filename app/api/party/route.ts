@@ -6,7 +6,7 @@ import { rateLimit, getClientIp } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const VALID_VIBES = ["all", "phonk", "lofi", "bollywood", "indie", "chill"];
+const VALID_VIBES = ["phonk", "lofi", "bollywood", "indie", "chill"];
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       | null;
 
     const hostName = typeof body?.hostName === "string" ? body.hostName.trim().slice(0, 24) : "";
-    const vibeId = body?.vibeId ?? "all";
+    const vibeId = body?.vibeId ?? "phonk";
 
     if (!hostName) {
       return NextResponse.json({ error: "hostName is required" }, { status: 400 });
