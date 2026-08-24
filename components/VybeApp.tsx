@@ -9,6 +9,7 @@ import { Header } from "@/components/Header";
 import { HeroSection } from "@/components/HeroSection";
 import { QueueOverlay } from "@/components/QueueOverlay";
 import { SearchOverlay } from "@/components/SearchOverlay";
+import { TrackAnnouncer } from "@/components/player/TrackAnnouncer";
 import { usePlayer } from "@/hooks/usePlayer";
 import { useSearch } from "@/hooks/useSearch";
 import { useMediaSession } from "@/hooks/useMediaSession";
@@ -205,6 +206,8 @@ export function VybeApp() {
         onClear={player.isRandomMode ? handleClearQueue : undefined}
         onReorder={handleReorder}
       />
+
+      <TrackAnnouncer title={player.track?.title} artist={player.track?.artist} />
     </div>
   );
 }

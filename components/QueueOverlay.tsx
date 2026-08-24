@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { X, Music, Trash2, GripVertical } from "lucide-react";
 import gsap from "gsap";
 import type { QueueItem } from "@/data/types";
 import { AlbumArt } from "@/components/AlbumArt";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { formatTime } from "@/lib/format-time";
 import { cn } from "@/lib/cn";
 
@@ -30,6 +31,8 @@ interface DragState {
 }
 
 const DRAG_ACTIVATE_PX = 6;
+const AUTO_SCROLL_EDGE_PX = 48;
+const AUTO_SCROLL_MAX_SPEED = 12; // px per frame at the very edge
 
 export function QueueOverlay({
   queue,
@@ -44,12 +47,72 @@ export function QueueOverlay({
 }: QueueOverlayProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
   const hasMounted = useRef(false);
   const listRef = useRef<HTMLUListElement>(null);
   const rowRefs = useRef<(HTMLLIElement | null)[]>([]);
   const dragState = useRef<DragState | null>(null);
+  const autoScroll = useRef<{ raf: number | null; velocity: number }>({
+    raf: null,
+    velocity: 0,
+  });
+  const [moveNote, setMoveNote] = useState("");
 
   const canReorder = Boolean(onReorder) && queue.length > 1;
+
+  useFocusTrap({
+    containerRef: panelRef,
+    active: isOpen,
+    initialFocusRef: closeBtnRef,
+  });
+
+  const stopAutoScroll = useCallback(() => {
+    const s = autoScroll.current;
+    if (s.raf !== null) cancelAnimationFrame(s.raf);
+    s.raf = null;
+    s.velocity = 0;
+  }, []);
+
+  const startAutoScrollLoop = useCallback(() => {
+    if (autoScroll.current.raf !== null) return;
+    const step = () => {
+      const scroller = scrollerRef.current;
+      const s = autoScroll.current;
+      if (!scroller || s.velocity === 0) {
+        s.raf = null;
+        return;
+      }
+      scroller.scrollTop += s.velocity;
+      s.raf = requestAnimationFrame(step);
+    };
+    autoScroll.current.raf = requestAnimationFrame(step);
+  }, []);
+
+  // Edge proximity → scroll velocity. The cached-rect drag math is
+  // scroll-invariant (dragged row and sibling rows shift equally), so no
+  // rect recomputation is needed while auto-scrolling.
+  const updateAutoScroll = useCallback(
+    (clientY: number) => {
+      const scroller = scrollerRef.current;
+      if (!scroller) return;
+      const rect = scroller.getBoundingClientRect();
+      const distTop = clientY - rect.top;
+      const distBottom = rect.bottom - clientY;
+      let velocity = 0;
+      if (distTop >= 0 && distTop < AUTO_SCROLL_EDGE_PX) {
+        velocity = -(1 - distTop / AUTO_SCROLL_EDGE_PX) * AUTO_SCROLL_MAX_SPEED;
+      } else if (distBottom >= 0 && distBottom < AUTO_SCROLL_EDGE_PX) {
+        velocity =
+          (1 - distBottom / AUTO_SCROLL_EDGE_PX) * AUTO_SCROLL_MAX_SPEED;
+      }
+      autoScroll.current.velocity = velocity;
+      if (velocity !== 0) startAutoScrollLoop();
+    },
+    [startAutoScrollLoop],
+  );
+
+  useEffect(() => () => stopAutoScroll(), [stopAutoScroll]);
 
   useEffect(() => {
     if (!panelRef.current || !backdropRef.current) return;
@@ -104,6 +167,7 @@ export function QueueOverlay({
   useEffect(() => {
     if (isOpen) return;
     clearDragStyles();
+    stopAutoScroll();
     dragState.current = null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
@@ -167,6 +231,7 @@ export function QueueOverlay({
         activateDrag(ds, dragged);
       }
 
+      updateAutoScroll(e.clientY);
       dragged.style.transform = `translateY(${dy}px)`;
 
       const startRect = ds.rects[ds.startIndex];
@@ -208,12 +273,29 @@ export function QueueOverlay({
       if (!ds || ds.pointerId !== e.pointerId) return;
       dragState.current = null;
       clearDragStyles();
+      stopAutoScroll();
       if (e.type === "pointercancel" || !ds.activated) return;
       if (ds.targetIndex !== ds.startIndex) {
         onReorder?.(ds.startIndex, ds.targetIndex);
       }
     },
-    [clearDragStyles, onReorder],
+    [clearDragStyles, stopAutoScroll, onReorder],
+  );
+
+  const handleGripKeyDown = useCallback(
+    (index: number) => (e: React.KeyboardEvent<HTMLButtonElement>) => {
+      if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (!onReorder || queue.length <= 1) return;
+      const target = e.key === "ArrowUp" ? index - 1 : index + 1;
+      if (target < 0 || target >= queue.length) return;
+      onReorder(index, target);
+      setMoveNote(
+        `${queue[index].title} moved to position ${target + 1} of ${queue.length}`,
+      );
+    },
+    [onReorder, queue],
   );
 
   return (
@@ -236,8 +318,13 @@ export function QueueOverlay({
         className="relative max-h-[60vh] rounded-t-2xl border-t border-white/10 bg-[#0d0d0d]/95 backdrop-blur-xl shadow-2xl overflow-hidden"
         style={{ transform: "translateY(100%)" }}
         role="dialog"
+        aria-modal="true"
         aria-label="Queue"
       >
+        <div role="status" className="sr-only">
+          {moveNote}
+        </div>
+
         <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
           <div className="flex items-center gap-2.5">
             <h2 className="text-sm font-semibold tracking-wide text-white/90">
@@ -259,6 +346,7 @@ export function QueueOverlay({
               </button>
             )}
             <button
+              ref={closeBtnRef}
               type="button"
               onClick={onClose}
               className="rounded-full p-2 text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
@@ -269,7 +357,10 @@ export function QueueOverlay({
           </div>
         </div>
 
-        <div className="overflow-y-auto max-h-[calc(60vh-60px)] pb-[env(safe-area-inset-bottom)] scrollbar-hide">
+        <div
+          ref={scrollerRef}
+          className="overflow-y-auto max-h-[calc(60vh-60px)] pb-[env(safe-area-inset-bottom)] scrollbar-hide"
+        >
           {queue.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 px-4 py-12 text-center">
               <Music className="h-8 w-8 text-white/15" />
@@ -297,12 +388,12 @@ export function QueueOverlay({
                     {canReorder && (
                       <button
                         type="button"
-                        aria-hidden="true"
-                        tabIndex={-1}
+                        aria-label={`Reorder ${item.title}`}
                         onPointerDown={handleDragStart(i)}
                         onPointerMove={handleDragMove}
                         onPointerUp={handleDragEnd}
                         onPointerCancel={handleDragEnd}
+                        onKeyDown={handleGripKeyDown(i)}
                         style={{ touchAction: "none" }}
                         className="shrink-0 cursor-grab touch-none rounded-full p-1.5 text-white/20 transition-colors hover:text-white/60 active:cursor-grabbing min-h-[44px] min-w-[44px] flex items-center justify-center"
                       >

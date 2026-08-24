@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { LogOut, WifiOff, RefreshCw } from "lucide-react";
 import gsap from "gsap";
 import type { Track } from "@/data/types";
+import type { PartyMember } from "@/lib/party/types";
 import { partyTheme } from "@/data/backgrounds";
 import { Background } from "@/components/Background";
 import { usePartyAudio } from "@/hooks/usePartyAudio";
@@ -13,6 +14,7 @@ import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import type { useParty } from "@/hooks/useParty";
 import { useMediaSession } from "@/hooks/useMediaSession";
 import { toast } from "@/lib/toast";
+import { detectHostChange } from "@/lib/party/host-change";
 import { PartyTopNav } from "./PartyTopNav";
 import { RoomCodeCard } from "./RoomCodeCard";
 import { NowPlayingCard } from "./NowPlayingCard";
@@ -133,6 +135,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
   const router = useRouter();
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [handoverTarget, setHandoverTarget] = useState<PartyMember | null>(null);
   const { copy } = useCopyToClipboard();
 
   const theme = partyTheme;
@@ -216,6 +219,22 @@ export function PartyRoom({ party }: PartyRoomProps) {
     send("clearQueue");
   }, [send]);
 
+  const confirmHandover = useCallback(() => {
+    const target = handoverTarget;
+    setHandoverTarget(null);
+    if (target) {
+      send("transferHost", { targetMemberId: target.id });
+    }
+  }, [handoverTarget, send]);
+
+  const handleHandover = useCallback(
+    (targetMemberId: string) => {
+      const target = state?.members.find((m) => m.id === targetMemberId) ?? null;
+      setHandoverTarget(target);
+    },
+    [state?.members],
+  );
+
   const handleInvite = useCallback(() => {
     if (!state) return;
     copy(`${window.location.origin}/party/${state.roomId}`);
@@ -232,6 +251,35 @@ export function PartyRoom({ party }: PartyRoomProps) {
       toast(partyError, "error");
     }
   }, [partyError, status]);
+
+  // Announce host handoffs to everyone in the room.
+  const prevHostIdRef = useRef("");
+  useEffect(() => {
+    const nextHostId = state?.hostId ?? "";
+    const prev = prevHostIdRef.current;
+    prevHostIdRef.current = nextHostId;
+    if (!state || !prev || !nextHostId || prev === nextHostId) return;
+    const change = detectHostChange(prev, nextHostId, state.members);
+    if (!change) return;
+    if (change.hostId === member?.id) {
+      toast("You're the host now", "success");
+    } else {
+      toast(`${change.hostName} is now the host`, "info");
+    }
+  }, [state, member?.id]);
+
+  // Track the server clock so presence dots stay truthful between patches,
+  // and re-render periodically as heartbeats age members in and out.
+  const clockOffsetRef = useRef(0);
+  useEffect(() => {
+    if (state) clockOffsetRef.current = state.serverNow - Date.now();
+  }, [state]);
+  const [, setPresenceTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setPresenceTick((n) => n + 1), 30_000);
+    return () => clearInterval(t);
+  }, []);
+  const serverNowEstimate = Date.now() + clockOffsetRef.current;
 
   // Lock-screen / hardware media controls for everyone in the room
   useMediaSession({
@@ -345,8 +393,11 @@ export function PartyRoom({ party }: PartyRoomProps) {
                 members={state?.members ?? []}
                 hostId={state?.hostId ?? ""}
                 meId={member?.id ?? ""}
+                serverNow={serverNowEstimate}
                 accent={theme.accent}
                 onInvite={handleInvite}
+                isHostView={isHost}
+                onHandover={handleHandover}
               />
             </div>
             <div className="scrollbar-hide lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
@@ -382,6 +433,16 @@ export function PartyRoom({ party }: PartyRoomProps) {
         confirmLabel="Clear"
         onConfirm={confirmClearQueue}
         onCancel={() => setShowClearConfirm(false)}
+      />
+
+      {/* Host hand-over confirm modal */}
+      <ConfirmDialog
+        open={handoverTarget !== null}
+        title="Hand over host?"
+        message={`${handoverTarget?.name ?? "This member"} will control playback for everyone.`}
+        confirmLabel="Make host"
+        onConfirm={confirmHandover}
+        onCancel={() => setHandoverTarget(null)}
       />
     </div>
   );

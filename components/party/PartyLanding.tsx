@@ -2,13 +2,20 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
-import { Users, Link2, Sparkles } from "lucide-react";
+import { Users, Link2, Sparkles, RotateCcw } from "lucide-react";
 import { partyTheme } from "@/data/backgrounds";
 import type { VibeId } from "@/data/types";
+
+interface RejoinIdentity {
+  roomId: string;
+  name: string;
+}
 
 interface PartyLandingProps {
   initialRoomId?: string;
   error?: string;
+  /** Remembered identity from a dropped connection — enables one-click rejoin. */
+  rejoinIdentity?: RejoinIdentity | null;
   onCreate: (name: string, vibeId: VibeId) => void;
   onJoin: (roomId: string, name: string) => void;
 }
@@ -18,11 +25,14 @@ const ACCENT = partyTheme.accent;
 export function PartyLanding({
   initialRoomId,
   error,
+  rejoinIdentity,
   onCreate,
   onJoin,
 }: PartyLandingProps) {
-  const [name, setName] = useState("");
-  const [roomId, setRoomId] = useState(initialRoomId ?? "");
+  const [name, setName] = useState(rejoinIdentity?.name ?? "");
+  const [roomId, setRoomId] = useState(
+    rejoinIdentity?.roomId ?? initialRoomId ?? "",
+  );
   const [submitting, setSubmitting] = useState<"create" | "join" | null>(null);
   const [triedSubmit, setTriedSubmit] = useState(false);
 
@@ -61,6 +71,16 @@ export function PartyLanding({
     [canJoin, name, roomId, submitting, onJoin],
   );
 
+  const handleQuickRejoin = useCallback(async () => {
+    if (!rejoinIdentity || submitting) return;
+    setSubmitting("join");
+    try {
+      await onJoin(rejoinIdentity.roomId, rejoinIdentity.name);
+    } finally {
+      setSubmitting(null);
+    }
+  }, [rejoinIdentity, submitting, onJoin]);
+
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center px-4 pb-[env(safe-area-inset-bottom)]">
       <Link
@@ -82,6 +102,25 @@ export function PartyLanding({
             Start a room, share the code, and listen in perfect sync with your crew.
           </p>
         </div>
+
+        {rejoinIdentity && (
+          <button
+            type="button"
+            onClick={handleQuickRejoin}
+            disabled={submitting !== null}
+            className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition-all duration-200 hover:brightness-125 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+            style={{
+              borderColor: `${ACCENT}55`,
+              backgroundColor: `${ACCENT}1f`,
+              color: ACCENT,
+            }}
+          >
+            <RotateCcw className="h-4 w-4" />
+            {submitting === "join"
+              ? "Rejoining…"
+              : `Rejoin room ${rejoinIdentity.roomId.toUpperCase()} as ${rejoinIdentity.name}`}
+          </button>
+        )}
 
         <div className="mb-5">
           <label className="mb-2 block text-[11px] tracking-wide text-white/40" htmlFor="party-name">

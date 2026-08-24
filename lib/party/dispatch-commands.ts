@@ -251,6 +251,24 @@ export function dispatchCommand(
       return wire instanceof Promise ? applyAsync(wire) : applyResult(wire);
     }
 
+    case "transferHost": {
+      const denied = requiresHost();
+      if (denied) return denied;
+      const targetMemberId =
+        typeof payload?.targetMemberId === "string" ? payload.targetMemberId : null;
+      if (!targetMemberId) return err(400, "Missing target member");
+      if (targetMemberId === member.id) return err(400, "You are already the host");
+      const target = state.members.find((m) => m.id === targetMemberId);
+      if (!target) return err(400, "That member is not in the room");
+      const wire = apply((s) => {
+        for (const m of s.members) {
+          m.isHost = m.id === targetMemberId;
+        }
+        s.hostId = targetMemberId;
+      });
+      return wire instanceof Promise ? applyAsync(wire) : applyResult(wire);
+    }
+
     default:
       return err(400, `Unknown command: ${command}`);
   }

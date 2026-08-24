@@ -187,6 +187,64 @@ describe("dispatch", () => {
     }
   });
 
+  describe("transferHost", () => {
+    it("swaps the host flags and hostId", async () => {
+      const guest = (await joinRoom(roomId, "Guest")) as { member: { id: string } };
+      const result = await dispatch(roomId, memberId, "transferHost", {
+        targetMemberId: guest.member.id,
+      });
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.state.hostId).toBe(guest.member.id);
+        const oldHost = result.state.members.find((m) => m.id === memberId);
+        const newHost = result.state.members.find((m) => m.id === guest.member.id);
+        expect(oldHost?.isHost).toBe(false);
+        expect(newHost?.isHost).toBe(true);
+      }
+
+      // Control actually moved: the new host can now play, the old cannot
+      expect((await dispatch(roomId, guest.member.id, "play", {})).ok).toBe(true);
+      expect((await dispatch(roomId, memberId, "pause", {})).ok).toBe(false);
+    });
+
+    it("rejects a transfer from a non-host", async () => {
+      const guest = (await joinRoom(roomId, "Guest")) as { member: { id: string } };
+      const result = await dispatch(roomId, guest.member.id, "transferHost", {
+        targetMemberId: memberId,
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.status).toBe(403);
+      }
+    });
+
+    it("rejects transferring to yourself", async () => {
+      const result = await dispatch(roomId, memberId, "transferHost", {
+        targetMemberId: memberId,
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.status).toBe(400);
+      }
+    });
+
+    it("rejects an unknown or missing target", async () => {
+      const missing = await dispatch(roomId, memberId, "transferHost", {
+        targetMemberId: "ghost",
+      });
+      expect(missing.ok).toBe(false);
+      if (!missing.ok) {
+        expect(missing.status).toBe(400);
+      }
+
+      const noPayload = await dispatch(roomId, memberId, "transferHost", {});
+      expect(noPayload.ok).toBe(false);
+      if (!noPayload.ok) {
+        expect(noPayload.status).toBe(400);
+      }
+    });
+  });
+
   it("returns 404 for non-existent room", async () => {
     const result = await dispatch("nonexistent", memberId, "heartbeat", {});
     expect(result.ok).toBe(false);

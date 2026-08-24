@@ -25,7 +25,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["192.168.*"],
+  allowedDevOrigins: ["192.168.0.102"],
   poweredByHeader: false,
   reactStrictMode: true,
   serverExternalPackages: ["ioredis"],
