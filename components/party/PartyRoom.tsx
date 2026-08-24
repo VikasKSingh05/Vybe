@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, WifiOff, RefreshCw } from "lucide-react";
+import { LogOut, RefreshCw } from "lucide-react";
 import gsap from "gsap";
 import type { Track } from "@/data/types";
 import type { PartyMember } from "@/lib/party/types";
@@ -301,27 +301,10 @@ export function PartyRoom({ party }: PartyRoomProps) {
     <div className="relative flex min-h-dvh flex-col text-white font-sans antialiased lg:h-dvh lg:overflow-hidden">
       <Background theme={theme} />
 
-      {(status === "closed" || status === "reconnecting") && (
+      {(status === "reconnecting") && (
         <div role="alert" className="fixed inset-x-0 top-[52px] z-40 flex items-center justify-center gap-3 bg-black/80 px-4 py-3 text-sm backdrop-blur-sm">
-          {status === "closed" ? (
-            <>
-              <WifiOff className="h-4 w-4 text-red-300" />
-              <span className="text-white/70">{partyError ?? "Connection lost"}</span>
-              <button
-                type="button"
-                onClick={leaveParty}
-                className="ml-2 inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-white/15 cursor-pointer"
-              >
-                <RefreshCw className="h-3 w-3" />
-                Rejoin
-              </button>
-            </>
-          ) : (
-            <>
-              <RefreshCw className="h-4 w-4 animate-spin text-amber-300" />
-              <span className="text-white/70">Reconnecting…</span>
-            </>
-          )}
+          <RefreshCw className="h-4 w-4 animate-spin text-amber-300" />
+          <span className="text-white/70">Reconnecting…</span>
         </div>
       )}
 
