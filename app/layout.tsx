@@ -22,6 +22,12 @@ export const metadata: Metadata = {
   description:
     "An immersive, cinematic music discovery experience. Pick a vibe and press play.",
   metadataBase: new URL(appUrl),
+  applicationName: "VYBE",
+  appleWebApp: {
+    capable: true,
+    title: "VYBE",
+    statusBarStyle: "black-translucent",
+  },
   openGraph: {
     title: "VYBE",
     description: "Pick a vibe. Press play.",

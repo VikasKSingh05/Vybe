@@ -12,6 +12,7 @@ import { SearchOverlay } from "@/components/SearchOverlay";
 import { usePlayer } from "@/hooks/usePlayer";
 import { useSearch } from "@/hooks/useSearch";
 import { useMediaSession } from "@/hooks/useMediaSession";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/cn";
 
@@ -134,6 +135,17 @@ export function VybeApp() {
     onNext: player.next,
     onPrev: player.prev,
     onSeek: player.seek,
+  });
+
+  useKeyboardShortcuts({
+    onTogglePlay: player.togglePlay,
+    onSeek: (delta) =>
+      player.seek(
+        Math.min(Math.max(0, player.currentTime + delta), player.duration),
+      ),
+    onNext: player.next,
+    onPrev: player.prev,
+    onToggleMute: player.toggleMute,
   });
 
   return (
