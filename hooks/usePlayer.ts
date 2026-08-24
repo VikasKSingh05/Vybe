@@ -7,6 +7,7 @@ import { getPlaylistForGenre, type PlaylistEntry } from "@/data/playlists";
 import type { Song } from "@/types/music";
 import { useAudioElement } from "./useAudioElement";
 import { resolveSong as resolveSongFn } from "@/lib/music/resolve";
+import { loadPlayerState, savePlayerState } from "@/lib/player-storage";
 
 interface UsePlayerOptions {
   initialVibeId?: VibeId;
@@ -17,11 +18,14 @@ export function usePlayer({
   initialVibeId = "bollywood",
   autoPlay = false,
 }: UsePlayerOptions = {}) {
-  const [vibeId, setVibeId] = useState<VibeId>(initialVibeId);
+  // Read persisted session (queue/vibe/volume) once per hook instance
+  const [persisted] = useState(() => loadPlayerState());
+
+  const [vibeId, setVibeId] = useState<VibeId>(persisted?.vibeId ?? initialVibeId);
   const [playlist, setPlaylist] = useState<PlaylistEntry[]>(() =>
-    getPlaylistForGenre(initialVibeId)
+    persisted?.playlist ?? getPlaylistForGenre(initialVibeId)
   );
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(persisted?.currentIndex ?? 0);
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [extraLoading, setExtraLoading] = useState(false);
   const [errorState, setErrorState] = useState<string | null>(null);
@@ -40,8 +44,8 @@ export function usePlayer({
 
   const theme = getVibeTheme(vibeId);
 
-  const [volume, setVolumeState] = useState(0.75);
-  const [isMuted, setIsMutedState] = useState(false);
+  const [volume, setVolumeState] = useState(persisted?.volume ?? 0.75);
+  const [isMuted, setIsMutedState] = useState(persisted?.isMuted ?? false);
 
   const resolveSong = useCallback(
     (entry: PlaylistEntry) => resolveSongFn(songCacheRef.current, entry),
@@ -89,6 +93,14 @@ export function usePlayer({
       audioRef.current.volume = isMuted ? 0 : volume;
     }
   }, [volume, isMuted, audioRef]);
+
+  // Persist the session (debounced) so a refresh restores queue + vibe
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      savePlayerState({ vibeId, playlist, currentIndex, volume, isMuted });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [vibeId, playlist, currentIndex, volume, isMuted]);
 
   const preloadNextSong = useCallback(
     async (nextIdx: number) => {
@@ -163,9 +175,11 @@ export function usePlayer({
 
   loadSongAtIndexRef.current = loadSongAtIndex;
 
+  // Preload the active (or restored) track for display without autoplay
   useEffect(() => {
-    loadSongAtIndex(0, false);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    loadSongAtIndex(currentIndex, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const addToQueue = useCallback(
     (entry: PlaylistEntry, resolvedSong?: Song, forcePlay = false) => {
