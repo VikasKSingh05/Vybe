@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { X, Music, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useRef } from "react";
+import { X, Music, Trash2, GripVertical } from "lucide-react";
 import gsap from "gsap";
 import type { QueueItem } from "@/data/types";
 import { AlbumArt } from "@/components/AlbumArt";
@@ -17,7 +17,19 @@ interface QueueOverlayProps {
   onRemove: (index: number) => void;
   onPlayItem: (index: number) => void;
   onClear?: () => void;
+  onReorder?: (from: number, to: number) => void;
 }
+
+interface DragState {
+  pointerId: number;
+  startIndex: number;
+  startY: number;
+  targetIndex: number;
+  activated: boolean;
+  rects: { top: number; height: number }[];
+}
+
+const DRAG_ACTIVATE_PX = 6;
 
 export function QueueOverlay({
   queue,
@@ -28,10 +40,16 @@ export function QueueOverlay({
   onRemove,
   onPlayItem,
   onClear,
+  onReorder,
 }: QueueOverlayProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
   const hasMounted = useRef(false);
+  const listRef = useRef<HTMLUListElement>(null);
+  const rowRefs = useRef<(HTMLLIElement | null)[]>([]);
+  const dragState = useRef<DragState | null>(null);
+
+  const canReorder = Boolean(onReorder) && queue.length > 1;
 
   useEffect(() => {
     if (!panelRef.current || !backdropRef.current) return;
@@ -81,6 +99,122 @@ export function QueueOverlay({
     document.addEventListener("keydown", handleEsc);
     return () => document.removeEventListener("keydown", handleEsc);
   }, [isOpen, onClose]);
+
+  // Reset any leftover drag styles when the overlay closes mid-gesture
+  useEffect(() => {
+    if (isOpen) return;
+    clearDragStyles();
+    dragState.current = null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  const clearDragStyles = useCallback(() => {
+    rowRefs.current.forEach((el) => {
+      if (!el) return;
+      el.style.transform = "";
+      el.style.transition = "";
+      el.style.zIndex = "";
+      el.style.boxShadow = "";
+    });
+  }, []);
+
+  const activateDrag = useCallback((ds: DragState, dragged: HTMLLIElement) => {
+    ds.activated = true;
+    dragged.style.transition = "none";
+    dragged.style.zIndex = "10";
+    dragged.style.boxShadow = "0 12px 32px rgba(0,0,0,0.5)";
+  }, []);
+
+  const handleDragStart = useCallback(
+    (index: number) => (e: React.PointerEvent<HTMLButtonElement>) => {
+      if (!canReorder || dragState.current) return;
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      const ul = listRef.current;
+      if (!ul) return;
+
+      const lis = Array.from(ul.children) as HTMLLIElement[];
+      const rects = lis.map((li) => {
+        const r = li.getBoundingClientRect();
+        return { top: r.top, height: r.height };
+      });
+
+      dragState.current = {
+        pointerId: e.pointerId,
+        startIndex: index,
+        startY: e.clientY,
+        targetIndex: index,
+        activated: false,
+        rects,
+      };
+
+      e.currentTarget.setPointerCapture(e.pointerId);
+      // Keep text selection / native scroll from hijacking the gesture
+      e.preventDefault();
+    },
+    [canReorder],
+  );
+
+  const handleDragMove = useCallback(
+    (e: React.PointerEvent<HTMLButtonElement>) => {
+      const ds = dragState.current;
+      if (!ds || ds.pointerId !== e.pointerId) return;
+      const dragged = rowRefs.current[ds.startIndex];
+      if (!dragged) return;
+
+      const dy = e.clientY - ds.startY;
+      if (!ds.activated) {
+        if (Math.abs(dy) < DRAG_ACTIVATE_PX) return;
+        activateDrag(ds, dragged);
+      }
+
+      dragged.style.transform = `translateY(${dy}px)`;
+
+      const startRect = ds.rects[ds.startIndex];
+      const draggedCenter = startRect.top + startRect.height / 2 + dy;
+      let target = ds.startIndex;
+      if (dy > 0) {
+        for (let i = ds.startIndex + 1; i < ds.rects.length; i++) {
+          if (draggedCenter > ds.rects[i].top + ds.rects[i].height) target = i;
+          else break;
+        }
+      } else {
+        for (let i = ds.startIndex - 1; i >= 0; i--) {
+          if (draggedCenter < ds.rects[i].top) target = i;
+          else break;
+        }
+      }
+
+      if (target !== ds.targetIndex) {
+        ds.targetIndex = target;
+        rowRefs.current.forEach((el, i) => {
+          if (!el || i === ds.startIndex) return;
+          let shift = 0;
+          if (ds.startIndex < target && i > ds.startIndex && i <= target) {
+            shift = -startRect.height;
+          } else if (ds.startIndex > target && i >= target && i < ds.startIndex) {
+            shift = startRect.height;
+          }
+          el.style.transition = "transform 150ms ease";
+          el.style.transform = shift ? `translateY(${shift}px)` : "";
+        });
+      }
+    },
+    [activateDrag],
+  );
+
+  const handleDragEnd = useCallback(
+    (e: React.PointerEvent<HTMLButtonElement>) => {
+      const ds = dragState.current;
+      if (!ds || ds.pointerId !== e.pointerId) return;
+      dragState.current = null;
+      clearDragStyles();
+      if (e.type === "pointercancel" || !ds.activated) return;
+      if (ds.targetIndex !== ds.startIndex) {
+        onReorder?.(ds.startIndex, ds.targetIndex);
+      }
+    },
+    [clearDragStyles, onReorder],
+  );
 
   return (
     <div
@@ -144,19 +278,37 @@ export function QueueOverlay({
               </p>
             </div>
           ) : (
-            <ul className="divide-y divide-white/5">
+            <ul ref={listRef} className="divide-y divide-white/5">
               {queue.map((item, i) => {
                 const isPlaying = i === currentIndex;
                 return (
                   <li
                     key={item.queueItemId}
+                    ref={(el) => {
+                      rowRefs.current[i] = el;
+                    }}
                     className={cn(
-                      "flex items-center gap-3 px-5 py-3 transition-colors",
+                      "flex items-center gap-1 px-3 py-3 sm:px-5",
                       isPlaying
-                        ? "bg-white/[0.06]"
-                        : "hover:bg-white/[0.03]",
+                        ? "bg-[#161616]/95"
+                        : "bg-[#0d0d0d]/95 hover:bg-[#191919]/95 transition-colors",
                     )}
                   >
+                    {canReorder && (
+                      <button
+                        type="button"
+                        aria-hidden="true"
+                        tabIndex={-1}
+                        onPointerDown={handleDragStart(i)}
+                        onPointerMove={handleDragMove}
+                        onPointerUp={handleDragEnd}
+                        onPointerCancel={handleDragEnd}
+                        style={{ touchAction: "none" }}
+                        className="shrink-0 cursor-grab touch-none rounded-full p-1.5 text-white/20 transition-colors hover:text-white/60 active:cursor-grabbing min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      >
+                        <GripVertical className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => onPlayItem(i)}
@@ -207,7 +359,7 @@ export function QueueOverlay({
                     </button>
 
                     {item.duration ? (
-                      <span className="shrink-0 text-[10px] font-mono text-white/25 tabular-nums">
+                      <span className="shrink-0 pr-2 text-[10px] font-mono text-white/25 tabular-nums">
                         {formatTime(item.duration)}
                       </span>
                     ) : null}
@@ -215,7 +367,7 @@ export function QueueOverlay({
                     <button
                       type="button"
                       onClick={() => onRemove(i)}
-                      className="shrink-0 rounded-full p-2 text-white/25 hover:text-red-400 hover:bg-white/5 transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      className="mr-1 shrink-0 rounded-full p-2 text-white/25 hover:text-red-400 hover:bg-white/5 transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
                       aria-label={`Remove ${item.title} from queue`}
                     >
                       <X className="h-3.5 w-3.5" />

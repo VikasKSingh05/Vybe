@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Search, X, Music, Loader2, Eraser } from "lucide-react";
+import { Search, X, Music, Loader2, Eraser, Play, ListStart, ListPlus, Clock } from "lucide-react";
 import gsap from "gsap";
 import type { Song } from "@/types/music";
 import { AlbumArt } from "@/components/AlbumArt";
@@ -14,9 +14,13 @@ interface SearchOverlayProps {
   hasSearched: boolean;
   error: string | null;
   accent: string;
+  history?: string[];
   onQueryChange: (query: string) => void;
   onPlaySong: (song: Song) => void;
   onAddToQueue: (song: Song) => void;
+  onPlayNext?: (song: Song) => void;
+  onSearchSubmit?: (query: string) => void;
+  onClearHistory?: () => void;
   onOpenChange?: (open: boolean) => void;
 }
 
@@ -27,9 +31,13 @@ export function SearchOverlay({
   hasSearched,
   error,
   accent,
+  history,
   onQueryChange,
   onPlaySong,
   onAddToQueue,
+  onPlayNext,
+  onSearchSubmit,
+  onClearHistory,
   onOpenChange,
 }: SearchOverlayProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -229,6 +237,21 @@ export function SearchOverlay({
     [onAddToQueue, handleClose],
   );
 
+  const handlePlayNext = useCallback(
+    (song: Song) => {
+      onPlayNext?.(song);
+      handleClose();
+    },
+    [onPlayNext, handleClose],
+  );
+
+  const handleHistorySearch = useCallback(
+    (q: string) => {
+      onSearchSubmit?.(q);
+    },
+    [onSearchSubmit],
+  );
+
   const handleClearQuery = useCallback(() => {
     onQueryChange("");
     inputRef.current?.focus();
@@ -320,7 +343,43 @@ export function SearchOverlay({
             </div>
           )}
 
-          {!hasSearched && !isSearching && (
+          {!hasSearched && !isSearching && history && history.length > 0 && (
+            <div className="px-2 py-3">
+              <div className="flex items-center justify-between px-2 pb-1.5">
+                <span className="text-[11px] font-medium uppercase tracking-wider text-white/30">
+                  Recent
+                </span>
+                {onClearHistory && (
+                  <button
+                    type="button"
+                    onClick={onClearHistory}
+                    className="rounded-full px-2.5 py-1.5 text-[11px] text-white/30 transition-colors hover:text-white/70 hover:bg-white/5 cursor-pointer min-h-[32px]"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <ul className="divide-y divide-white/5">
+                {history.map((h) => (
+                  <li key={h}>
+                    <button
+                      type="button"
+                      onClick={() => handleHistorySearch(h)}
+                      className="flex min-h-[44px] w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-white/[0.04] cursor-pointer"
+                    >
+                      <Clock className="h-3.5 w-3.5 shrink-0 text-white/25" />
+                      <span className="min-w-0 flex-1 truncate text-sm text-white/70">
+                        {h}
+                      </span>
+                      <Search className="h-3 w-3 shrink-0 text-white/20" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {!hasSearched && !isSearching && (!history || history.length === 0) && (
             <div className="flex flex-col items-center gap-2 px-4 py-12">
               <Search className="h-8 w-8 text-white/10" />
               <p className="text-xs text-white/25">
@@ -352,20 +411,35 @@ export function SearchOverlay({
                       {song.artist}
                     </p>
                   </div>
-                  <div className="flex shrink-0 gap-1">
+                  <div className="flex shrink-0 items-center gap-0.5">
                     <button
                       type="button"
                       onClick={() => handlePlay(song)}
-                      className="flex min-h-[40px] items-center rounded-full px-3 py-2 text-[11px] font-medium text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                      aria-label={`Play ${song.title}`}
+                      title="Play"
+                      className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-full p-2 text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                     >
-                      Play
+                      <Play className="h-3.5 w-3.5" />
                     </button>
+                    {onPlayNext && (
+                      <button
+                        type="button"
+                        onClick={() => handlePlayNext(song)}
+                        aria-label={`Play ${song.title} next`}
+                        title="Play next"
+                        className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-full p-2 text-white/40 hover:text-white/80 hover:bg-white/5 transition-colors cursor-pointer"
+                      >
+                        <ListStart className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => handleQueue(song)}
-                      className="flex min-h-[40px] items-center rounded-full px-3 py-2 text-[11px] font-medium text-white/40 hover:text-white/70 hover:bg-white/5 transition-colors cursor-pointer"
+                      aria-label={`Add ${song.title} to queue`}
+                      title="Add to queue"
+                      className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-full p-2 text-white/40 hover:text-white/80 hover:bg-white/5 transition-colors cursor-pointer"
                     >
-                      Queue
+                      <ListPlus className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 </li>

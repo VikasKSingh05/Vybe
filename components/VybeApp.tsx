@@ -41,7 +41,9 @@ export function VybeApp() {
 
   const handlePlaySong = useCallback(
     (song: Song) => {
-      player.addToQueue(songToEntry(song), song, true);
+      const added = player.addToQueue(songToEntry(song), song, true);
+      if (added) toast(`Playing · ${song.title}`, "success");
+      else toast(`"${song.title}" is already in the queue`, "info");
       search.clear();
     },
     [player, songToEntry, search],
@@ -49,7 +51,19 @@ export function VybeApp() {
 
   const handleAddToQueue = useCallback(
     (song: Song) => {
-      player.addToQueue(songToEntry(song), song);
+      const added = player.addToQueue(songToEntry(song), song);
+      if (added) toast(`Queued · ${song.title}`, "success");
+      else toast(`"${song.title}" is already in the queue`, "info");
+      search.clear();
+    },
+    [player, songToEntry, search],
+  );
+
+  const handlePlayNext = useCallback(
+    (song: Song) => {
+      const added = player.playNextInQueue(songToEntry(song), song);
+      if (added) toast(`Playing next · ${song.title}`, "success");
+      else toast(`"${song.title}" is already in the queue`, "info");
       search.clear();
     },
     [player, songToEntry, search],
@@ -82,6 +96,13 @@ export function VybeApp() {
     player.clearCustomQueue();
   }, [player]);
 
+  const handleReorder = useCallback(
+    (from: number, to: number) => {
+      player.reorderQueue(from, to);
+    },
+    [player],
+  );
+
   const searchOverlay = (
     <SearchOverlay
       query={search.query}
@@ -93,6 +114,10 @@ export function VybeApp() {
       onQueryChange={search.setQuery}
       onPlaySong={handlePlaySong}
       onAddToQueue={handleAddToQueue}
+      onPlayNext={handlePlayNext}
+      onSearchSubmit={search.search}
+      history={search.history}
+      onClearHistory={search.clearHistory}
       onOpenChange={setSearchOpen}
     />
   );
@@ -166,6 +191,7 @@ export function VybeApp() {
         onRemove={handleRemoveFromQueue}
         onPlayItem={handlePlayQueueItem}
         onClear={player.isRandomMode ? handleClearQueue : undefined}
+        onReorder={handleReorder}
       />
     </div>
   );

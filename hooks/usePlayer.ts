@@ -8,6 +8,7 @@ import type { Song } from "@/types/music";
 import { useAudioElement } from "./useAudioElement";
 import { resolveSong as resolveSongFn } from "@/lib/music/resolve";
 import { loadPlayerState, savePlayerState } from "@/lib/player-storage";
+import { applyReorder, insertAfterCurrent } from "@/lib/queue-order";
 
 interface UsePlayerOptions {
   initialVibeId?: VibeId;
@@ -182,12 +183,12 @@ export function usePlayer({
   }, []);
 
   const addToQueue = useCallback(
-    (entry: PlaylistEntry, resolvedSong?: Song, forcePlay = false) => {
+    (entry: PlaylistEntry, resolvedSong?: Song, forcePlay = false): boolean => {
       if (entry.jiosaavnId) {
         const exists = activePlaylistRef.current.some(
           (e) => e.jiosaavnId === entry.jiosaavnId,
         );
-        if (exists) return;
+        if (exists) return false;
       }
       if (resolvedSong) {
         const cacheKey =
@@ -205,9 +206,56 @@ export function usePlayer({
         const targetIndex = wasEmpty ? 0 : newIndex;
         setTimeout(() => loadSongAtIndexRef.current?.(targetIndex, true), 50);
       }
+      return true;
     },
     [],
   );
+
+  // Insert a song to play right after the current one
+  const playNextInQueue = useCallback(
+    (entry: PlaylistEntry, resolvedSong?: Song): boolean => {
+      if (entry.jiosaavnId) {
+        const exists = activePlaylistRef.current.some(
+          (e) => e.jiosaavnId === entry.jiosaavnId,
+        );
+        if (exists) return false;
+      }
+      if (resolvedSong) {
+        const cacheKey =
+          entry.jiosaavnId?.trim() ||
+          `${entry.title}-${entry.artist}`.toLowerCase();
+        songCacheRef.current.set(cacheKey, resolvedSong);
+      }
+      const wasEmpty = activePlaylistRef.current.length === 0;
+      const newList = insertAfterCurrent(
+        activePlaylistRef.current,
+        currentIndexRef.current,
+        entry,
+      );
+      setPlaylist(newList);
+      activePlaylistRef.current = newList;
+      if (wasEmpty) {
+        setUserInteracted(true);
+        setTimeout(() => loadSongAtIndexRef.current?.(0, true), 50);
+      }
+      return true;
+    },
+    [],
+  );
+
+  // Reorder via drag — playback stays anchored to the same song
+  const reorderQueue = useCallback((from: number, to: number) => {
+    const result = applyReorder(
+      activePlaylistRef.current,
+      from,
+      to,
+      currentIndexRef.current,
+    );
+    if (!result) return;
+    setPlaylist(result.list);
+    activePlaylistRef.current = result.list;
+    setCurrentIndex(result.currentIndex);
+  }, []);
 
   const fetchRandomSong = useCallback(async () => {
     if (fetchRandomSongInProgressRef.current) return;
@@ -474,6 +522,8 @@ export function usePlayer({
     changeVolume,
     toggleMute,
     addToQueue,
+    playNextInQueue,
+    reorderQueue,
     removeFromQueue,
     clearCustomQueue,
     playAtIndex,
