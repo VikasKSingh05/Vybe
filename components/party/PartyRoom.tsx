@@ -11,6 +11,8 @@ import { usePartyAudio } from "@/hooks/usePartyAudio";
 import { usePartyActivity } from "@/hooks/usePartyActivity";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import type { useParty } from "@/hooks/useParty";
+import { useMediaSession } from "@/hooks/useMediaSession";
+import { toast } from "@/lib/toast";
 import { PartyTopNav } from "./PartyTopNav";
 import { RoomCodeCard } from "./RoomCodeCard";
 import { NowPlayingCard } from "./NowPlayingCard";
@@ -223,6 +225,29 @@ export function PartyRoom({ party }: PartyRoomProps) {
     () => new Set(state?.queue.map((t) => t.song.id) ?? []),
     [state?.queue],
   );
+
+  // Surface command errors while connected (disconnected states use the banner)
+  useEffect(() => {
+    if (partyError && status === "connected") {
+      toast(partyError, "error");
+    }
+  }, [partyError, status]);
+
+  // Lock-screen / hardware media controls for everyone in the room
+  useMediaSession({
+    enabled: playerTrack != null,
+    title: playerTrack?.title ?? "VYBE Party",
+    artist: playerTrack?.artist ?? "",
+    artwork: playerTrack?.cover,
+    isPlaying: audio.isPlaying,
+    duration: playerDuration,
+    currentTime: audio.currentTime,
+    onPlay: handleTogglePlay,
+    onPause: handleTogglePlay,
+    onNext: handleNext,
+    onPrev: handlePrev,
+    onSeek: handleSeek,
+  });
 
   return (
     <div className="relative flex min-h-dvh flex-col text-white font-sans antialiased lg:h-dvh lg:overflow-hidden">

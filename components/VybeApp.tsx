@@ -11,23 +11,21 @@ import { QueueOverlay } from "@/components/QueueOverlay";
 import { SearchOverlay } from "@/components/SearchOverlay";
 import { usePlayer } from "@/hooks/usePlayer";
 import { useSearch } from "@/hooks/useSearch";
+import { useMediaSession } from "@/hooks/useMediaSession";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { toast } from "@/lib/toast";
 import { cn } from "@/lib/cn";
 
 export function VybeApp() {
   const player = usePlayer({ initialVibeId: "bollywood", autoPlay: false });
   const search = useSearch();
 
-  const [visibleError, setVisibleError] = useState<string | null>(null);
   const [queueOpen, setQueueOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     if (player.error) {
-      setVisibleError(player.error);
-      const timer = setTimeout(() => setVisibleError(null), 6_000);
-      return () => clearTimeout(timer);
-    } else {
-      setVisibleError(null);
+      toast(player.error, "error");
     }
   }, [player.error]);
 
@@ -44,7 +42,9 @@ export function VybeApp() {
 
   const handlePlaySong = useCallback(
     (song: Song) => {
-      player.addToQueue(songToEntry(song), song, true);
+      const added = player.addToQueue(songToEntry(song), song, true);
+      if (added) toast(`Playing · ${song.title}`, "success");
+      else toast(`"${song.title}" is already in the queue`, "info");
       search.clear();
     },
     [player, songToEntry, search],
@@ -52,7 +52,19 @@ export function VybeApp() {
 
   const handleAddToQueue = useCallback(
     (song: Song) => {
-      player.addToQueue(songToEntry(song), song);
+      const added = player.addToQueue(songToEntry(song), song);
+      if (added) toast(`Queued · ${song.title}`, "success");
+      else toast(`"${song.title}" is already in the queue`, "info");
+      search.clear();
+    },
+    [player, songToEntry, search],
+  );
+
+  const handlePlayNext = useCallback(
+    (song: Song) => {
+      const added = player.playNextInQueue(songToEntry(song), song);
+      if (added) toast(`Playing next · ${song.title}`, "success");
+      else toast(`"${song.title}" is already in the queue`, "info");
       search.clear();
     },
     [player, songToEntry, search],
@@ -85,6 +97,13 @@ export function VybeApp() {
     player.clearCustomQueue();
   }, [player]);
 
+  const handleReorder = useCallback(
+    (from: number, to: number) => {
+      player.reorderQueue(from, to);
+    },
+    [player],
+  );
+
   const searchOverlay = (
     <SearchOverlay
       query={search.query}
@@ -96,9 +115,38 @@ export function VybeApp() {
       onQueryChange={search.setQuery}
       onPlaySong={handlePlaySong}
       onAddToQueue={handleAddToQueue}
+      onPlayNext={handlePlayNext}
+      onSearchSubmit={search.search}
+      history={search.history}
+      onClearHistory={search.clearHistory}
       onOpenChange={setSearchOpen}
     />
   );
+
+  useMediaSession({
+    title: player.track.title,
+    artist: player.track.artist,
+    artwork: player.track.cover,
+    isPlaying: player.isPlaying,
+    duration: player.duration,
+    currentTime: player.currentTime,
+    onPlay: player.play,
+    onPause: player.pause,
+    onNext: player.next,
+    onPrev: player.prev,
+    onSeek: player.seek,
+  });
+
+  useKeyboardShortcuts({
+    onTogglePlay: player.togglePlay,
+    onSeek: (delta) =>
+      player.seek(
+        Math.min(Math.max(0, player.currentTime + delta), player.duration),
+      ),
+    onNext: player.next,
+    onPrev: player.prev,
+    onToggleMute: player.toggleMute,
+  });
 
   return (
     <div className="relative min-h-dvh overflow-hidden text-white font-sans antialiased select-none">
@@ -155,16 +203,8 @@ export function VybeApp() {
         onRemove={handleRemoveFromQueue}
         onPlayItem={handlePlayQueueItem}
         onClear={player.isRandomMode ? handleClearQueue : undefined}
+        onReorder={handleReorder}
       />
-
-      {visibleError && (
-        <div
-          role="alert"
-          className="fixed bottom-24 left-1/2 z-50 w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2 text-xs text-red-300 backdrop-blur-md"
-        >
-          {player.error}
-        </div>
-      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, Syne } from "next/font/google";
+import { ToastViewport } from "@/components/ui/ToastViewport";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -21,6 +22,12 @@ export const metadata: Metadata = {
   description:
     "An immersive, cinematic music discovery experience. Pick a vibe and press play.",
   metadataBase: new URL(appUrl),
+  applicationName: "VYBE",
+  appleWebApp: {
+    capable: true,
+    title: "VYBE",
+    statusBarStyle: "black-translucent",
+  },
   openGraph: {
     title: "VYBE",
     description: "Pick a vibe. Press play.",
@@ -61,6 +68,7 @@ export default function RootLayout({
         >
           Skip to content
         </a>
+        <ToastViewport />
         {children}
       </body>
     </html>

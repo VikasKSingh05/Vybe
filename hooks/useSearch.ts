@@ -2,6 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Song } from "@/types/music";
+import {
+  loadSearchHistory,
+  saveSearchQuery,
+  clearSearchHistory,
+} from "@/lib/search-history";
 
 const DEBOUNCE_MS = 450;
 
@@ -11,6 +16,7 @@ export function useSearch() {
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<string[]>(() => loadSearchHistory());
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestSeqRef = useRef(0);
@@ -43,6 +49,7 @@ export function useSearch() {
         setResults([]);
       } else {
         setResults(data.songs ?? []);
+        setHistory(saveSearchQuery(trimmed));
       }
       setHasSearched(true);
     } catch {
@@ -83,6 +90,11 @@ export function useSearch() {
     setIsSearching(false);
   }, []);
 
+  const clearHistory = useCallback(() => {
+    clearSearchHistory();
+    setHistory([]);
+  }, []);
+
   return {
     query,
     setQuery: updateQuery,
@@ -92,5 +104,7 @@ export function useSearch() {
     error,
     search,
     clear,
+    history,
+    clearHistory,
   };
 }

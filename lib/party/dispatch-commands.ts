@@ -4,7 +4,7 @@
  */
 import type { Song } from "@/types/music";
 import type { PartyMember, PartyState } from "./types";
-import { PARTY_EMOJIS, PARTY_MAX_QUEUE, PARTY_VIBES } from "./types";
+import { PARTY_EMOJIS, PARTY_MAX_QUEUE } from "./types";
 import type { DispatchResult } from "./store-interface";
 
 export type ApplyFn = (mutator: (s: PartyState) => void) => PartyState | null | Promise<PartyState | null>;
@@ -21,10 +21,6 @@ export function generateId(length: number): string {
 export function sanitizeName(name: string, fallback: string): string {
   const trimmed = name.trim().slice(0, 24);
   return trimmed || fallback;
-}
-
-function isVibe(v: string): v is PartyState["vibeId"] {
-  return (PARTY_VIBES as string[]).includes(v);
 }
 
 function isValidSong(song: unknown): song is Song {
@@ -228,15 +224,6 @@ export function dispatchCommand(
         if (idx === -1) return;
         startPlayback(s, idx);
       });
-      return wire instanceof Promise ? applyAsync(wire) : applyResult(wire);
-    }
-
-    case "setVibe": {
-      const denied = requiresHost();
-      if (denied) return denied;
-      const vibe = payload?.vibeId;
-      if (typeof vibe !== "string" || !isVibe(vibe)) return err(400, "Invalid vibe");
-      const wire = apply((s) => { s.vibeId = vibe; });
       return wire instanceof Promise ? applyAsync(wire) : applyResult(wire);
     }
 

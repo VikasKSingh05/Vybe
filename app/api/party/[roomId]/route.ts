@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 const VALID_COMMANDS = [
   "join", "leave", "addTrack", "removeTrack", "next", "prev",
-  "play", "pause", "seek", "playTrack", "setVibe", "clearQueue",
+  "play", "pause", "seek", "playTrack", "clearQueue",
   "heartbeat", "reaction",
 ];
 
