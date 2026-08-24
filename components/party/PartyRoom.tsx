@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { LogOut, WifiOff, RefreshCw } from "lucide-react";
 import gsap from "gsap";
 import type { Track } from "@/data/types";
+import type { PartyMember } from "@/lib/party/types";
 import { partyTheme } from "@/data/backgrounds";
 import { Background } from "@/components/Background";
 import { usePartyAudio } from "@/hooks/usePartyAudio";
@@ -134,6 +135,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
   const router = useRouter();
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [handoverTarget, setHandoverTarget] = useState<PartyMember | null>(null);
   const { copy } = useCopyToClipboard();
 
   const theme = partyTheme;
@@ -217,6 +219,22 @@ export function PartyRoom({ party }: PartyRoomProps) {
     send("clearQueue");
   }, [send]);
 
+  const confirmHandover = useCallback(() => {
+    const target = handoverTarget;
+    setHandoverTarget(null);
+    if (target) {
+      send("transferHost", { targetMemberId: target.id });
+    }
+  }, [handoverTarget, send]);
+
+  const handleHandover = useCallback(
+    (targetMemberId: string) => {
+      const target = state?.members.find((m) => m.id === targetMemberId) ?? null;
+      setHandoverTarget(target);
+    },
+    [state?.members],
+  );
+
   const handleInvite = useCallback(() => {
     if (!state) return;
     copy(`${window.location.origin}/party/${state.roomId}`);
@@ -244,7 +262,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
     const change = detectHostChange(prev, nextHostId, state.members);
     if (!change) return;
     if (change.hostId === member?.id) {
-      toast("You're now the host — transport controls are yours", "success");
+      toast("You're the host now", "success");
     } else {
       toast(`${change.hostName} is now the host`, "info");
     }
@@ -378,6 +396,8 @@ export function PartyRoom({ party }: PartyRoomProps) {
                 serverNow={serverNowEstimate}
                 accent={theme.accent}
                 onInvite={handleInvite}
+                isHostView={isHost}
+                onHandover={handleHandover}
               />
             </div>
             <div className="scrollbar-hide lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
@@ -413,6 +433,16 @@ export function PartyRoom({ party }: PartyRoomProps) {
         confirmLabel="Clear"
         onConfirm={confirmClearQueue}
         onCancel={() => setShowClearConfirm(false)}
+      />
+
+      {/* Host hand-over confirm modal */}
+      <ConfirmDialog
+        open={handoverTarget !== null}
+        title="Hand over host?"
+        message={`${handoverTarget?.name ?? "This member"} will control playback for everyone.`}
+        confirmLabel="Make host"
+        onConfirm={confirmHandover}
+        onCancel={() => setHandoverTarget(null)}
       />
     </div>
   );

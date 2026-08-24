@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 const VALID_COMMANDS = [
   "join", "leave", "addTrack", "removeTrack", "next", "prev",
   "play", "pause", "seek", "playTrack", "clearQueue",
-  "heartbeat", "reaction",
+  "heartbeat", "reaction", "transferHost",
 ];
 
 const VALID_ROOM_ID = /^[a-zA-Z0-9]{1,12}$/;

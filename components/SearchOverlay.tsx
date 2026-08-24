@@ -25,6 +25,48 @@ interface SearchOverlayProps {
   onOpenChange?: (open: boolean) => void;
 }
 
+interface MorphPlan {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  scaleX: number;
+  scaleY: number;
+  originX: string;
+  originY: string;
+}
+
+function prefersReducedMotion(): boolean {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/**
+ * Final panel geometry plus the scale/transform-origin needed to make the
+ * panel appear to grow out of the trigger pill. Only transform/opacity ever
+ * animate — geometry itself snaps once, so there's no per-frame reflow and
+ * the morph stays smooth on low-powered mobile devices.
+ */
+function planMorph(triggerRect: DOMRect): MorphPlan {
+  const compact = window.matchMedia("(max-width: 640px)").matches;
+  const width = Math.min(window.innerWidth * (compact ? 0.92 : 0.9), 640);
+  const height = Math.min(window.innerHeight * (compact ? 0.72 : 0.8), 520);
+  const topPct = compact ? 0.46 : 0.5;
+  const left = window.innerWidth / 2 - width / 2;
+  const top = window.innerHeight * topPct - height / 2;
+  const cx = triggerRect.left + triggerRect.width / 2;
+  const cy = triggerRect.top + triggerRect.height / 2;
+  return {
+    left,
+    top,
+    width,
+    height,
+    scaleX: triggerRect.width / width,
+    scaleY: triggerRect.height / height,
+    originX: `${(((cx - left) / width) * 100).toFixed(2)}%`,
+    originY: `${(((cy - top) / height) * 100).toFixed(2)}%`,
+  };
+}
+
 export function SearchOverlay({
   query,
   results,
@@ -47,6 +89,7 @@ export function SearchOverlay({
   const contentRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const startRectRef = useRef<DOMRect | null>(null);
+  const morphRef = useRef<MorphPlan | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const isAnimating = useRef(false);
   const hasMounted = useRef(false);
@@ -79,26 +122,37 @@ export function SearchOverlay({
     startRectRef.current = rect;
     isAnimating.current = true;
 
-    // Position panel at trigger location
+    // Geometry snaps to final values once; only transform/opacity animate
+    // afterwards (GPU-composited — no per-frame reflow, smooth on mobile).
+    const morph = planMorph(rect);
+    morphRef.current = morph;
     gsap.set(panel, {
       position: "fixed",
-      top: rect.top,
-      left: rect.left,
-      width: rect.width,
-      height: rect.height,
-      borderRadius: "9999px",
-      opacity: 1,
-      scale: 1,
+      left: morph.left,
+      top: morph.top,
+      width: morph.width,
+      height: morph.height,
+      xPercent: 0,
+      yPercent: 0,
+      transformOrigin: `${morph.originX} ${morph.originY}`,
+      borderRadius: "1rem",
       zIndex: 60,
       pointerEvents: "auto",
     });
-    gsap.set(backdrop, { opacity: 0, pointerEvents: "auto" });
-    // Restore content in case a previous close was interrupted
     if (contentRef.current) gsap.set(contentRef.current, { opacity: 1 });
 
-    // Compact screens: lift the resting position above center so the input
-    // stays visible when the on-screen keyboard opens
-    const compact = window.matchMedia("(max-width: 640px)").matches;
+    setIsOpen(true);
+    onOpenChange?.(true);
+
+    if (prefersReducedMotion()) {
+      gsap.set(backdrop, { opacity: 1, pointerEvents: "auto" });
+      inputRef.current?.focus();
+      isAnimating.current = false;
+      return;
+    }
+
+    gsap.set(backdrop, { opacity: 0, pointerEvents: "auto" });
+    gsap.set(panel, { opacity: 1, scaleX: morph.scaleX, scaleY: morph.scaleY });
 
     const tl = gsap.timeline({
       onComplete: () => {
@@ -107,30 +161,25 @@ export function SearchOverlay({
       },
     });
 
-    tl.to(backdrop, { opacity: 1, duration: 0.3, ease: "power2.out" }, 0);
+    tl.to(backdrop, { opacity: 1, duration: 0.22, ease: "power2.out" }, 0);
     tl.to(
       panel,
-      {
-        top: compact ? "46%" : "50%",
-        left: "50%",
-        xPercent: -50,
-        yPercent: -50,
-        width: compact ? "min(92vw, 640px)" : "min(90vw, 640px)",
-        height: compact ? "min(72dvh, 520px)" : "min(80vh, 520px)",
-        borderRadius: "1rem",
-        duration: 0.45,
-        ease: "power3.out",
-      },
+      { scaleX: 1, scaleY: 1, duration: 0.34, ease: "power3.out" },
       0,
     );
-
-    setIsOpen(true);
-    onOpenChange?.(true);
+    // Fade content in as it un-squishes so mid-morph text never reads as mush
+    if (contentRef.current) {
+      tl.fromTo(
+        contentRef.current,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.18, ease: "power1.out" },
+        0.08,
+      );
+    }
   }, [isOpen, onOpenChange]);
 
   const handleClose = useCallback(() => {
     if (isAnimating.current || !isOpen) return;
-    const trigger = triggerRef.current;
     const panel = panelRef.current;
     const backdrop = backdropRef.current;
     if (!panel || !backdrop) return;
@@ -142,57 +191,58 @@ export function SearchOverlay({
     inputRef.current?.blur();
 
     // Use stored or fresh trigger rect
+    const trigger = triggerRef.current;
     const rect = trigger?.getBoundingClientRect() ?? startRectRef.current;
     isAnimating.current = true;
 
-    const tl = gsap.timeline({
-      onComplete: () => {
-        isAnimating.current = false;
-        setIsOpen(false);
-        onOpenChange?.(false);
-        // Full reset so panel never lingers over the trigger
-        gsap.set(panel, {
-          opacity: 0,
-          scale: 0.95,
-          xPercent: 0,
-          yPercent: 0,
-          pointerEvents: "none",
-        });
-        gsap.set(backdrop, { pointerEvents: "none" });
-        // Return focus to the invoking control (standard dialog a11y)
-        triggerRef.current?.focus();
-      },
-    });
+    const finish = () => {
+      isAnimating.current = false;
+      setIsOpen(false);
+      onOpenChange?.(false);
+      // Full reset so panel never lingers over the trigger
+      gsap.set(panel, {
+        opacity: 0,
+        scaleX: 1,
+        scaleY: 1,
+        transformOrigin: "50% 50%",
+        pointerEvents: "none",
+      });
+      gsap.set(backdrop, { pointerEvents: "none" });
+      // Return focus to the invoking control (standard dialog a11y)
+      triggerRef.current?.focus();
+    };
+
+    if (prefersReducedMotion()) {
+      finish();
+      return;
+    }
+
+    const morph = morphRef.current ?? (rect ? planMorph(rect) : null);
+
+    const tl = gsap.timeline({ onComplete: finish });
 
     // Content dissolves instantly — no clipped-text mush during shrink
     if (contentRef.current) {
-      tl.to(contentRef.current, { opacity: 0, duration: 0.18, ease: "power2.in" }, 0);
+      tl.to(contentRef.current, { opacity: 0, duration: 0.14, ease: "power2.in" }, 0);
     }
 
-    // Shell stays fully opaque while flying home — S-curve, gentle lift-off/landing
-    tl.to(
-      panel,
-      rect
-        ? {
-            top: rect.top,
-            left: rect.left,
-            xPercent: 0,
-            yPercent: 0,
-            width: rect.width,
-            height: rect.height,
-            borderRadius: "9999px",
-            duration: 0.5,
-            ease: "power2.inOut",
-          }
-        : { opacity: 0, scale: 0.95, duration: 0.3, ease: "power2.inOut" },
-      0,
-    );
+    tl.to(backdrop, { opacity: 0, duration: 0.24, ease: "power2.in" }, 0);
 
-    // Blur lifts in sync with the shrink, landing together (~0.5s)
-    tl.to(backdrop, { opacity: 0, duration: 0.45, ease: "power2.inOut" }, 0.05);
-
-    // Final 12% only — invisible handoff from dark glass pill to trigger pill
-    tl.to(panel, { opacity: 0, duration: 0.12, ease: "power1.in" }, 0.38);
+    if (morph) {
+      tl.to(
+        panel,
+        {
+          scaleX: morph.scaleX,
+          scaleY: morph.scaleY,
+          duration: 0.28,
+          ease: "power2.in",
+        },
+        0,
+      );
+      tl.to(panel, { opacity: 0, duration: 0.1, ease: "power1.in" }, 0.18);
+    } else {
+      tl.to(panel, { opacity: 0, scale: 0.95, duration: 0.25, ease: "power2.in" }, 0);
+    }
   }, [isOpen, onOpenChange, onQueryChange]);
 
   // Escape to close

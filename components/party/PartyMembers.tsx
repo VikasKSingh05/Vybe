@@ -13,6 +13,9 @@ interface PartyMembersProps {
   serverNow: number;
   accent: string;
   onInvite?: () => void;
+  /** Present only when the viewer is the host — enables hand-over actions. */
+  isHostView?: boolean;
+  onHandover?: (memberId: string) => void;
 }
 
 const AVATAR_COLORS = [
@@ -28,7 +31,7 @@ function getAvatarColor(name: string): string {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-export const PartyMembers = memo(function PartyMembers({ members, hostId, meId, serverNow, accent, onInvite }: PartyMembersProps) {
+export const PartyMembers = memo(function PartyMembers({ members, hostId, meId, serverNow, accent, onInvite, isHostView, onHandover }: PartyMembersProps) {
   return (
     <div className="h-full rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">
       <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3">
@@ -85,6 +88,19 @@ export const PartyMembers = memo(function PartyMembers({ members, hostId, meId, 
                       <Crown className="h-2.5 w-2.5" />
                       Host
                     </span>
+                  )}
+
+                  {/* Host hand-over (host view only, never on own row) */}
+                  {isHostView && !isHost && !isMe && onHandover && (
+                    <button
+                      type="button"
+                      onClick={() => onHandover(member.id)}
+                      aria-label={`Make ${member.name} the host`}
+                      title={`Make ${member.name} the host`}
+                      className="shrink-0 flex h-9 w-9 items-center justify-center rounded-full text-white/25 transition-colors hover:bg-white/5 hover:text-amber-300 cursor-pointer"
+                    >
+                      <Crown className="h-3.5 w-3.5" />
+                    </button>
                   )}
 
                   {/* Presence dot */}
