@@ -227,7 +227,7 @@ export function PartyAddSong({ accent, queuedIds, onAdd }: PartyAddSongProps) {
                       onClick={() => handleAdd(song)}
                       disabled={added || failed || inQueue}
                       className={cn(
-                        "flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-medium transition-all duration-200 shrink-0",
+                        "flex min-h-[40px] items-center gap-1 rounded-full px-3 py-2 text-[11px] font-medium transition-all duration-200 shrink-0",
                         added
                           ? "bg-white/10 text-white/60"
                           : failed

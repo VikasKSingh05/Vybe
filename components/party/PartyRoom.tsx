@@ -225,7 +225,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
   );
 
   return (
-    <div className="relative h-dvh flex flex-col overflow-hidden text-white font-sans antialiased">
+    <div className="relative flex min-h-dvh flex-col text-white font-sans antialiased lg:h-dvh lg:overflow-hidden">
       <Background theme={theme} />
 
       {(status === "closed" || status === "reconnecting") && (
@@ -260,14 +260,14 @@ export function PartyRoom({ party }: PartyRoomProps) {
         onLeave={() => setShowLeaveConfirm(true)}
       />
 
-      {/* Viewport-locked content area */}
-      <div className="relative z-10 flex-1 min-h-0 flex flex-col px-4 sm:px-5 lg:px-6 pt-[60px] pb-4">
+      {/* Content area — natural flow on mobile, viewport-locked bento at lg+ */}
+      <div className="relative z-10 flex flex-1 flex-col px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[60px] sm:px-5 lg:min-h-0 lg:px-6 lg:pb-4">
 
-        {/* ─── BENTO GRID — single row, three columns ─── */}
-        <div className="flex-1 min-h-0 grid gap-4 lg:gap-5 grid-cols-1 lg:grid-cols-[280px_1fr_260px]">
+        {/* ─── BENTO GRID — single row, three columns at lg+ ─── */}
+        <div className="grid flex-1 grid-cols-1 gap-4 lg:min-h-0 lg:grid-cols-[280px_1fr_260px] lg:gap-5">
 
           {/* LEFT — Room + Host Controls (full height) */}
-          <div className="min-h-0 overflow-y-auto scrollbar-hide">
+          <div className="scrollbar-hide lg:min-h-0 lg:overflow-y-auto">
             <RoomCodeCard
               roomId={state?.roomId ?? ""}
               isHost={isHost}
@@ -285,7 +285,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
           </div>
 
           {/* CENTER — Now Playing + Queue */}
-          <div className="flex flex-col gap-3 min-h-0">
+          <div className="flex flex-col gap-3 lg:min-h-0">
             <NowPlayingCard
               track={playerTrack}
               state={state}
@@ -303,7 +303,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
             />
 
             <PartyQueue
-              className="flex-1 min-h-0"
+              className="lg:min-h-0 lg:flex-1"
               state={state}
               isHost={isHost}
               accent={theme.accent}
@@ -314,7 +314,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
           </div>
 
           {/* RIGHT — Members + Activity */}
-          <div className="flex flex-col gap-2 min-h-0 overflow-hidden">
+          <div className="flex flex-col gap-2 lg:min-h-0 lg:overflow-hidden">
             <div className="flex-none">
               <PartyMembers
                 members={state?.members ?? []}
@@ -324,7 +324,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
                 onInvite={handleInvite}
               />
             </div>
-            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">
+            <div className="scrollbar-hide lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
               <ActivityFeed
                 activities={activities}
               />

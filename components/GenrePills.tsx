@@ -53,7 +53,7 @@ export function GenrePills({
         ref={pillsRef}
         role="radiogroup"
         aria-label="Select vibe"
-        className="scrollbar-hide flex items-center justify-start sm:justify-center gap-2 overflow-x-auto py-2 px-1 scroll-smooth"
+        className="flex flex-wrap items-center justify-center gap-2 py-2 px-1"
       >
         {vibeThemes.map((vibe) => {
           const isActive = vibe.id === activeId;

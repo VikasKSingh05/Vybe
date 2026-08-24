@@ -57,7 +57,7 @@ export const PartyQueue = memo(function PartyQueue({
           </p>
         </div>
       ) : (
-        <ul className="min-h-0 flex-1 divide-y divide-white/5 overflow-y-auto scrollbar-hide" aria-label="Queue">
+        <ul className="divide-y divide-white/5 overflow-y-auto scrollbar-hide lg:min-h-0 lg:flex-1" aria-label="Queue">
           {queue.map((track, index) => {
             const isCurrent = state?.playback?.queueId === track.queueId;
             const canRemove = isHost || track.addedBy === memberId;
@@ -142,7 +142,7 @@ export const PartyQueue = memo(function PartyQueue({
                     onClick={(e) => { e.stopPropagation(); handleRemove(track.queueId); }}
                     onBlur={() => { if (confirmingRef.current === track.queueId) setConfirmingId(null); }}
                     aria-label={confirmingId === track.queueId ? `Confirm remove ${track.song.title}` : `Remove ${track.song.title}`}
-                    className={`rounded-full p-1.5 opacity-0 transition-all group-hover:opacity-100 cursor-pointer focus:opacity-100 ${
+                    className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full p-2 opacity-100 transition-all lg:opacity-0 lg:group-hover:opacity-100 cursor-pointer focus:opacity-100 ${
                       confirmingId === track.queueId
                         ? "bg-red-400/20 text-red-300 hover:bg-red-400/30"
                         : "text-white/25 hover:bg-white/10 hover:text-white"

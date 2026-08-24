@@ -135,7 +135,7 @@ export function QueueOverlay({
           </div>
         </div>
 
-        <div className="overflow-y-auto max-h-[calc(60vh-60px)] scrollbar-hide">
+        <div className="overflow-y-auto max-h-[calc(60vh-60px)] pb-[env(safe-area-inset-bottom)] scrollbar-hide">
           {queue.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 px-4 py-12 text-center">
               <Music className="h-8 w-8 text-white/15" />

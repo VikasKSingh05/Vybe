@@ -35,7 +35,7 @@ export const PartyMembers = memo(function PartyMembers({ members, hostId, meId, 
         </p>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 scrollbar-hide">
+      <div className="p-4 scrollbar-hide lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
         {members.length === 0 ? (
           <p className="text-xs text-white/30 py-2">Nobody else yet — share the code.</p>
         ) : (

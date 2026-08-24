@@ -7,6 +7,8 @@ interface VolumeControlProps {
   isMuted: boolean;
   accent: string;
   size?: "sm" | "md";
+  /** Extra classes for the range input, e.g. responsive hiding on narrow screens. */
+  sliderClassName?: string;
   onVolumeChange: (volume: number) => void;
   onToggleMute: () => void;
 }
@@ -16,6 +18,7 @@ export function VolumeControl({
   isMuted,
   accent,
   size = "md",
+  sliderClassName,
   onVolumeChange,
   onToggleMute,
 }: VolumeControlProps) {
@@ -45,7 +48,7 @@ export function VolumeControl({
         value={isMuted ? 0 : volume}
         onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
         aria-label="Volume"
-        className={`volume-slider ${isSmall ? "w-16" : "w-24"}`}
+        className={`volume-slider ${isSmall ? "w-16" : "w-24"} ${sliderClassName ?? ""}`}
         style={{ "--accent": accent } as React.CSSProperties}
       />
     </div>

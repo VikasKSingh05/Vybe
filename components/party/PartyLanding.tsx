@@ -62,7 +62,7 @@ export function PartyLanding({
   );
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4">
+    <div className="flex min-h-dvh flex-col items-center justify-center px-4 pb-[env(safe-area-inset-bottom)]">
       <Link
         href="/"
         className="fixed top-5 left-5 z-30 font-display text-sm font-semibold tracking-tight text-white/90 transition-colors duration-300 hover:text-white"

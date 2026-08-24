@@ -76,7 +76,7 @@ export const FloatingPlayer = memo(function FloatingPlayer({
   return (
     <div
       className={cn(
-        "fixed right-0 bottom-0 left-0 z-40 flex justify-center px-4 pb-4 sm:pb-6 md:pb-8 select-none",
+        "fixed right-0 bottom-0 left-0 z-40 flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-[max(1.5rem,env(safe-area-inset-bottom))] md:pb-[max(2rem,env(safe-area-inset-bottom))] select-none",
         className,
       )}
     >
@@ -115,6 +115,7 @@ export const FloatingPlayer = memo(function FloatingPlayer({
             isMuted={isMuted}
             accent={accent}
             size="sm"
+            sliderClassName="hidden sm:block"
             onVolumeChange={onVolumeChange}
             onToggleMute={onToggleMute}
           />
@@ -129,7 +130,7 @@ export const FloatingPlayer = memo(function FloatingPlayer({
             onNext={onNext}
           />
 
-          <div className="flex items-center gap-2 w-20 justify-end">
+          <div className="flex items-center gap-2 justify-end sm:w-20">
             {onToggleQueue && (
               <button
                 type="button"
