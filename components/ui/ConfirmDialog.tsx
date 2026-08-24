@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -22,6 +23,13 @@ export function ConfirmDialog({
   onCancel,
 }: ConfirmDialogProps) {
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useFocusTrap({
+    containerRef: cardRef,
+    active: open,
+    initialFocusRef: cancelRef,
+  });
 
   useEffect(() => {
     if (open) cancelRef.current?.focus();
@@ -30,7 +38,10 @@ export function ConfirmDialog({
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onCancel();
+      }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
@@ -47,6 +58,7 @@ export function ConfirmDialog({
       onClick={onCancel}
     >
       <div
+        ref={cardRef}
         className="mx-4 w-full max-w-sm rounded-2xl border border-white/10 bg-[#141414] p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >

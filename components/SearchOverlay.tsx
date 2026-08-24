@@ -5,6 +5,7 @@ import { Search, X, Music, Loader2, Eraser, Play, ListStart, ListPlus, Clock } f
 import gsap from "gsap";
 import type { Song } from "@/types/music";
 import { AlbumArt } from "@/components/AlbumArt";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { cn } from "@/lib/cn";
 
 interface SearchOverlayProps {
@@ -49,6 +50,14 @@ export function SearchOverlay({
   const [isOpen, setIsOpen] = useState(false);
   const isAnimating = useRef(false);
   const hasMounted = useRef(false);
+
+  // The overlay restores focus to the trigger itself after its close
+  // animation, so the trap must not double-restore.
+  useFocusTrap({
+    containerRef: panelRef,
+    active: isOpen,
+    restoreFocus: false,
+  });
 
   // Suppress initial hydration — set panel to hidden on mount
   useEffect(() => {
@@ -288,6 +297,7 @@ export function SearchOverlay({
           borderRadius: "9999px",
         }}
         role="dialog"
+        aria-modal="true"
         aria-label="Search songs"
       >
         <div ref={contentRef} className="flex min-h-0 flex-1 flex-col">

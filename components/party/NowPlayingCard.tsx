@@ -8,6 +8,7 @@ import { PARTY_EMOJIS } from "@/lib/party/types";
 import { AlbumArt } from "@/components/AlbumArt";
 import { Equalizer } from "./Equalizer";
 import { ReactionBurst } from "./ReactionBurst";
+import { TrackAnnouncer } from "@/components/player/TrackAnnouncer";
 import { ProgressBar } from "@/components/player/ProgressBar";
 import { TransportControls } from "@/components/player/TransportControls";
 import { TrackInfo } from "@/components/player/TrackInfo";
@@ -78,7 +79,7 @@ export const NowPlayingCard = memo(function NowPlayingCard({
   }
 
   return (
-    <div className="shrink-0 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden" aria-live="polite">
+    <div className="shrink-0 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">
       <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-2.5">
         <p className="text-[10px] tracking-widest text-white/40 uppercase">
           Now Playing
@@ -100,6 +101,7 @@ export const NowPlayingCard = memo(function NowPlayingCard({
 
           <div ref={infoRef} className="min-w-0 flex-1 flex flex-col justify-center">
             <TrackInfo title={track.title} artist={track.artist} size="lg" />
+            <TrackAnnouncer title={track.title} artist={track.artist} />
             <div className="mt-3 flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[10px] font-medium text-emerald-400">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
