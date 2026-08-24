@@ -43,7 +43,7 @@ export const ActivityFeed = memo(function ActivityFeed({ activities }: ActivityF
         </p>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 scrollbar-hide" aria-live="polite">
+      <div className="p-4 scrollbar-hide lg:min-h-0 lg:flex-1 lg:overflow-y-auto" aria-live="polite">
         {activities.length === 0 ? (
           <p className="text-xs text-white/25 py-2 text-center">
             Activity will appear here as people interact.

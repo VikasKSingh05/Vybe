@@ -107,17 +107,19 @@ export function VybeApp() {
 
       <main
         id="main-content"
-        className="relative z-10 flex h-dvh flex-col items-center justify-center pb-44 sm:pb-48 md:pb-52"
+        className="relative z-10 flex h-dvh flex-col items-center overflow-y-auto pb-44 sm:pb-48 md:pb-52"
       >
-        <HeroSection />
+        <div className="my-auto flex w-full flex-col items-center">
+          <HeroSection />
 
-        <div className="mt-8 sm:mt-10">
-          <GenrePills
-            activeId={player.vibeId}
-            onChange={handleVibeChange}
-            accent={player.theme.accent}
-            searchOverlay={searchOverlay}
-          />
+          <div className="mt-8 shrink-0 sm:mt-10">
+            <GenrePills
+              activeId={player.vibeId}
+              onChange={handleVibeChange}
+              accent={player.theme.accent}
+              searchOverlay={searchOverlay}
+            />
+          </div>
         </div>
       </main>
 
@@ -158,7 +160,7 @@ export function VybeApp() {
       {visibleError && (
         <div
           role="alert"
-          className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2 text-xs text-red-300 backdrop-blur-md"
+          className="fixed bottom-24 left-1/2 z-50 w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2 text-xs text-red-300 backdrop-blur-md"
         >
           {player.error}
         </div>

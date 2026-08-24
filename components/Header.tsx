@@ -49,14 +49,14 @@ export function Header({ className, inParty = false, onExitParty }: HeaderProps)
           <button
             type="button"
             onClick={onExitParty}
-            className="flex items-center gap-1 text-[11px] tracking-wide text-white/50 transition-colors duration-300 hover:text-white/90 cursor-pointer"
+            className="flex min-h-[44px] items-center gap-1 px-1 text-[11px] tracking-wide text-white/50 transition-colors duration-300 hover:text-white/90 cursor-pointer"
           >
             Exit Party
           </button>
         ) : (
           <Link
             href="/party"
-            className="group flex items-center gap-1 text-[11px] tracking-wide text-white/50 transition-colors duration-300 hover:text-white/90"
+            className="group flex min-h-[44px] items-center gap-1 px-1 text-[11px] tracking-wide text-white/50 transition-colors duration-300 hover:text-white/90"
           >
             Host Party
           </Link>
