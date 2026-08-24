@@ -11,23 +11,20 @@ import { QueueOverlay } from "@/components/QueueOverlay";
 import { SearchOverlay } from "@/components/SearchOverlay";
 import { usePlayer } from "@/hooks/usePlayer";
 import { useSearch } from "@/hooks/useSearch";
+import { useMediaSession } from "@/hooks/useMediaSession";
+import { toast } from "@/lib/toast";
 import { cn } from "@/lib/cn";
 
 export function VybeApp() {
   const player = usePlayer({ initialVibeId: "bollywood", autoPlay: false });
   const search = useSearch();
 
-  const [visibleError, setVisibleError] = useState<string | null>(null);
   const [queueOpen, setQueueOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     if (player.error) {
-      setVisibleError(player.error);
-      const timer = setTimeout(() => setVisibleError(null), 6_000);
-      return () => clearTimeout(timer);
-    } else {
-      setVisibleError(null);
+      toast(player.error, "error");
     }
   }, [player.error]);
 
@@ -100,6 +97,20 @@ export function VybeApp() {
     />
   );
 
+  useMediaSession({
+    title: player.track.title,
+    artist: player.track.artist,
+    artwork: player.track.cover,
+    isPlaying: player.isPlaying,
+    duration: player.duration,
+    currentTime: player.currentTime,
+    onPlay: player.play,
+    onPause: player.pause,
+    onNext: player.next,
+    onPrev: player.prev,
+    onSeek: player.seek,
+  });
+
   return (
     <div className="relative min-h-dvh overflow-hidden text-white font-sans antialiased select-none">
       <Background theme={player.theme} />
@@ -156,15 +167,6 @@ export function VybeApp() {
         onPlayItem={handlePlayQueueItem}
         onClear={player.isRandomMode ? handleClearQueue : undefined}
       />
-
-      {visibleError && (
-        <div
-          role="alert"
-          className="fixed bottom-24 left-1/2 z-50 w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2 text-xs text-red-300 backdrop-blur-md"
-        >
-          {player.error}
-        </div>
-      )}
     </div>
   );
 }

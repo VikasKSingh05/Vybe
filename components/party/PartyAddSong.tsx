@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Plus, Search, Loader2, X, Check } from "lucide-react";
 import type { Song } from "@/types/music";
 import { AlbumArt } from "@/components/AlbumArt";
+import { toast } from "@/lib/toast";
 import { cn } from "@/lib/cn";
 
 interface PartyAddSongProps {
@@ -120,6 +121,7 @@ export function PartyAddSong({ accent, queuedIds, onAdd }: PartyAddSongProps) {
         setTimeout(() => {
           setFailedIds((prev) => { const next = new Set(prev); next.delete(song.id); return next; });
         }, 3000);
+        toast("Couldn't add that song. Please try again.", "error");
       }
     },
     [onAdd],
