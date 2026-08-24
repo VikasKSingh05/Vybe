@@ -12,6 +12,12 @@ export interface PartySession {
   name: string;
 }
 
+/** Remembered identity after the connection gave up (network died, not room closed). */
+export interface LostIdentity {
+  roomId: string;
+  name: string;
+}
+
 export type PartyStatus = "idle" | "connecting" | "connected" | "reconnecting" | "closed";
 
 const MAX_RETRIES = 5;
@@ -58,6 +64,7 @@ export function useParty() {
   const [state, setState] = useState<PartyState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selfId, setSelfId] = useState<string | null>(null);
+  const [lostIdentity, setLostIdentity] = useState<LostIdentity | null>(null);
 
   const sessionRef = useRef<PartySession | null>(null);
   const esRef = useRef<EventSource | null>(null);
@@ -97,6 +104,7 @@ export function useParty() {
       stopConnection();
       sessionRef.current = session;
       setSelfId(session.memberId);
+      setLostIdentity(null);
       retryRef.current = 0;
 
       const es = new EventSource(`/api/party/${session.roomId}/stream?memberId=${encodeURIComponent(session.memberId)}`);
@@ -134,6 +142,7 @@ export function useParty() {
       es.addEventListener("closed", () => {
         stopConnection();
         clearSession();
+        sessionRef.current = null;
         setStatus("closed");
         setState(null);
         setSelfId(null);
@@ -143,10 +152,13 @@ export function useParty() {
         if (es.readyState === EventSource.CLOSED) {
           stopConnection();
           if (retryRef.current >= MAX_RETRIES) {
-            clearSession();
+            // Network gave up — keep the identity around so the landing
+            // page can offer a one-click rejoin. The room itself is fine.
+            setLostIdentity({ roomId: session.roomId, name: session.name });
             setStatus("closed");
             setState(null);
             setSelfId(null);
+            sessionRef.current = null;
             return;
           }
           setStatus("reconnecting");
@@ -322,6 +334,7 @@ export function useParty() {
     member,
     isHost: member?.isHost ?? false,
     error,
+    lostIdentity,
     createParty,
     joinParty,
     send,

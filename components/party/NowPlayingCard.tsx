@@ -7,6 +7,7 @@ import type { PartyReaction, PartyState } from "@/lib/party/types";
 import { PARTY_EMOJIS } from "@/lib/party/types";
 import { AlbumArt } from "@/components/AlbumArt";
 import { Equalizer } from "./Equalizer";
+import { ReactionBurst } from "./ReactionBurst";
 import { ProgressBar } from "@/components/player/ProgressBar";
 import { TransportControls } from "@/components/player/TransportControls";
 import { TrackInfo } from "@/components/player/TrackInfo";
@@ -124,18 +125,24 @@ export const NowPlayingCard = memo(function NowPlayingCard({
         </div>
 
         <div className="flex items-center justify-center">
-          <TransportControls
-            isPlaying={isPlaying}
-            disabled={!isHost}
-            accent={accent}
-            onTogglePlay={onTogglePlay}
-            onPrev={onPrev}
-            onNext={onNext}
-          />
+          <span
+            title={isHost ? undefined : "Only the host can control playback"}
+            className="inline-flex"
+          >
+            <TransportControls
+              isPlaying={isPlaying}
+              disabled={!isHost}
+              accent={accent}
+              onTogglePlay={onTogglePlay}
+              onPrev={onPrev}
+              onNext={onNext}
+            />
+          </span>
         </div>
       </div>
 
-      <div className="border-t border-white/[0.06] px-5 py-2.5">
+      <div className="relative border-t border-white/[0.06] px-5 py-2.5">
+        <ReactionBurst reactions={state?.reactions ?? []} />
         <div className="flex items-center justify-between mb-2">
           <p className="text-[10px] tracking-widest text-white/35 uppercase">
             Reactions

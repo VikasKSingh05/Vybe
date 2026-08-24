@@ -3,12 +3,14 @@
 import { memo } from "react";
 import { Crown, UserPlus } from "lucide-react";
 import type { PartyMember } from "@/lib/party/types";
+import { getPresence } from "@/lib/party/presence";
 import { cn } from "@/lib/cn";
 
 interface PartyMembersProps {
   members: PartyMember[];
   hostId: string;
   meId: string;
+  serverNow: number;
   accent: string;
   onInvite?: () => void;
 }
@@ -26,7 +28,7 @@ function getAvatarColor(name: string): string {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-export const PartyMembers = memo(function PartyMembers({ members, hostId, meId, accent, onInvite }: PartyMembersProps) {
+export const PartyMembers = memo(function PartyMembers({ members, hostId, meId, serverNow, accent, onInvite }: PartyMembersProps) {
   return (
     <div className="h-full rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">
       <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3">
@@ -85,8 +87,16 @@ export const PartyMembers = memo(function PartyMembers({ members, hostId, meId, 
                     </span>
                   )}
 
-                  {/* Online dot */}
-                  <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400/80" />
+                  {/* Presence dot */}
+                  <span
+                    title={getPresence(member, serverNow) === "active" ? "Active now" : "Away"}
+                    className={cn(
+                      "h-2 w-2 shrink-0 rounded-full",
+                      getPresence(member, serverNow) === "active"
+                        ? "bg-emerald-400/80"
+                        : "bg-amber-400/50",
+                    )}
+                  />
                 </li>
               );
             })}

@@ -55,6 +55,7 @@ export function PartyView({ initialRoomId }: PartyViewProps) {
       <PartyLanding
         initialRoomId={initialRoomId}
         error={landingError ?? party.error ?? undefined}
+        rejoinIdentity={party.lostIdentity}
         onCreate={handleCreate}
         onJoin={handleJoin}
       />

@@ -21,7 +21,7 @@ const TYPE_CONFIG: Record<
   Activity["type"],
   { icon: string; verb: string; color?: string }
 > = {
-  reaction: { icon: "reaction", verb: "reacted to" },
+  reaction: { icon: "✨", verb: "reacted" },
   track_added: { icon: "🎵", verb: "added" },
   member_joined: { icon: "👋", verb: "joined" },
   member_left: { icon: "👋", verb: "left" },

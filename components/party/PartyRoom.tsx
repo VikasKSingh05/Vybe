@@ -13,6 +13,7 @@ import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import type { useParty } from "@/hooks/useParty";
 import { useMediaSession } from "@/hooks/useMediaSession";
 import { toast } from "@/lib/toast";
+import { detectHostChange } from "@/lib/party/host-change";
 import { PartyTopNav } from "./PartyTopNav";
 import { RoomCodeCard } from "./RoomCodeCard";
 import { NowPlayingCard } from "./NowPlayingCard";
@@ -233,6 +234,35 @@ export function PartyRoom({ party }: PartyRoomProps) {
     }
   }, [partyError, status]);
 
+  // Announce host handoffs to everyone in the room.
+  const prevHostIdRef = useRef("");
+  useEffect(() => {
+    const nextHostId = state?.hostId ?? "";
+    const prev = prevHostIdRef.current;
+    prevHostIdRef.current = nextHostId;
+    if (!state || !prev || !nextHostId || prev === nextHostId) return;
+    const change = detectHostChange(prev, nextHostId, state.members);
+    if (!change) return;
+    if (change.hostId === member?.id) {
+      toast("You're now the host — transport controls are yours", "success");
+    } else {
+      toast(`${change.hostName} is now the host`, "info");
+    }
+  }, [state, member?.id]);
+
+  // Track the server clock so presence dots stay truthful between patches,
+  // and re-render periodically as heartbeats age members in and out.
+  const clockOffsetRef = useRef(0);
+  useEffect(() => {
+    if (state) clockOffsetRef.current = state.serverNow - Date.now();
+  }, [state]);
+  const [, setPresenceTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setPresenceTick((n) => n + 1), 30_000);
+    return () => clearInterval(t);
+  }, []);
+  const serverNowEstimate = Date.now() + clockOffsetRef.current;
+
   // Lock-screen / hardware media controls for everyone in the room
   useMediaSession({
     enabled: playerTrack != null,
@@ -345,6 +375,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
                 members={state?.members ?? []}
                 hostId={state?.hostId ?? ""}
                 meId={member?.id ?? ""}
+                serverNow={serverNowEstimate}
                 accent={theme.accent}
                 onInvite={handleInvite}
               />
