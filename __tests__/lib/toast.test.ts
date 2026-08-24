@@ -5,6 +5,8 @@ import {
   getToasts,
   subscribeToasts,
   resetToasts,
+  pauseToast,
+  resumeToast,
 } from "@/lib/toast";
 
 describe("toast", () => {
@@ -86,5 +88,54 @@ describe("toast", () => {
     toast("c");
     // No further notifications after unsubscribing
     expect(seen).toEqual([0, 1, 2]);
+  });
+
+  it("stores durationMs on the item", () => {
+    toast("default");
+    expect(getToasts()[0].durationMs).toBe(4000);
+
+    dismissToast(getToasts()[0].id);
+    toast("timed", "info", 2500);
+    expect(getToasts()[0].durationMs).toBe(2500);
+  });
+
+  it("pauses and resumes the countdown on demand", () => {
+    const id = toast("hover me", "info", 1000);
+    vi.advanceTimersByTime(400);
+    pauseToast(id);
+
+    // Far past the original expiry — paused, so still alive
+    vi.advanceTimersByTime(5000);
+    expect(getToasts()).toHaveLength(1);
+
+    resumeToast(id);
+    vi.advanceTimersByTime(599);
+    expect(getToasts()).toHaveLength(1);
+    vi.advanceTimersByTime(1);
+    expect(getToasts()).toHaveLength(0);
+  });
+
+  it("ignores pause/resume for unknown and sticky toasts", () => {
+    expect(() => pauseToast(999)).not.toThrow();
+    expect(() => resumeToast(999)).not.toThrow();
+
+    const id = toast("sticky", "info", 0);
+    pauseToast(id);
+    resumeToast(id);
+    vi.advanceTimersByTime(60_000);
+    expect(getToasts()).toHaveLength(1);
+  });
+
+  it("double-pause keeps a single remaining window", () => {
+    const id = toast("once", "info", 800);
+    vi.advanceTimersByTime(300);
+    pauseToast(id);
+    pauseToast(id); // second call is a no-op
+    vi.advanceTimersByTime(10_000);
+    expect(getToasts()).toHaveLength(1);
+    resumeToast(id);
+    resumeToast(id); // no-op
+    vi.advanceTimersByTime(500);
+    expect(getToasts()).toHaveLength(0);
   });
 });
