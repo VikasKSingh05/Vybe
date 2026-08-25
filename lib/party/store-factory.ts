@@ -5,16 +5,20 @@
 import type { PartyState, PartyMember, VibeId } from "./types";
 import type { DispatchResult, Envelope, JoinResult, PartyStore } from "./store-interface";
 import { memoryStore } from "./store-memory";
+// Static import is safe: store-redis receives the client via injection and
+// never touches the ioredis package itself (which stays eval'd below so the
+// bundler never tries to resolve it at build time).
+import { createRedisStore } from "./store-redis";
 
 let instance: PartyStore | null = null;
 
 function getRedisStore(): PartyStore {
-  // ioredis is optional — only installed when REDIS_URL is set. eval() hides
-  // the require from Turbopack/webpack so it doesn't try to resolve at build time.
+  // ioredis must be a real dependency; next.config.ts pins it into the
+  // serverless trace via outputFileTracingIncludes because this eval'd
+  // require is invisible to file tracing.
   // eslint-disable-next-line no-eval
   const ioredis = eval('require("ioredis")');
   const Redis = ioredis.default ?? ioredis;
-  const { createRedisStore } = eval('require("./store-redis")') as typeof import("./store-redis");
   const url = process.env.REDIS_URL!;
   const redis = new Redis(url, { maxRetriesPerRequest: 3 });
   return createRedisStore(redis);
