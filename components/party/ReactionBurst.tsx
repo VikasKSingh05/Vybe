@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import gsap from "gsap";
 import type { PartyReaction } from "@/lib/party/types";
 import { diffNewReactions } from "@/lib/party/reaction-diff";
 
@@ -48,7 +47,7 @@ export function ReactionBurst({ reactions }: ReactionBurstProps) {
     const container = containerRef.current;
     return () => {
       if (!container) return;
-      gsap.killTweensOf(container.children);
+      container.getAnimations({ subtree: true }).forEach((a) => a.cancel());
       container.replaceChildren();
       activeCountRef.current = 0;
       knownIdsRef.current = new Set();
@@ -89,27 +88,35 @@ function spawnBurst(
   const driftX = (Math.random() - 0.5) * 60;
   const rotation = (Math.random() - 0.5) * 50;
   const riseDuration = 2.2 + Math.random() * 0.8;
-  const delay = Math.random() * 0.15;
+  const popDuration = 300;
+  const delay = Math.random() * 150;
 
-  gsap
-    .timeline({
-      onComplete: () => {
-        el.remove();
-        activeCount.current -= 1;
+  // Pop-in (back.out) then long drift upward, expressed as one keyframed
+  // animation with per-segment easing.
+  const anim = el.animate(
+    [
+      {
+        transform: "translate(0px, 0px) scale(0.4) rotate(0deg)",
+        opacity: 0,
+        offset: 0,
+        easing: "cubic-bezier(0.34, 1.56, 0.64, 1)",
       },
-    })
-    .fromTo(
-      el,
-      { y: 0, x: 0, scale: 0.4, opacity: 0 },
-      { scale: 1.15, opacity: 1, duration: 0.3, ease: "back.out(2)", delay },
-    )
-    .to(el, {
-      y: riseY,
-      x: driftX,
-      rotation,
-      scale: 1,
-      opacity: 0,
-      duration: riseDuration,
-      ease: "power1.out",
-    });
+      {
+        transform: `translate(${driftX * 0.15}px, ${riseY * 0.12}px) scale(1.15) rotate(${rotation * 0.3}deg)`,
+        opacity: 1,
+        offset: popDuration / (popDuration + riseDuration * 1000),
+        easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+      },
+      {
+        transform: `translate(${driftX}px, ${riseY}px) scale(1) rotate(${rotation}deg)`,
+        opacity: 0,
+        offset: 1,
+      },
+    ],
+    { duration: popDuration + riseDuration * 1000, delay },
+  );
+  anim.onfinish = () => {
+    el.remove();
+    activeCount.current -= 1;
+  };
 }

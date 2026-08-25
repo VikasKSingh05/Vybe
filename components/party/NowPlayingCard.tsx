@@ -1,10 +1,10 @@
 "use client";
 
 import { memo, useEffect, useRef } from "react";
-import gsap from "gsap";
 import type { Track } from "@/data/types";
 import type { PartyReaction, PartyState } from "@/lib/party/types";
 import { PARTY_EMOJIS } from "@/lib/party/types";
+import { prefersReducedMotion } from "@/lib/motion";
 import { AlbumArt } from "@/components/AlbumArt";
 import { Equalizer } from "./Equalizer";
 import { ReactionBurst } from "./ReactionBurst";
@@ -50,12 +50,27 @@ export const NowPlayingCard = memo(function NowPlayingCard({
   const infoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!infoRef.current || !artRef.current) return;
-    const ctx = gsap.context(() => {
-      gsap.fromTo(infoRef.current!, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" });
-      gsap.fromTo(artRef.current!, { scale: 0.92, opacity: 0.7 }, { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.4)" });
-    });
-    return () => ctx.revert();
+    const info = infoRef.current;
+    const art = artRef.current;
+    if (!info || !art || prefersReducedMotion()) return;
+    const infoAnim = info.animate(
+      [
+        { opacity: 0, transform: "translateY(6px)" },
+        { opacity: 1, transform: "translateY(0)" },
+      ],
+      { duration: 450, easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)" },
+    );
+    const artAnim = art.animate(
+      [
+        { opacity: 0.7, transform: "scale(0.92)" },
+        { opacity: 1, transform: "scale(1)" },
+      ],
+      { duration: 500, easing: "cubic-bezier(0.34, 1.56, 0.64, 1)" },
+    );
+    return () => {
+      infoAnim.cancel();
+      artAnim.cancel();
+    };
   }, [track?.id]);
 
   const reactionCounts: Record<string, number> = {};

@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { X, Music, Trash2, GripVertical } from "lucide-react";
-import gsap from "gsap";
 import type { QueueItem } from "@/data/types";
 import { AlbumArt } from "@/components/AlbumArt";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
+import { prefersReducedMotion } from "@/lib/motion";
 import { formatTime } from "@/lib/format-time";
 import { cn } from "@/lib/cn";
 
@@ -115,43 +115,44 @@ export function QueueOverlay({
   useEffect(() => () => stopAutoScroll(), [stopAutoScroll]);
 
   useEffect(() => {
-    if (!panelRef.current || !backdropRef.current) return;
-
     if (!hasMounted.current) {
       hasMounted.current = true;
-      if (!isOpen) {
-        gsap.set(panelRef.current, { y: "100%" });
-        gsap.set(backdropRef.current, { opacity: 0 });
-      }
+      return;
+    }
+    const panel = panelRef.current;
+    const backdrop = backdropRef.current;
+    if (!panel || !backdrop) return;
+
+    // Inline styles keep the closed state; every transition defines both
+    // endpoints explicitly, so cancelling a finished animation never flickers.
+    if (prefersReducedMotion()) {
+      panel.style.transform = isOpen ? "translateY(0)" : "translateY(100%)";
+      backdrop.style.opacity = isOpen ? "1" : "0";
       return;
     }
 
-    const ctx = gsap.context(() => {
-      if (isOpen) {
-        gsap.fromTo(
-          backdropRef.current!,
-          { opacity: 0 },
-          { opacity: 1, duration: 0.25, ease: "power2.out" },
-        );
-        gsap.fromTo(
-          panelRef.current!,
-          { y: "100%" },
-          { y: "0%", duration: 0.4, ease: "power3.out" },
-        );
-      } else {
-        gsap.to(panelRef.current!, {
-          y: "100%",
-          duration: 0.3,
-          ease: "power2.in",
-        });
-        gsap.to(backdropRef.current!, {
-          opacity: 0,
-          duration: 0.25,
-          ease: "power2.in",
-        });
-      }
-    });
-    return () => ctx.revert();
+    const anims: Animation[] = isOpen
+      ? [
+          backdrop.animate(
+            [{ opacity: 0 }, { opacity: 1 }],
+            { duration: 250, easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)", fill: "forwards" },
+          ),
+          panel.animate(
+            [{ transform: "translateY(100%)" }, { transform: "translateY(0%)" }],
+            { duration: 400, easing: "cubic-bezier(0.215, 0.61, 0.355, 1)", fill: "forwards" },
+          ),
+        ]
+      : [
+          panel.animate(
+            [{ transform: "translateY(0%)" }, { transform: "translateY(100%)" }],
+            { duration: 300, easing: "cubic-bezier(0.55, 0.085, 0.68, 0.53)", fill: "forwards" },
+          ),
+          backdrop.animate(
+            [{ opacity: 1 }, { opacity: 0 }],
+            { duration: 250, easing: "cubic-bezier(0.55, 0.085, 0.68, 0.53)", fill: "forwards" },
+          ),
+        ];
+    return () => anims.forEach((a) => a.cancel());
   }, [isOpen]);
 
   useEffect(() => {

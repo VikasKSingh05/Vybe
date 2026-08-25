@@ -1,7 +1,6 @@
 "use client";
 
 import { memo, useEffect, useRef } from "react";
-import gsap from "gsap";
 import { ListMusic } from "lucide-react";
 import type { Track } from "@/data/types";
 import { AlbumArt } from "@/components/AlbumArt";
@@ -9,6 +8,7 @@ import { ProgressBar } from "@/components/player/ProgressBar";
 import { TransportControls } from "@/components/player/TransportControls";
 import { VolumeControl } from "@/components/player/VolumeControl";
 import { TrackInfo } from "@/components/player/TrackInfo";
+import { prefersReducedMotion } from "@/lib/motion";
 import { formatTime } from "@/lib/format-time";
 import { cn } from "@/lib/cn";
 
@@ -57,20 +57,27 @@ export const FloatingPlayer = memo(function FloatingPlayer({
   const artRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!trackInfoRef.current || !artRef.current) return;
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        trackInfoRef.current!,
-        { opacity: 0, y: 6 },
-        { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" },
-      );
-      gsap.fromTo(
-        artRef.current!,
-        { scale: 0.9, opacity: 0.7 },
-        { scale: 1, opacity: 1, duration: 0.45, ease: "back.out(1.5)" },
-      );
-    });
-    return () => ctx.revert();
+    const info = trackInfoRef.current;
+    const art = artRef.current;
+    if (!info || !art || prefersReducedMotion()) return;
+    const infoAnim = info.animate(
+      [
+        { opacity: 0, transform: "translateY(6px)" },
+        { opacity: 1, transform: "translateY(0)" },
+      ],
+      { duration: 450, easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)" },
+    );
+    const artAnim = art.animate(
+      [
+        { opacity: 0.7, transform: "scale(0.9)" },
+        { opacity: 1, transform: "scale(1)" },
+      ],
+      { duration: 450, easing: "cubic-bezier(0.34, 1.56, 0.64, 1)" },
+    );
+    return () => {
+      infoAnim.cancel();
+      artAnim.cancel();
+    };
   }, [track.id]);
 
   return (
