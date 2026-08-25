@@ -1,10 +1,8 @@
 /**
  * Redis-backed PartyStore. Requires the `ioredis` package and a REDIS_URL
- * environment variable. Provides persistence across restarts and shared state
- * across multiple Next.js server instances.
- *
- *   npm install ioredis
- *   REDIS_URL=redis://localhost:6379
+ * environment variable. Provides persistence across restarts, shared state
+ * across multiple Next.js server instances, and cross-instance real-time
+ * notifications via Redis PUB/SUB.
  */
 import type { VibeId } from "@/data/types";
 import type {
@@ -26,6 +24,7 @@ import { dispatchCommand, generateId, sanitizeName, type ApplyFn } from "./dispa
 
 const ROOM_KEY_PREFIX = "vybe:room:";
 const ROOM_TTL_SECONDS = Math.ceil(PARTY_ROOM_TTL_MS / 1000) + 300;
+const CHANNEL_PREFIX = "vybe:events:";
 
 interface RedisClient {
   get(key: string): Promise<string | null>;
@@ -33,10 +32,32 @@ interface RedisClient {
   del(key: string): Promise<unknown>;
   keys(pattern: string): Promise<string[]>;
   scan(cursor: string, ...args: (string | number)[]): Promise<[string, string[]]>;
+  publish(channel: string, message: string): Promise<unknown>;
+  subscribe(...channels: string[]): Promise<unknown>;
+  unsubscribe(...channels: string[]): Promise<unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  on(event: string, listener: (...args: any[]) => void): void;
+  duplicate(): RedisClient;
 }
 
 export function createRedisStore(redis: RedisClient): PartyStore {
-  const subscribers = new Map<string, Set<({ memberId: string | null; enqueue: (msg: Envelope) => void })>>();
+  const subscribers = new Map<string, Set<{ memberId: string | null; enqueue: (msg: Envelope) => void }>>();
+  const localRefCount = new Map<string, number>();
+
+  // Dedicated connection for Redis subscriptions — the Redis protocol requires
+  // that a connection used for subscriptions cannot issue other commands.
+  const sub = redis.duplicate();
+  sub.on("message", (channel: string, message: string) => {
+    const roomId = channel.slice(CHANNEL_PREFIX.length);
+    const channelSubs = subscribers.get(roomId);
+    if (!channelSubs) return;
+    try {
+      const envelope = JSON.parse(message) as Envelope;
+      for (const s of channelSubs) s.enqueue(envelope);
+    } catch {
+      // malformed frame — ignore
+    }
+  });
 
   async function loadRoom(roomId: string): Promise<PartyState | null> {
     const raw = await redis.get(ROOM_KEY_PREFIX + roomId);
@@ -57,10 +78,15 @@ export function createRedisStore(redis: RedisClient): PartyStore {
     );
   }
 
+  /** Notify all local SSE connections AND broadcast via Redis PUB/SUB. */
   function publish(roomId: string, msg: Envelope): void {
+    // Local notification
     const channelSubs = subscribers.get(roomId);
-    if (!channelSubs) return;
-    for (const sub of channelSubs) sub.enqueue(msg);
+    if (channelSubs) {
+      for (const s of channelSubs) s.enqueue(msg);
+    }
+    // Cross-instance notification
+    redis.publish(CHANNEL_PREFIX + roomId, JSON.stringify(msg)).catch(() => {});
   }
 
   function buildPatch(
@@ -78,8 +104,13 @@ export function createRedisStore(redis: RedisClient): PartyStore {
     return hasDiff ? patch : null;
   }
 
-  async function apply(roomId: string, mutator: (s: PartyState) => void, memberId?: string): Promise<PartyState | null> {
-    const state = await loadRoom(roomId);
+  async function apply(
+    roomId: string,
+    mutator: (s: PartyState) => void,
+    memberId?: string,
+    preloaded?: PartyState,
+  ): Promise<PartyState | null> {
+    const state = preloaded ?? await loadRoom(roomId);
     if (!state) return null;
 
     if (memberId) {
@@ -156,7 +187,7 @@ export function createRedisStore(redis: RedisClient): PartyStore {
           if (s.members.length === 1) {
             s.hostId = member.id;
           }
-        });
+        }, undefined, state);
         if (!wire) return { ok: false as const, status: 404, error: "Room not found" };
         return { ok: true as const, member, state: wire };
       })();
@@ -173,14 +204,27 @@ export function createRedisStore(redis: RedisClient): PartyStore {
         set = new Set();
         subscribers.set(roomId, set);
       }
-      const sub = { memberId, enqueue };
-      set.add(sub);
+
+      // First local subscriber for this room — subscribe the Redis channel
+      if (set.size === 0) {
+        sub.subscribe(CHANNEL_PREFIX + roomId).catch(() => {});
+      }
+
+      const subEntry = { memberId, enqueue };
+      set.add(subEntry);
+      localRefCount.set(roomId, (localRefCount.get(roomId) ?? 0) + 1);
 
       return () => {
         const current = subscribers.get(roomId);
         if (current) {
-          current.delete(sub);
-          if (current.size === 0) subscribers.delete(roomId);
+          current.delete(subEntry);
+          const count = (localRefCount.get(roomId) ?? 1) - 1;
+          localRefCount.set(roomId, count);
+          if (count <= 0) {
+            subscribers.delete(roomId);
+            localRefCount.delete(roomId);
+            sub.unsubscribe(CHANNEL_PREFIX + roomId).catch(() => {});
+          }
         }
       };
     },
@@ -198,7 +242,8 @@ export function createRedisStore(redis: RedisClient): PartyStore {
           return { ok: true, state: toWireState(state) };
         }
 
-        const asyncApply: ApplyFn = (mutator) => apply(roomId, mutator, memberId);
+        // Pass the already-loaded state to avoid a redundant Redis GET.
+        const asyncApply: ApplyFn = (mutator) => apply(roomId, mutator, memberId, state);
         return dispatchCommand(state, member, command, payload, asyncApply);
       })();
     },
