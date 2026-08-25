@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { searchJioSaavnSongs } from "@/lib/music/jiosaavn";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+// Headroom for cold starts on the upstream JioSaavn API.
+export const maxDuration = 30;
+
 export async function GET(request: NextRequest) {
   const ip = getClientIp(request);
   const { allowed, retryAfterMs } = rateLimit(`music:search:${ip}`, {

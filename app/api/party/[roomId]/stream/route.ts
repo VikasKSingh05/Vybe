@@ -6,6 +6,10 @@ import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// SSE sessions live as long as the function is allowed to; when the platform
+// cuts them off, clients reconnect with full-state replay. 60s is the safe
+// ceiling across Vercel plans — raise it (e.g. 300) on Pro if desired.
+export const maxDuration = 60;
 
 const HEARTBEAT_MS = 25_000;
 const encoder = new TextEncoder();

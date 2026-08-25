@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchJioSaavnSong } from "@/lib/music/jiosaavn";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+// Headroom for cold starts on the upstream JioSaavn API.
+export const maxDuration = 30;
+
 const VALID_SONG_ID = /^[a-zA-Z0-9_-]{1,32}$/;
 
 export async function GET(
