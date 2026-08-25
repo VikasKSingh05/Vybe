@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans, Syne } from "next/font/google";
 import { ToastViewport } from "@/components/ui/ToastViewport";
+import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -69,6 +70,7 @@ export default function RootLayout({
           Skip to content
         </a>
         <ToastViewport />
+        <ServiceWorkerRegistrar />
         {children}
       </body>
     </html>

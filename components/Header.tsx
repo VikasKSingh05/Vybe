@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { LiveTime } from "@/components/LiveTime";
+import { InstallButton } from "@/components/pwa/InstallButton";
 import { cn } from "@/lib/cn";
 
 interface HeaderProps {
@@ -42,6 +43,7 @@ export function Header({ className, inParty = false, onExitParty }: HeaderProps)
             Host Party
           </Link>
         )}
+        <InstallButton />
       </nav>
     </header>
   );
