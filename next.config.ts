@@ -19,6 +19,9 @@ const securityHeaders = [
       "media-src 'self' https://*.saavncdn.com",
       "connect-src 'self'",
       "font-src 'self'",
+      // vercel.com hosts the SSO wrapper that rewrites manifest loads on
+      // auth-protected preview deployments; production stays same-origin.
+      "manifest-src 'self' https://vercel.com",
       "frame-ancestors 'none'",
     ].join("; "),
   },
@@ -29,6 +32,14 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   serverExternalPackages: ["ioredis"],
+  // store-factory.ts loads ioredis through eval'd require(), which file
+  // tracing cannot see — pin it into every party function's bundle so
+  // REDIS_URL works on serverless platforms (Vercel included).
+  outputFileTracingIncludes: {
+    "/api/party": ["./node_modules/ioredis/**"],
+    "/api/party/[roomId]": ["./node_modules/ioredis/**"],
+    "/api/party/[roomId]/stream": ["./node_modules/ioredis/**"],
+  },
   images: {
     remotePatterns: [
       {

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { VibeId } from "@/data/types";
 import type { PartyMember, PartyState } from "@/lib/party/types";
+import { toast } from "@/lib/toast";
 
 const PARTY_STORAGE_KEY = "vybe.party.session";
 
@@ -97,6 +98,55 @@ export function useParty() {
     }
   }, []);
 
+  /**
+   * EventSource hides HTTP status codes, so every drop looks identical.
+   * Probe the room once: a 404 means it is definitively gone (serverless
+   * eviction or host ended it) — clean up immediately instead of retrying
+   * into the void. Anything else falls back to backoff reconnects.
+   */
+  const handleDroppedStream = useCallback(
+    async (session: PartySession) => {
+      try {
+        const res = await fetch(`/api/party/${session.roomId}`);
+        if (res.status === 404) {
+          clearSession();
+          sessionRef.current = null;
+          setStatus("closed");
+          setState(null);
+          setSelfId(null);
+          toast("This party has ended", "info");
+          return;
+        }
+      } catch {
+        // Network-level failure — fall through to the retry path.
+      }
+
+      if (retryRef.current >= MAX_RETRIES) {
+        // Network gave up — keep the identity around so the landing
+        // page can offer a one-click rejoin. The room itself is fine.
+        setLostIdentity({ roomId: session.roomId, name: session.name });
+        setStatus("closed");
+        setState(null);
+        setSelfId(null);
+        sessionRef.current = null;
+        return;
+      }
+      setStatus("reconnecting");
+      retryRef.current += 1;
+      const delay =
+        Math.min(BACKOFF_MAX_MS, BACKOFF_BASE_MS * Math.pow(2, retryRef.current - 1)) +
+        Math.random() * 1_000;
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null;
+        const current = sessionRef.current;
+        if (current && current.roomId === session.roomId) {
+          openStreamRef.current?.(current);
+        }
+      }, delay);
+    },
+    [],
+  );
+
   const openStreamRef = useRef<((session: PartySession) => void) | null>(null);
 
   const openStream = useCallback(
@@ -149,32 +199,9 @@ export function useParty() {
       });
 
       es.onerror = () => {
-        if (es.readyState === EventSource.CLOSED) {
-          stopConnection();
-          if (retryRef.current >= MAX_RETRIES) {
-            // Network gave up — keep the identity around so the landing
-            // page can offer a one-click rejoin. The room itself is fine.
-            setLostIdentity({ roomId: session.roomId, name: session.name });
-            setStatus("closed");
-            setState(null);
-            setSelfId(null);
-            sessionRef.current = null;
-            return;
-          }
-          setStatus("reconnecting");
-          retryRef.current += 1;
-          const delay = Math.min(
-            BACKOFF_MAX_MS,
-            BACKOFF_BASE_MS * Math.pow(2, retryRef.current - 1),
-          ) + Math.random() * 1_000;
-          reconnectTimerRef.current = setTimeout(() => {
-            reconnectTimerRef.current = null;
-            const current = sessionRef.current;
-            if (current && current.roomId === session.roomId) {
-              openStreamRef.current?.(current);
-            }
-          }, delay);
-        }
+        if (es.readyState !== EventSource.CLOSED) return;
+        stopConnection();
+        void handleDroppedStream(session);
       };
 
       heartbeatRef.current = setInterval(() => {
@@ -190,7 +217,7 @@ export function useParty() {
         }).catch(() => {});
       }, HEARTBEAT_MS);
     },
-    [applyState, stopConnection],
+    [applyState, stopConnection, handleDroppedStream],
   );
 
   openStreamRef.current = openStream;
