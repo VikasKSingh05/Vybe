@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import gsap from "gsap";
 import type { VibeTheme } from "@/data/types";
+import { prefersReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/cn";
 
 interface CinematicBackgroundProps {
@@ -28,37 +28,51 @@ export function CinematicBackground({
     setCurrentTheme(theme);
   }, [theme, currentTheme]);
 
-  // GSAP animation for smooth background crossfade and scale
+  // Crossfade + scale between background layers (WAAPI)
   useEffect(() => {
-    if (!currentLayerRef.current) return;
+    const current = currentLayerRef.current;
+    const prev = prevLayerRef.current;
+    if (!current) return;
 
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        currentLayerRef.current!,
-        { opacity: 0, scale: 1.07 },
+    if (prefersReducedMotion()) {
+      setPrevTheme(null);
+      return;
+    }
+
+    const inAnim = current.animate(
+      [
+        { opacity: 0, transform: "scale(1.07)" },
+        { opacity: 1, transform: "scale(1)" },
+      ],
+      {
+        duration: 850,
+        easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+        fill: "backwards",
+      },
+    );
+
+    let outAnim: Animation | undefined;
+    if (prev) {
+      outAnim = prev.animate(
+        [
+          { opacity: 1, transform: "scale(1)" },
+          { opacity: 0, transform: "scale(1.04)" },
+        ],
         {
-          opacity: 1,
-          scale: 1.0,
-          duration: 0.85,
-          ease: "power2.out",
-          clearProps: "transform",
+          duration: 850,
+          easing: "cubic-bezier(0.455, 0.03, 0.515, 0.955)",
+          fill: "forwards",
         },
       );
+      outAnim.finished
+        .then(() => setPrevTheme(null))
+        .catch(() => {});
+    }
 
-      if (prevLayerRef.current) {
-        gsap.to(prevLayerRef.current, {
-          opacity: 0,
-          scale: 1.04,
-          duration: 0.85,
-          ease: "power2.inOut",
-          onComplete: () => {
-            setPrevTheme(null);
-          },
-        });
-      }
-    });
-
-    return () => ctx.revert();
+    return () => {
+      inAnim.cancel();
+      outAnim?.cancel();
+    };
   }, [currentTheme]);
 
   return (

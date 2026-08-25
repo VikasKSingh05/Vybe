@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import gsap from "gsap";
 import type { VibeId } from "@/data/types";
 import { vibeThemes } from "@/data/vibes";
+import { prefersReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/cn";
 
 interface GenrePillsProps {
@@ -24,22 +24,15 @@ export function GenrePills({
   const pillsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!pillsRef.current) return;
-
-    const ctx = gsap.context(() => {
-      const activeBtn = pillsRef.current?.querySelector(
-        `[data-vibe-id="${activeId}"]`,
-      );
-      if (activeBtn) {
-        gsap.fromTo(
-          activeBtn,
-          { scale: 0.95 },
-          { scale: 1, duration: 0.35, ease: "back.out(1.7)" },
-        );
-      }
-    }, pillsRef);
-
-    return () => ctx.revert();
+    const activeBtn = pillsRef.current?.querySelector<HTMLButtonElement>(
+      `[data-vibe-id="${activeId}"]`,
+    );
+    if (!activeBtn || prefersReducedMotion()) return;
+    const anim = activeBtn.animate(
+      [{ transform: "scale(0.95)" }, { transform: "scale(1)" }],
+      { duration: 350, easing: "cubic-bezier(0.34, 1.56, 0.64, 1)" },
+    );
+    return () => anim.cancel();
   }, [activeId]);
 
   return (

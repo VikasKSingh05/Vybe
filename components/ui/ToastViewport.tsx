@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { X, CheckCircle2, AlertTriangle, Info } from "lucide-react";
-import gsap from "gsap";
 import {
   subscribeToasts,
   dismissToast,
@@ -11,6 +10,7 @@ import {
   type ToastItem,
   type ToastTone,
 } from "@/lib/toast";
+import { prefersReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/cn";
 
 interface ToneConfig {
@@ -37,21 +37,15 @@ const TONE_CONFIG: Record<ToastTone, ToneConfig> = {
   },
 };
 
-function prefersReducedMotion(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
-}
-
 function ToastCard({ item, index }: { item: ToastItem; index: number }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
   // Capture mount position once — stagger applies only to the entrance
   const staggerIndex = useRef(index);
   const leavingRef = useRef(false);
-  const barTween = useRef<gsap.core.Tween | null>(null);
-  const exitTl = useRef<gsap.core.Timeline | null>(null);
+  const enterAnimRef = useRef<Animation | null>(null);
+  const barAnimRef = useRef<Animation | null>(null);
+  const exitAnimsRef = useRef<Animation[]>([]);
 
   const tone = TONE_CONFIG[item.tone];
   const Icon = tone.icon;
@@ -59,36 +53,47 @@ function ToastCard({ item, index }: { item: ToastItem; index: number }) {
   const beginExit = useCallback(() => {
     if (leavingRef.current) return;
     leavingRef.current = true;
-    barTween.current?.kill();
+    barAnimRef.current?.cancel();
     const card = cardRef.current;
     if (!card || prefersReducedMotion()) {
       dismissToast(item.id);
       return;
     }
     // Phase 1: lift + fade. Phase 2: collapse the slot so siblings glide up.
-    exitTl.current = gsap.timeline({
-      onComplete: () => dismissToast(item.id),
-    });
-    exitTl.current.to(card, {
-      opacity: 0,
-      y: -10,
-      scale: 0.96,
-      duration: 0.18,
-      ease: "power2.in",
-    });
-    exitTl.current.to(
-      card,
+    const phase1 = card.animate(
+      [
+        { opacity: 1, transform: "translateY(0) scale(1)" },
+        { opacity: 0, transform: "translateY(-10px) scale(0.96)" },
+      ],
       {
-        height: 0,
-        minHeight: 0,
-        marginBottom: 0,
-        paddingTop: 0,
-        paddingBottom: 0,
-        duration: 0.26,
-        ease: "power2.inOut",
+        duration: 180,
+        easing: "cubic-bezier(0.55, 0.085, 0.68, 0.53)",
+        fill: "forwards",
       },
-      ">",
     );
+    exitAnimsRef.current = [phase1];
+    phase1.finished
+      .then(() => {
+        if (leavingRef.current === false) return;
+        const height = card.getBoundingClientRect().height;
+        const phase2 = card.animate(
+          [
+            { height: `${height}px`, minHeight: `${height}px`, marginBottom: "8px" },
+            { height: "0px", minHeight: "0px", marginBottom: "0px" },
+          ],
+          {
+            duration: 260,
+            easing: "cubic-bezier(0.455, 0.03, 0.515, 0.955)",
+            fill: "forwards",
+          },
+        );
+        exitAnimsRef.current = [phase1, phase2];
+        return phase2.finished;
+      })
+      .then(() => {
+        if (leavingRef.current) dismissToast(item.id);
+      })
+      .catch(() => {});
   }, [item.id]);
 
   useEffect(() => {
@@ -96,21 +101,25 @@ function ToastCard({ item, index }: { item: ToastItem; index: number }) {
     if (!card) return;
 
     if (prefersReducedMotion()) {
-      gsap.set(card, { opacity: 1, y: 0, scale: 1 });
+      card.style.opacity = "1";
     } else {
-      gsap.set(card, { y: -16, scale: 0.95 });
-      gsap.to(card, {
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        duration: 0.45,
-        delay: staggerIndex.current * 0.055,
-        ease: "back.out(1.7)",
-      });
+      enterAnimRef.current = card.animate(
+        [
+          { opacity: 0, transform: "translateY(-16px) scale(0.95)" },
+          { opacity: 1, transform: "translateY(0) scale(1)" },
+        ],
+        {
+          duration: 450,
+          delay: staggerIndex.current * 55,
+          easing: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+          fill: "both",
+        },
+      );
     }
 
     return () => {
-      exitTl.current?.kill();
+      enterAnimRef.current?.cancel();
+      exitAnimsRef.current.forEach((a) => a.cancel());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -119,31 +128,30 @@ function ToastCard({ item, index }: { item: ToastItem; index: number }) {
   useEffect(() => {
     const bar = barRef.current;
     if (!bar || item.durationMs <= 0) return;
-    barTween.current = gsap.fromTo(
-      bar,
-      { scaleX: 1 },
-      {
-        scaleX: 0,
-        duration: item.durationMs / 1000,
-        ease: "none",
-        onComplete: beginExit,
-      },
+    const anim = bar.animate(
+      [{ transform: "scaleX(1)" }, { transform: "scaleX(0)" }],
+      { duration: item.durationMs, easing: "linear", fill: "forwards" },
     );
+    anim.onfinish = () => beginExit();
+    barAnimRef.current = anim;
     return () => {
-      barTween.current?.kill();
+      anim.onfinish = null;
+      anim.cancel();
     };
   }, [item.durationMs, beginExit]);
 
   const handleMouseEnter = useCallback(() => {
     if (leavingRef.current) return;
     pauseToast(item.id);
-    barTween.current?.pause();
+    barAnimRef.current?.pause();
   }, [item.id]);
 
   const handleMouseLeave = useCallback(() => {
     if (leavingRef.current) return;
     resumeToast(item.id);
-    barTween.current?.resume();
+    const bar = barAnimRef.current;
+    // Native play() restarts finished animations — only resume paused ones.
+    if (bar && bar.playState === "paused") bar.play();
   }, [item.id]);
 
   return (

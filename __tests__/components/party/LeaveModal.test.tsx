@@ -2,12 +2,6 @@ import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent, screen } from "@testing-library/react";
 import { LeaveModal } from "@/components/party/LeaveModal";
 
-// jsdom + real gsap.fromTo() clobbers effect-time focus(), so stub gsap —
-// the modal's entrance animation isn't what these tests verify.
-vi.mock("gsap", () => ({
-  default: { fromTo: vi.fn(), to: vi.fn(), set: vi.fn(), killTweensOf: vi.fn() },
-}));
-
 describe("LeaveModal", () => {
   let onStay: () => void;
   let onLeave: () => void;

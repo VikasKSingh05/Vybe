@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { LogOut } from "lucide-react";
-import gsap from "gsap";
+import { prefersReducedMotion } from "@/lib/motion";
 
 interface LeaveModalProps {
   onStay: () => void;
@@ -19,11 +19,18 @@ export function LeaveModal({ onStay, onLeave }: LeaveModalProps) {
     const prev = document.activeElement as HTMLElement | null;
     stayRef.current?.focus();
 
-    if (dialogRef.current) {
-      gsap.fromTo(dialogRef.current, { scale: 0.95, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.2, ease: "power2.out" });
-    }
-    if (backdropRef.current) {
-      gsap.fromTo(backdropRef.current, { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power2.out" });
+    if (!prefersReducedMotion()) {
+      dialogRef.current?.animate(
+        [
+          { opacity: 0, transform: "scale(0.95)" },
+          { opacity: 1, transform: "scale(1)" },
+        ],
+        { duration: 200, easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)" },
+      );
+      backdropRef.current?.animate([{ opacity: 0 }, { opacity: 1 }], {
+        duration: 200,
+        easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+      });
     }
 
     return () => prev?.focus();

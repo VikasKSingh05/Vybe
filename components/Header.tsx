@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import Link from "next/link";
-import gsap from "gsap";
 import { LiveTime } from "@/components/LiveTime";
 import { cn } from "@/lib/cn";
 
@@ -14,27 +12,10 @@ interface HeaderProps {
 }
 
 export function Header({ className, inParty = false, onExitParty }: HeaderProps) {
-  const headerRef = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    if (!headerRef.current) return;
-
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        headerRef.current!,
-        { opacity: 0, y: -10 },
-        { opacity: 1, y: 0, duration: 0.75, ease: "power2.out" },
-      );
-    }, headerRef);
-
-    return () => ctx.revert();
-  }, []);
-
   return (
     <header
-      ref={headerRef}
       className={cn(
-        "fixed top-0 right-0 left-0 z-30 flex items-center justify-between px-5 py-5 sm:px-8 sm:py-6",
+        "animate-header-in fixed top-0 right-0 left-0 z-30 flex items-center justify-between px-5 py-5 sm:px-8 sm:py-6",
         className,
       )}
     >

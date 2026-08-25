@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Search, X, Music, Loader2, Eraser, Play, ListStart, ListPlus, Clock } from "lucide-react";
-import gsap from "gsap";
 import type { Song } from "@/types/music";
 import { AlbumArt } from "@/components/AlbumArt";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
+import { prefersReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/cn";
 
 interface SearchOverlayProps {
@@ -34,10 +34,6 @@ interface MorphPlan {
   scaleY: number;
   originX: string;
   originY: string;
-}
-
-function prefersReducedMotion(): boolean {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 /**
@@ -90,9 +86,9 @@ export function SearchOverlay({
   const inputRef = useRef<HTMLInputElement>(null);
   const startRectRef = useRef<DOMRect | null>(null);
   const morphRef = useRef<MorphPlan | null>(null);
+  const animsRef = useRef<Animation[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const isAnimating = useRef(false);
-  const hasMounted = useRef(false);
 
   // The overlay restores focus to the trigger itself after its close
   // animation, so the trap must not double-restore.
@@ -102,15 +98,6 @@ export function SearchOverlay({
     restoreFocus: false,
   });
 
-  // Suppress initial hydration — set panel to hidden on mount
-  useEffect(() => {
-    if (!panelRef.current || !backdropRef.current) return;
-    if (!hasMounted.current) {
-      hasMounted.current = true;
-      gsap.set(panelRef.current, { opacity: 0, scale: 0.95, pointerEvents: "none" });
-      gsap.set(backdropRef.current, { opacity: 0, pointerEvents: "none" });
-    }
-  }, []);
   const handleOpen = useCallback(() => {
     if (isAnimating.current || isOpen) return;
     const trigger = triggerRef.current;
@@ -126,56 +113,65 @@ export function SearchOverlay({
     // afterwards (GPU-composited — no per-frame reflow, smooth on mobile).
     const morph = planMorph(rect);
     morphRef.current = morph;
-    gsap.set(panel, {
+    Object.assign(panel.style, {
       position: "fixed",
-      left: morph.left,
-      top: morph.top,
-      width: morph.width,
-      height: morph.height,
-      xPercent: 0,
-      yPercent: 0,
-      transformOrigin: `${morph.originX} ${morph.originY}`,
+      left: `${morph.left}px`,
+      top: `${morph.top}px`,
+      width: `${morph.width}px`,
+      height: `${morph.height}px`,
       borderRadius: "1rem",
-      zIndex: 60,
+      zIndex: "60",
       pointerEvents: "auto",
-    });
-    if (contentRef.current) gsap.set(contentRef.current, { opacity: 1 });
+      transformOrigin: `${morph.originX} ${morph.originY}`,
+      opacity: "1",
+    } as CSSStyleDeclaration);
 
     setIsOpen(true);
     onOpenChange?.(true);
 
+    backdrop.style.pointerEvents = "auto";
     if (prefersReducedMotion()) {
-      gsap.set(backdrop, { opacity: 1, pointerEvents: "auto" });
+      backdrop.style.opacity = "1";
       inputRef.current?.focus();
       isAnimating.current = false;
       return;
     }
 
-    gsap.set(backdrop, { opacity: 0, pointerEvents: "auto" });
-    gsap.set(panel, { opacity: 1, scaleX: morph.scaleX, scaleY: morph.scaleY });
-
-    const tl = gsap.timeline({
-      onComplete: () => {
-        isAnimating.current = false;
-        inputRef.current?.focus();
-      },
-    });
-
-    tl.to(backdrop, { opacity: 1, duration: 0.22, ease: "power2.out" }, 0);
-    tl.to(
-      panel,
-      { scaleX: 1, scaleY: 1, duration: 0.34, ease: "power3.out" },
-      0,
-    );
+    const anims: Animation[] = [
+      backdrop.animate([{ opacity: 0 }, { opacity: 1 }], {
+        duration: 220,
+        easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+        fill: "forwards",
+      }),
+      panel.animate(
+        [
+          { transform: `scale(${morph.scaleX}, ${morph.scaleY})` },
+          { transform: "scale(1, 1)" },
+        ],
+        {
+          duration: 340,
+          easing: "cubic-bezier(0.215, 0.61, 0.355, 1)",
+          fill: "forwards",
+        },
+      ),
+    ];
     // Fade content in as it un-squishes so mid-morph text never reads as mush
     if (contentRef.current) {
-      tl.fromTo(
-        contentRef.current,
-        { opacity: 0 },
-        { opacity: 1, duration: 0.18, ease: "power1.out" },
-        0.08,
+      anims.push(
+        contentRef.current.animate([{ opacity: 0 }, { opacity: 1 }], {
+          delay: 80,
+          duration: 180,
+          easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+          fill: "backwards",
+        }),
       );
     }
+    Promise.all(anims.map((a) => a.finished))
+      .then(() => {
+        isAnimating.current = false;
+        inputRef.current?.focus();
+      })
+      .catch(() => {});
   }, [isOpen, onOpenChange]);
 
   const handleClose = useCallback(() => {
@@ -199,15 +195,14 @@ export function SearchOverlay({
       isAnimating.current = false;
       setIsOpen(false);
       onOpenChange?.(false);
-      // Full reset so panel never lingers over the trigger
-      gsap.set(panel, {
-        opacity: 0,
-        scaleX: 1,
-        scaleY: 1,
-        transformOrigin: "50% 50%",
-        pointerEvents: "none",
-      });
-      gsap.set(backdrop, { pointerEvents: "none" });
+      // Release filled animations and restore the hidden base state so the
+      // panel never lingers over the trigger.
+      animsRef.current.forEach((a) => a.cancel());
+      panel.style.opacity = "0";
+      panel.style.transformOrigin = "50% 50%";
+      panel.style.pointerEvents = "none";
+      backdrop.style.opacity = "0";
+      backdrop.style.pointerEvents = "none";
       // Return focus to the invoking control (standard dialog a11y)
       triggerRef.current?.focus();
     };
@@ -218,31 +213,65 @@ export function SearchOverlay({
     }
 
     const morph = morphRef.current ?? (rect ? planMorph(rect) : null);
-
-    const tl = gsap.timeline({ onComplete: finish });
+    const anims: Animation[] = [];
 
     // Content dissolves instantly — no clipped-text mush during shrink
     if (contentRef.current) {
-      tl.to(contentRef.current, { opacity: 0, duration: 0.14, ease: "power2.in" }, 0);
-    }
-
-    tl.to(backdrop, { opacity: 0, duration: 0.24, ease: "power2.in" }, 0);
-
-    if (morph) {
-      tl.to(
-        panel,
-        {
-          scaleX: morph.scaleX,
-          scaleY: morph.scaleY,
-          duration: 0.28,
-          ease: "power2.in",
-        },
-        0,
+      anims.push(
+        contentRef.current.animate([{ opacity: 1 }, { opacity: 0 }], {
+          duration: 140,
+          easing: "cubic-bezier(0.55, 0.085, 0.68, 0.53)",
+          fill: "forwards",
+        }),
       );
-      tl.to(panel, { opacity: 0, duration: 0.1, ease: "power1.in" }, 0.18);
-    } else {
-      tl.to(panel, { opacity: 0, scale: 0.95, duration: 0.25, ease: "power2.in" }, 0);
     }
+    anims.push(
+      backdrop.animate([{ opacity: 1 }, { opacity: 0 }], {
+        duration: 240,
+        easing: "cubic-bezier(0.55, 0.085, 0.68, 0.53)",
+        fill: "forwards",
+      }),
+    );
+
+    let lastAnim: Animation;
+    if (morph) {
+      anims.push(
+        panel.animate(
+          [
+            { transform: "scale(1, 1)" },
+            { transform: `scale(${morph.scaleX}, ${morph.scaleY})` },
+          ],
+          {
+            duration: 280,
+            easing: "cubic-bezier(0.55, 0.085, 0.68, 0.53)",
+            fill: "forwards",
+          },
+        ),
+      );
+      // Opacity holds while shrinking starts, then drops over the final ~100ms
+      lastAnim = panel.animate(
+        [
+          { opacity: 1, offset: 180 / 280 },
+          { opacity: 0, offset: 1 },
+        ],
+        { duration: 280, easing: "linear", fill: "forwards" },
+      );
+    } else {
+      lastAnim = panel.animate(
+        [
+          { opacity: 1, transform: "scale(1)" },
+          { opacity: 0, transform: "scale(0.95)" },
+        ],
+        {
+          duration: 250,
+          easing: "cubic-bezier(0.55, 0.085, 0.68, 0.53)",
+          fill: "forwards",
+        },
+      );
+    }
+    anims.push(lastAnim);
+    animsRef.current = anims;
+    lastAnim.finished.then(finish).catch(() => {});
   }, [isOpen, onOpenChange, onQueryChange]);
 
   // Escape to close
