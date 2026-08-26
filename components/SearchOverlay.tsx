@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Search, X, Music, Loader2, Eraser, Play, ListStart, ListPlus, Clock } from "lucide-react";
 import type { Song } from "@/types/music";
 import { AlbumArt } from "@/components/AlbumArt";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { prefersReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/cn";
@@ -413,9 +414,16 @@ export function SearchOverlay({
           {/* ─── RESULTS ─── */}
           <div className="flex-1 overflow-y-auto scrollbar-hide">
           {isSearching && results.length === 0 && (
-            <div className="flex items-center justify-center gap-2 px-4 py-12">
-              <Loader2 className="h-4 w-4 animate-spin text-white/30" />
-              <span className="text-xs text-white/30">Searching...</span>
+            <div className="px-4 py-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 px-0 py-3">
+                  <Skeleton className="h-11 w-11 shrink-0 rounded-lg" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-3/5 rounded" />
+                    <Skeleton className="h-3 w-2/5 rounded" />
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 

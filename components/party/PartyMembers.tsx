@@ -4,6 +4,7 @@ import { memo } from "react";
 import { Crown, UserPlus } from "lucide-react";
 import type { PartyMember } from "@/lib/party/types";
 import { getPresence } from "@/lib/party/presence";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
 
 interface PartyMembersProps {
@@ -12,6 +13,7 @@ interface PartyMembersProps {
   meId: string;
   serverNow: number;
   accent: string;
+  loading?: boolean;
   onInvite?: () => void;
   /** Present only when the viewer is the host — enables hand-over actions. */
   isHostView?: boolean;
@@ -31,7 +33,7 @@ function getAvatarColor(name: string): string {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-export const PartyMembers = memo(function PartyMembers({ members, hostId, meId, serverNow, accent, onInvite, isHostView, onHandover }: PartyMembersProps) {
+export const PartyMembers = memo(function PartyMembers({ members, hostId, meId, serverNow, accent, loading, onInvite, isHostView, onHandover }: PartyMembersProps) {
   return (
     <div className="h-full rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">
       <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3">
@@ -41,7 +43,16 @@ export const PartyMembers = memo(function PartyMembers({ members, hostId, meId, 
       </div>
 
       <div className="p-4 scrollbar-hide lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
-        {members.length === 0 ? (
+        {loading ? (
+          <div className="space-y-1">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 rounded-xl px-2 py-2">
+                <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+                <Skeleton className="h-4 w-24 rounded" />
+              </div>
+            ))}
+          </div>
+        ) : members.length === 0 ? (
           <p className="text-xs text-white/30 py-2">Nobody else yet — share the code.</p>
         ) : (
           <ul className="space-y-1" aria-label="Party members">
