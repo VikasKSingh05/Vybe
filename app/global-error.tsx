@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { AlertTriangle } from "lucide-react";
 import { DM_Sans, Syne } from "next/font/google";
 import "./globals.css";
 
@@ -37,7 +38,7 @@ export default function GlobalError({ error, retry }: GlobalErrorProps) {
         <div className="flex min-h-screen flex-col items-center justify-center bg-[#0a0a0a] px-4 text-center">
           <div className="w-full max-w-md">
             <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-red-400/10">
-              <span className="text-2xl">!</span>
+              <AlertTriangle className="h-6 w-6 text-red-400" />
             </div>
             <h1 className="font-display text-2xl font-semibold text-white">
               Something went wrong

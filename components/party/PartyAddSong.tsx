@@ -148,7 +148,7 @@ export function PartyAddSong({ accent, queuedIds, onAdd }: PartyAddSongProps) {
             onFocus={() => query.trim() && setOpen(true)}
             placeholder="Search songs, artists… ( / )"
             aria-label="Search for songs, artists, albums"
-            className="w-full rounded-xl border border-white/10 bg-black/40 backdrop-blur-xl py-2.5 pl-9 pr-9 text-sm text-white placeholder-white/25 outline-none transition-colors focus:border-white/25"
+            className="w-full rounded-xl border border-white/10 bg-black/40 backdrop-blur-xl py-2.5 pl-9 pr-9 text-sm text-white placeholder-white/25 outline-none transition-colors focus:border-white/25 focus-visible:ring-2 focus-visible:ring-white/40"
           />
           {query && (
             <button

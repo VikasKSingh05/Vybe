@@ -26,7 +26,7 @@ export function VybeApp() {
 
   useEffect(() => {
     if (player.error) {
-      toast(player.error, "error");
+      toast(`Playback error: ${player.error}`, "error");
     }
   }, [player.error]);
 
