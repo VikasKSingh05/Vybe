@@ -276,6 +276,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
                 meId={member?.id ?? ""}
                 serverNow={serverNowEstimate}
                 accent={theme.accent}
+                loading={state === null}
                 onInvite={handleInvite}
                 isHostView={isHost}
                 onHandover={handleHandover}
