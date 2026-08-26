@@ -120,7 +120,7 @@ export function SearchOverlay({
       width: `${morph.width}px`,
       height: `${morph.height}px`,
       borderRadius: "1rem",
-      zIndex: "60",
+      zIndex: "61",
       pointerEvents: "auto",
       transformOrigin: `${morph.originX} ${morph.originY}`,
       opacity: "1",
@@ -361,7 +361,7 @@ export function SearchOverlay({
       {/* ─── OVERLAY ─── */}
       <div
         ref={backdropRef}
-        className="fixed inset-0 z-[59] bg-black/80 backdrop-blur-sm"
+        className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm"
         style={{ opacity: 0, pointerEvents: "none" }}
         onClick={handleClose}
         aria-hidden="true"
@@ -369,7 +369,7 @@ export function SearchOverlay({
 
       <div
         ref={panelRef}
-        className="fixed z-[60] flex flex-col overflow-hidden border border-white/10 bg-[#0d0d0d]/95 shadow-2xl backdrop-blur-xl"
+        className="fixed z-[61] flex flex-col overflow-hidden border border-white/10 bg-[#0d0d0d]/95 shadow-2xl backdrop-blur-xl"
         style={{
           opacity: 0,
           pointerEvents: "none",
@@ -389,7 +389,7 @@ export function SearchOverlay({
               value={query}
               onChange={(e) => handleQueryChange(e.target.value)}
               placeholder="Search songs..."
-              className="flex-1 bg-transparent text-sm text-white/90 placeholder-white/30 outline-none"
+              className="flex-1 bg-transparent text-sm text-white/90 placeholder-white/30 outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-1 focus-visible:ring-offset-transparent rounded-lg"
             />
             {query && (
               <button

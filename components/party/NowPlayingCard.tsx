@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useEffect, useRef } from "react";
+import { Music } from "lucide-react";
 import type { Track } from "@/data/types";
 import type { PartyReaction, PartyState } from "@/lib/party/types";
 import { PARTY_EMOJIS } from "@/lib/party/types";
@@ -86,6 +87,9 @@ export const NowPlayingCard = memo(function NowPlayingCard({
   if (!track) {
     return (
       <div className="shrink-0 rounded-2xl border border-white/10 bg-black/40 p-10 text-center backdrop-blur-xl">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5">
+          <Music className="h-5 w-5 text-white/20" />
+        </div>
         <p className="text-sm text-white/40">
           No tracks in the queue. Add a track to get started.
         </p>

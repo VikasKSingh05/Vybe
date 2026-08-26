@@ -133,7 +133,7 @@ export function PartyLanding({
             onChange={(e) => { setName(e.target.value); if (triedSubmit) setTriedSubmit(false); }}
             placeholder="e.g. Aarav"
             maxLength={24}
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition-colors focus:border-white/30"
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition-colors focus:border-white/30 focus-visible:ring-2 focus-visible:ring-white/40"
           />
           {showNameHint && (
             <p className="mt-1.5 text-[11px] text-amber-400/80">
@@ -177,7 +177,7 @@ export function PartyLanding({
               onChange={(e) => setRoomId(e.target.value.toUpperCase())}
               placeholder="Paste or type a code"
               maxLength={6}
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm tracking-[0.3em] text-white placeholder-white/30 uppercase outline-none transition-colors focus:border-white/30"
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm tracking-[0.3em] text-white placeholder-white/30 uppercase outline-none transition-colors focus:border-white/30 focus-visible:ring-2 focus-visible:ring-white/40"
             />
             {showCodeHint && (
               <p className="text-[11px] text-white/40">

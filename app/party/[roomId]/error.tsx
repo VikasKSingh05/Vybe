@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { AlertTriangle } from "lucide-react";
 
 interface ErrorBoundaryProps {
   error: Error & { digest?: string };
@@ -16,7 +17,7 @@ export default function RoomError({ error, reset }: ErrorBoundaryProps) {
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#0a0a0a] px-4 text-center">
       <div className="w-full max-w-md">
         <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-red-400/10">
-          <span className="text-2xl">!</span>
+          <AlertTriangle className="h-6 w-6 text-red-400" />
         </div>
         <h1 className="font-display text-2xl font-semibold text-white">
           Could not join room
@@ -26,13 +27,13 @@ export default function RoomError({ error, reset }: ErrorBoundaryProps) {
         </p>
         <a
           href="/"
-          className="mt-4 inline-block text-xs text-white/30 transition-colors hover:text-white/50"
+          className="mt-4 inline-block text-xs text-white/30 transition-colors hover:text-white/50 cursor-pointer"
         >
           Go home
         </a>
         <a
           href="/party"
-          className="mt-6 inline-block rounded-xl bg-white/10 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-white/20"
+          className="mt-6 inline-block rounded-xl bg-white/10 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-white/20 cursor-pointer"
         >
           Join another party
         </a>
