@@ -17,7 +17,6 @@ Choose a vibe and let VYBE handle the music selection.
 Available vibes include different moods and energy levels such as:
 
 - 🌿 Lofi
-- ⚡ Energetic
 - 🧘 Chill
 - 🔥 Phonk
 - 🎲 Random
