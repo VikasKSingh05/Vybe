@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Users, Link2, Sparkles, RotateCcw } from "lucide-react";
 import { partyTheme } from "@/data/backgrounds";
 import type { VibeId } from "@/data/types";
+import { savePartyName, loadPartyName } from "@/lib/party/share";
 
 interface RejoinIdentity {
   roomId: string;
@@ -35,6 +36,23 @@ export function PartyLanding({
   );
   const [submitting, setSubmitting] = useState<"create" | "join" | null>(null);
   const [triedSubmit, setTriedSubmit] = useState(false);
+  const autoJoinAttemptedRef = useRef(false);
+
+  // Auto-join from deep link if we have a stored name
+  useEffect(() => {
+    if (autoJoinAttemptedRef.current) return;
+    if (!initialRoomId) return;
+    const storedName = loadPartyName();
+    if (!storedName) return;
+    autoJoinAttemptedRef.current = true;
+    setName(storedName);
+    setRoomId(initialRoomId);
+    const timer = setTimeout(() => {
+      setSubmitting("join");
+      onJoin(initialRoomId, storedName);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [initialRoomId, onJoin]);
 
   const canCreate = name.trim().length > 0;
   const canJoin = name.trim().length > 0 && roomId.trim().length >= 4;
@@ -48,6 +66,7 @@ export function PartyLanding({
       if (!canCreate || submitting) return;
       setSubmitting("create");
       try {
+        savePartyName(name.trim());
         await onCreate(name.trim(), "bollywood");
       } finally {
         setSubmitting(null);
@@ -63,6 +82,7 @@ export function PartyLanding({
       if (!canJoin || submitting) return;
       setSubmitting("join");
       try {
+        savePartyName(name.trim());
         await onJoin(roomId.trim().toLowerCase(), name.trim());
       } finally {
         setSubmitting(null);
@@ -75,6 +95,7 @@ export function PartyLanding({
     if (!rejoinIdentity || submitting) return;
     setSubmitting("join");
     try {
+      savePartyName(rejoinIdentity.name);
       await onJoin(rejoinIdentity.roomId, rejoinIdentity.name);
     } finally {
       setSubmitting(null);
