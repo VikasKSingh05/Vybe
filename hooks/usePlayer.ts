@@ -47,6 +47,7 @@ export function usePlayer({
 
   const [volume, setVolumeState] = useState(persisted?.volume ?? 0.75);
   const [isMuted, setIsMutedState] = useState(persisted?.isMuted ?? false);
+  const [crossfadeEnabled, setCrossfadeEnabled] = useState(true);
 
   const resolveSong = useCallback(
     (entry: PlaylistEntry) => resolveSongFn(songCacheRef.current, entry),
@@ -56,7 +57,7 @@ export function usePlayer({
   const fetchRandomSongInProgressRef = useRef(false);
   const fetchRandomSongRef = useRef<(() => Promise<void>) | null>(null);
 
-  const { audioRef, currentTime, duration, isPlaying, isLoading: audioLoading } = useAudioElement({
+  const { audioRef, currentTime, duration, isPlaying, isLoading: audioLoading, crossfadeTo } = useAudioElement({
     onEnded: () => {
       const currentList = activePlaylistRef.current;
       if (currentList.length === 0) {
@@ -158,7 +159,18 @@ export function usePlayer({
       failCountRef.current = 0;
       setCurrentSong(song);
 
-      audio.src = song.streamUrl;
+      audio.setAttribute("data-volume", String(isMuted ? 0 : volume));
+
+      if (crossfadeEnabled && isPlaying && song.streamUrl) {
+        setExtraLoading(false);
+        crossfadeTo(song.streamUrl);
+        if (shouldPlay && userInteracted) {
+          preloadNextSong(safeIndex + 1);
+        }
+        return;
+      }
+
+      audio.src = song.streamUrl ?? "";
       audio.load();
       setExtraLoading(false);
 
@@ -171,7 +183,7 @@ export function usePlayer({
           .catch(() => {});
       }
     },
-    [resolveSong, preloadNextSong, userInteracted, audioRef],
+    [resolveSong, preloadNextSong, userInteracted, audioRef, crossfadeEnabled, isPlaying, isMuted, volume, crossfadeTo],
   );
 
   loadSongAtIndexRef.current = loadSongAtIndex;
@@ -527,6 +539,8 @@ export function usePlayer({
     removeFromQueue,
     clearCustomQueue,
     playAtIndex,
+    crossfadeEnabled,
+    setCrossfadeEnabled,
     progress:
       currentDuration > 0
         ? Math.min(100, Math.max(0, (clampedTime / currentDuration) * 100))
