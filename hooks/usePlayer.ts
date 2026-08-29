@@ -9,6 +9,13 @@ import { useAudioElement } from "./useAudioElement";
 import { resolveSong as resolveSongFn } from "@/lib/music/resolve";
 import { loadPlayerState, savePlayerState } from "@/lib/player-storage";
 import { applyReorder, insertAfterCurrent } from "@/lib/queue-order";
+import {
+  advanceOnEnded,
+  nextIndex as nextIndexHelper,
+  prevIndex as prevIndexHelper,
+  shuffleList,
+  type RepeatMode,
+} from "@/lib/player-modes";
 
 interface UsePlayerOptions {
   initialVibeId?: VibeId;
@@ -47,7 +54,12 @@ export function usePlayer({
 
   const [volume, setVolumeState] = useState(persisted?.volume ?? 0.75);
   const [isMuted, setIsMutedState] = useState(persisted?.isMuted ?? false);
-  const [crossfadeEnabled, setCrossfadeEnabled] = useState(true);
+  const [crossfadeEnabled, setCrossfadeEnabled] = useState(persisted?.crossfadeEnabled ?? true);
+  const [crossfadeMs, setCrossfadeMs] = useState(persisted?.crossfadeMs ?? 3000);
+  const [repeatMode, setRepeatMode] = useState<RepeatMode>(persisted?.repeatMode ?? "all");
+  const [shuffle, setShuffle] = useState(persisted?.shuffle ?? false);
+  const repeatModeRef = useRef(repeatMode);
+  repeatModeRef.current = repeatMode;
 
   const resolveSong = useCallback(
     (entry: PlaylistEntry) => resolveSongFn(songCacheRef.current, entry),
@@ -73,8 +85,16 @@ export function usePlayer({
         if (audioRef.current) audioRef.current.pause();
         return;
       }
-      const nextIndex = (currentIndexRef.current + 1) % currentList.length;
-      loadSongAtIndexRef.current?.(nextIndex, true);
+      const advance = advanceOnEnded(
+        currentIndexRef.current,
+        currentList.length,
+        repeatModeRef.current,
+      );
+      if (advance === null) {
+        if (audioRef.current) audioRef.current.pause();
+        return;
+      }
+      loadSongAtIndexRef.current?.(advance, true);
     },
     onError: () => {
       const audio = audioRef.current;
@@ -85,8 +105,12 @@ export function usePlayer({
         setErrorState("Unable to stream audio.");
         return;
       }
-      const nextIndex = (currentIndexRef.current + 1) % currentList.length;
-      setTimeout(() => loadSongAtIndexRef.current?.(nextIndex, true), 400);
+      const nextIdx = nextIndexHelper(
+        currentIndexRef.current,
+        currentList.length,
+        repeatModeRef.current === "one" ? "all" : repeatModeRef.current,
+      ) ?? currentIndexRef.current;
+      setTimeout(() => loadSongAtIndexRef.current?.(nextIdx, true), 400);
     },
   });
 
@@ -99,10 +123,20 @@ export function usePlayer({
   // Persist the session (debounced) so a refresh restores queue + vibe
   useEffect(() => {
     const timer = setTimeout(() => {
-      savePlayerState({ vibeId, playlist, currentIndex, volume, isMuted });
+      savePlayerState({
+        vibeId,
+        playlist,
+        currentIndex,
+        volume,
+        isMuted,
+        crossfadeEnabled,
+        crossfadeMs,
+        repeatMode,
+        shuffle,
+      });
     }, 400);
     return () => clearTimeout(timer);
-  }, [vibeId, playlist, currentIndex, volume, isMuted]);
+  }, [vibeId, playlist, currentIndex, volume, isMuted, crossfadeEnabled, crossfadeMs, repeatMode, shuffle]);
 
   const preloadNextSong = useCallback(
     async (nextIdx: number) => {
@@ -163,7 +197,7 @@ export function usePlayer({
 
       if (crossfadeEnabled && isPlaying && song.streamUrl) {
         setExtraLoading(false);
-        crossfadeTo(song.streamUrl);
+        crossfadeTo(song.streamUrl, crossfadeMs);
         if (shouldPlay && userInteracted) {
           preloadNextSong(safeIndex + 1);
         }
@@ -183,7 +217,7 @@ export function usePlayer({
           .catch(() => {});
       }
     },
-    [resolveSong, preloadNextSong, userInteracted, audioRef, crossfadeEnabled, isPlaying, isMuted, volume, crossfadeTo],
+    [resolveSong, preloadNextSong, userInteracted, audioRef, crossfadeEnabled, crossfadeMs, isPlaying, isMuted, volume, crossfadeTo],
   );
 
   loadSongAtIndexRef.current = loadSongAtIndex;
@@ -405,9 +439,13 @@ export function usePlayer({
       if (audioRef.current) audioRef.current.pause();
       return;
     }
-    const nextIdx = (currentIndex + 1) % playlist.length;
+    const nextIdx = nextIndexHelper(currentIndex, playlist.length, repeatMode);
+    if (nextIdx === null) {
+      if (audioRef.current) audioRef.current.pause();
+      return;
+    }
     loadSongAtIndex(nextIdx, true);
-  }, [currentIndex, playlist.length, loadSongAtIndex, audioRef]);
+  }, [currentIndex, playlist.length, repeatMode, loadSongAtIndex, audioRef]);
 
   const prev = useCallback(() => {
     setUserInteracted(true);
@@ -420,9 +458,13 @@ export function usePlayer({
       seek(0);
       return;
     }
-    const prevIdx = (currentIndex - 1 + playlist.length) % playlist.length;
+    const prevIdx = prevIndexHelper(currentIndex, playlist.length, repeatMode);
+    if (prevIdx === null) {
+      seek(0);
+      return;
+    }
     loadSongAtIndex(prevIdx, true);
-  }, [currentTime, seek, currentIndex, playlist.length, loadSongAtIndex]);
+  }, [currentTime, seek, currentIndex, playlist.length, repeatMode, loadSongAtIndex]);
 
   const changeVolume = useCallback((v: number) => {
     const clamped = Math.max(0, Math.min(1, v));
@@ -433,6 +475,20 @@ export function usePlayer({
   const toggleMute = useCallback(() => {
     setIsMutedState((prev) => !prev);
   }, []);
+
+  const toggleShuffle = useCallback(() => {
+    const wasOn = shuffle;
+    setShuffle(!wasOn);
+    // Enabling shuffle reorders the playlist once, keeping the current song
+    // anchored at its index. Disabling just flips the flag.
+    if (!wasOn) {
+      const reordered = shuffleList(activePlaylistRef.current, currentIndexRef.current);
+      if (reordered) {
+        setPlaylist(reordered);
+        activePlaylistRef.current = reordered;
+      }
+    }
+  }, [shuffle]);
 
   const removeFromQueue = useCallback(
     (index: number) => {
@@ -541,6 +597,12 @@ export function usePlayer({
     playAtIndex,
     crossfadeEnabled,
     setCrossfadeEnabled,
+    crossfadeMs,
+    setCrossfadeMs,
+    repeatMode,
+    setRepeatMode,
+    shuffle,
+    toggleShuffle,
     progress:
       currentDuration > 0
         ? Math.min(100, Math.max(0, (clampedTime / currentDuration) * 100))

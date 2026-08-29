@@ -9,6 +9,7 @@ import { Header } from "@/components/Header";
 import { HeroSection } from "@/components/HeroSection";
 import { QueueOverlay } from "@/components/QueueOverlay";
 import { SearchOverlay } from "@/components/SearchOverlay";
+import { SettingsOverlay } from "@/components/SettingsOverlay";
 import { TrackAnnouncer } from "@/components/player/TrackAnnouncer";
 import { usePlayer } from "@/hooks/usePlayer";
 import { useSearch } from "@/hooks/useSearch";
@@ -23,6 +24,7 @@ export function VybeApp() {
 
   const [queueOpen, setQueueOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (player.error) {
@@ -104,6 +106,23 @@ export function VybeApp() {
     },
     [player],
   );
+
+  const handlePlayUpNext = useCallback(
+    (index: number) => {
+      // The up-next strip lists upcoming tracks starting at currentIndex + 1.
+      player.playAtIndex(player.currentIndex + 1 + index);
+    },
+    [player],
+  );
+
+  const upNext = player.queueItems
+    .slice(player.currentIndex + 1, player.currentIndex + 4)
+    .map((item) => ({
+      queueItemId: item.queueItemId,
+      title: item.title,
+      artist: item.artist,
+      artwork: item.artwork,
+    }));
 
   const searchOverlay = (
     <SearchOverlay
@@ -189,10 +208,31 @@ export function VybeApp() {
         onVolumeChange={player.changeVolume}
         onToggleMute={player.toggleMute}
         onToggleQueue={() => setQueueOpen((o) => !o)}
+        onToggleSettings={() => setSettingsOpen((o) => !o)}
+        onPlayUpNext={handlePlayUpNext}
+        upNext={upNext}
         className={cn(
           "transition-opacity duration-300",
           searchOpen && "opacity-0 pointer-events-none",
         )}
+      />
+
+      <SettingsOverlay
+        isOpen={settingsOpen}
+        accent={player.theme.accent}
+        volume={player.volume}
+        isMuted={player.isMuted}
+        crossfadeEnabled={player.crossfadeEnabled}
+        crossfadeMs={player.crossfadeMs}
+        repeatMode={player.repeatMode}
+        shuffle={player.shuffle}
+        onClose={() => setSettingsOpen(false)}
+        onVolumeChange={player.changeVolume}
+        onToggleMute={player.toggleMute}
+        onToggleCrossfade={() => player.setCrossfadeEnabled(!player.crossfadeEnabled)}
+        onCrossfadeMsChange={player.setCrossfadeMs}
+        onRepeatModeChange={player.setRepeatMode}
+        onToggleShuffle={player.toggleShuffle}
       />
 
       <QueueOverlay
