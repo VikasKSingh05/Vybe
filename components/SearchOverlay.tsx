@@ -204,8 +204,6 @@ export function SearchOverlay({
       panel.style.pointerEvents = "none";
       backdrop.style.opacity = "0";
       backdrop.style.pointerEvents = "none";
-      // Return focus to the invoking control (standard dialog a11y)
-      triggerRef.current?.focus();
     };
 
     if (prefersReducedMotion()) {
@@ -353,7 +351,7 @@ export function SearchOverlay({
         ref={triggerRef}
         type="button"
         onClick={handleOpen}
-        className="flex min-h-[44px] w-full max-w-xl items-center justify-center gap-2.5 rounded-full border border-white/10 bg-black/30 px-4 py-2.5 text-center text-xs text-white/40 backdrop-blur-md transition-colors hover:border-white/20 hover:bg-black/40 hover:text-white/60 cursor-pointer focus-visible:outline-none"
+        className="flex min-h-[44px] w-full max-w-xl items-center justify-center gap-2.5 rounded-full border border-white/10 bg-black/30 px-4 py-2.5 text-center text-xs text-white/40 backdrop-blur-md transition-colors hover:border-white/20 hover:bg-black/40 hover:text-white/60 cursor-pointer outline-none!"
       >
         <Search className="h-3.5 w-3.5 shrink-0" />
         <span>Search for songs...</span>
@@ -390,7 +388,7 @@ export function SearchOverlay({
               value={query}
               onChange={(e) => handleQueryChange(e.target.value)}
               placeholder="Search songs..."
-              className="flex-1 bg-transparent text-sm text-white/90 placeholder-white/30 outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-1 focus-visible:ring-offset-transparent rounded-lg"
+              className="flex-1 bg-transparent text-sm text-white/90 placeholder-white/30 outline-none! rounded-lg"
             />
             {query && (
               <button
