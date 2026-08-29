@@ -15,6 +15,9 @@ function makeState(overrides: Partial<PersistedPlayerState> = {}): PersistedPlay
     currentIndex: 1,
     volume: 0.5,
     isMuted: false,
+    crossfadeEnabled: true,
+    repeatMode: "all",
+    shuffle: false,
     ...overrides,
   };
 }
@@ -80,6 +83,40 @@ describe("player-storage", () => {
     const restored = loadPlayerState();
     expect(restored?.volume).toBe(1);
     expect(restored?.isMuted).toBe(false);
+  });
+
+  it("round-trips crossfade, repeat and shuffle settings", () => {
+    const state = makeState({
+      crossfadeEnabled: false,
+      repeatMode: "one",
+      shuffle: true,
+    });
+    savePlayerState(state);
+    expect(loadPlayerState()).toEqual(state);
+  });
+
+  it("defaults missing settings to safe values", () => {
+    savePlayerState(makeState({}));
+    const raw = window.localStorage.getItem("vybe.player.v1")!;
+    const parsed = JSON.parse(raw);
+    delete parsed.crossfadeEnabled;
+    delete parsed.repeatMode;
+    delete parsed.shuffle;
+    window.localStorage.setItem("vybe.player.v1", JSON.stringify(parsed));
+
+    const restored = loadPlayerState();
+    expect(restored?.crossfadeEnabled).toBe(true);
+    expect(restored?.repeatMode).toBe("all");
+    expect(restored?.shuffle).toBe(false);
+  });
+
+  it("rejects an invalid repeatMode and defaults to all", () => {
+    savePlayerState(makeState({ repeatMode: "all" }));
+    const raw = window.localStorage.getItem("vybe.player.v1")!;
+    const parsed = JSON.parse(raw);
+    parsed.repeatMode = "sometimes";
+    window.localStorage.setItem("vybe.player.v1", JSON.stringify(parsed));
+    expect(loadPlayerState()?.repeatMode).toBe("all");
   });
 });
 

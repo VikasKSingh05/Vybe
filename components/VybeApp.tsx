@@ -9,6 +9,7 @@ import { Header } from "@/components/Header";
 import { HeroSection } from "@/components/HeroSection";
 import { QueueOverlay } from "@/components/QueueOverlay";
 import { SearchOverlay } from "@/components/SearchOverlay";
+import { SettingsOverlay } from "@/components/SettingsOverlay";
 import { TrackAnnouncer } from "@/components/player/TrackAnnouncer";
 import { usePlayer } from "@/hooks/usePlayer";
 import { useSearch } from "@/hooks/useSearch";
@@ -23,6 +24,7 @@ export function VybeApp() {
 
   const [queueOpen, setQueueOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (player.error) {
@@ -189,10 +191,23 @@ export function VybeApp() {
         onVolumeChange={player.changeVolume}
         onToggleMute={player.toggleMute}
         onToggleQueue={() => setQueueOpen((o) => !o)}
+        onToggleSettings={() => setSettingsOpen((o) => !o)}
         className={cn(
           "transition-opacity duration-300",
           searchOpen && "opacity-0 pointer-events-none",
         )}
+      />
+
+      <SettingsOverlay
+        isOpen={settingsOpen}
+        accent={player.theme.accent}
+        crossfadeEnabled={player.crossfadeEnabled}
+        repeatMode={player.repeatMode}
+        shuffle={player.shuffle}
+        onClose={() => setSettingsOpen(false)}
+        onToggleCrossfade={() => player.setCrossfadeEnabled(!player.crossfadeEnabled)}
+        onRepeatModeChange={player.setRepeatMode}
+        onToggleShuffle={player.toggleShuffle}
       />
 
       <QueueOverlay

@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useEffect, useRef } from "react";
-import { ListMusic } from "lucide-react";
+import { ListMusic, Settings2 } from "lucide-react";
 import type { Track } from "@/data/types";
 import { AlbumArt } from "@/components/AlbumArt";
 import { ProgressBar } from "@/components/player/ProgressBar";
@@ -30,6 +30,7 @@ interface FloatingPlayerProps {
   onVolumeChange: (volume: number) => void;
   onToggleMute: () => void;
   onToggleQueue?: () => void;
+  onToggleSettings?: () => void;
   className?: string;
 }
 
@@ -51,6 +52,7 @@ export const FloatingPlayer = memo(function FloatingPlayer({
   onVolumeChange,
   onToggleMute,
   onToggleQueue,
+  onToggleSettings,
   className,
 }: FloatingPlayerProps) {
   const trackInfoRef = useRef<HTMLDivElement>(null);
@@ -122,7 +124,6 @@ export const FloatingPlayer = memo(function FloatingPlayer({
             isMuted={isMuted}
             accent={accent}
             size="sm"
-            sliderClassName="hidden sm:block"
             onVolumeChange={onVolumeChange}
             onToggleMute={onToggleMute}
           />
@@ -137,7 +138,7 @@ export const FloatingPlayer = memo(function FloatingPlayer({
             onNext={onNext}
           />
 
-          <div className="flex items-center gap-2 justify-end sm:w-20">
+          <div className="flex items-center gap-1 justify-end sm:w-20">
             {onToggleQueue && (
               <button
                 type="button"
@@ -151,6 +152,16 @@ export const FloatingPlayer = memo(function FloatingPlayer({
                     {queueCount}
                   </span>
                 )}
+              </button>
+            )}
+            {onToggleSettings && (
+              <button
+                type="button"
+                onClick={onToggleSettings}
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full p-2 text-white/40 transition-colors hover:text-white/70 hover:bg-white/10 cursor-pointer"
+                aria-label="Open settings"
+              >
+                <Settings2 className="h-4 w-4" />
               </button>
             )}
           </div>

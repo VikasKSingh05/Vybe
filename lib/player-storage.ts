@@ -1,5 +1,6 @@
 import type { VibeId } from "@/data/types";
 import type { PlaylistEntry } from "@/data/playlists";
+import { isRepeatMode, type RepeatMode } from "@/lib/player-modes";
 
 const STORAGE_KEY = "vybe.player.v1";
 const MAX_PERSISTED_ENTRIES = 200;
@@ -10,6 +11,9 @@ export interface PersistedPlayerState {
   currentIndex: number;
   volume: number;
   isMuted: boolean;
+  crossfadeEnabled: boolean;
+  repeatMode: RepeatMode;
+  shuffle: boolean;
 }
 
 function isVibeId(value: unknown): value is VibeId {
@@ -51,12 +55,17 @@ export function loadPlayerState(): PersistedPlayerState | null {
         ? Math.min(1, Math.max(0, parsed.volume))
         : 0.75;
 
+    const crossfadeEnabled = parsed.crossfadeEnabled !== false;
+
     return {
       vibeId: parsed.vibeId,
       playlist,
       currentIndex,
       volume,
       isMuted: parsed.isMuted === true,
+      crossfadeEnabled,
+      repeatMode: isRepeatMode(parsed.repeatMode) ? parsed.repeatMode : "all",
+      shuffle: parsed.shuffle === true,
     };
   } catch {
     // Corrupted or unavailable storage — start fresh
