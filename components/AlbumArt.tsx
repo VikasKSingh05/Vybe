@@ -10,7 +10,7 @@ interface AlbumArtProps {
   src?: string;
   title: string;
   accent: string;
-  size?: "xs" | "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg";
   className?: string;
 }
 
@@ -22,7 +22,7 @@ export function AlbumArt({
   className,
 }: AlbumArtProps) {
   const [currentSrc, setCurrentSrc] = useState<string | undefined>(src);
-  const dimensions = size === "sm" ? 44 : size === "lg" ? 120 : size === "xs" ? 28 : 56;
+  const dimensions = size === "sm" ? 44 : size === "lg" ? 120 : 56;
 
   useEffect(() => {
     setCurrentSrc(src);
@@ -38,7 +38,7 @@ export function AlbumArt({
     <div
       className={cn(
         "relative shrink-0 overflow-hidden rounded-lg",
-        size === "sm" ? "h-11 w-11" : size === "lg" ? "h-[120px] w-[120px] rounded-2xl" : size === "xs" ? "h-7 w-7 rounded-md" : "h-14 w-14",
+        size === "sm" ? "h-11 w-11" : size === "lg" ? "h-[120px] w-[120px] rounded-2xl" : "h-14 w-14",
         className,
       )}
       style={{ boxShadow: `0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px ${accent}22` }}

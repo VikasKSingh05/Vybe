@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { X, Repeat, Shuffle, Waves } from "lucide-react";
-import { VolumeControl } from "@/components/player/VolumeControl";
+import { X, Repeat, Shuffle, Waves, Music2 } from "lucide-react";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { prefersReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/cn";
@@ -11,15 +10,11 @@ import type { RepeatMode } from "@/lib/player-modes";
 interface SettingsOverlayProps {
   isOpen: boolean;
   accent: string;
-  volume: number;
-  isMuted: boolean;
   crossfadeEnabled: boolean;
   crossfadeMs: number;
   repeatMode: RepeatMode;
   shuffle: boolean;
   onClose: () => void;
-  onVolumeChange: (v: number) => void;
-  onToggleMute: () => void;
   onToggleCrossfade: () => void;
   onCrossfadeMsChange: (ms: number) => void;
   onRepeatModeChange: (mode: RepeatMode) => void;
@@ -35,15 +30,11 @@ const REPEAT_MODES: { value: RepeatMode; label: string; title: string }[] = [
 export function SettingsOverlay({
   isOpen,
   accent,
-  volume,
-  isMuted,
   crossfadeEnabled,
   crossfadeMs,
   repeatMode,
   shuffle,
   onClose,
-  onVolumeChange,
-  onToggleMute,
   onToggleCrossfade,
   onCrossfadeMsChange,
   onRepeatModeChange,
@@ -129,9 +120,12 @@ export function SettingsOverlay({
         aria-label="Settings"
       >
         <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
-          <h2 className="text-sm font-semibold tracking-wide text-white/90">
-            Settings
-          </h2>
+          <div className="flex items-center gap-2.5">
+            <Music2 className="h-4 w-4 text-white/40" />
+            <h2 className="text-sm font-semibold tracking-wide text-white/90">
+              Settings
+            </h2>
+          </div>
           <button
             ref={closeBtnRef}
             type="button"
@@ -143,23 +137,18 @@ export function SettingsOverlay({
           </button>
         </div>
 
-        <div className="flex flex-col gap-6 px-5 py-5">
+        <div className="flex flex-col">
 
           {/* Playback order */}
-          <section className="flex flex-col gap-3">
+          <section className="flex flex-col gap-3 px-5 py-5">
             <h3 className="text-[11px] font-semibold uppercase tracking-wider text-white/40">
               Playback order
             </h3>
 
             <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-3">
                 <Repeat className="h-4 w-4 text-white/40" />
-                <div className="flex flex-col">
-                  <span className="text-sm text-white/90">Repeat</span>
-                  <span className="text-[11px] text-white/35">
-                    Off · One · All
-                  </span>
-                </div>
+                <span className="text-sm text-white/90">Repeat</span>
               </div>
               <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1">
                 {REPEAT_MODES.map((mode) => (
@@ -188,14 +177,9 @@ export function SettingsOverlay({
             </div>
 
             <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-3">
                 <Shuffle className="h-4 w-4 text-white/40" />
-                <div className="flex flex-col">
-                  <span className="text-sm text-white/90">Shuffle</span>
-                  <span className="text-[11px] text-white/35">
-                    Reorders the queue
-                  </span>
-                </div>
+                <span className="text-sm text-white/90">Shuffle</span>
               </div>
               <button
                 type="button"
@@ -220,13 +204,13 @@ export function SettingsOverlay({
           </section>
 
           {/* Crossfade */}
-          <section className="flex flex-col gap-3">
+          <section className="flex flex-col gap-3 border-t border-white/5 px-5 py-5">
             <h3 className="text-[11px] font-semibold uppercase tracking-wider text-white/40">
               Crossfade
             </h3>
 
             <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-3">
                 <Waves className="h-4 w-4 text-white/40" />
                 <span className="text-sm text-white/90">Enable crossfade</span>
               </div>
@@ -258,37 +242,22 @@ export function SettingsOverlay({
                   {(crossfadeMs / 1000).toFixed(1)}s
                 </span>
               </div>
-              <input
-                type="range"
-                min={0}
-                max={8000}
-                step={500}
-                value={crossfadeMs}
-                onChange={(e) => onCrossfadeMsChange(parseInt(e.target.value, 10))}
-                aria-label="Crossfade duration"
-                className="volume-slider w-full"
-                style={{ "--accent": accent } as React.CSSProperties}
-              />
-              <div className="flex justify-between text-[10px] text-white/30">
-                <span>0s</span>
-                <span>8s</span>
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] text-white/30">0s</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={8000}
+                  step={500}
+                  value={crossfadeMs}
+                  onChange={(e) => onCrossfadeMsChange(parseInt(e.target.value, 10))}
+                  aria-label="Crossfade duration"
+                  className="volume-slider flex-1"
+                  style={{ "--accent": accent } as React.CSSProperties}
+                />
+                <span className="text-[10px] text-white/30">8s</span>
               </div>
             </div>
-          </section>
-
-          {/* Volume */}
-          <section className="flex flex-col gap-3">
-            <h3 className="text-[11px] font-semibold uppercase tracking-wider text-white/40">
-              Volume
-            </h3>
-            <VolumeControl
-              volume={volume}
-              isMuted={isMuted}
-              accent={accent}
-              size="sm"
-              onVolumeChange={onVolumeChange}
-              onToggleMute={onToggleMute}
-            />
           </section>
 
         </div>
@@ -296,3 +265,4 @@ export function SettingsOverlay({
     </div>
   );
 }
+

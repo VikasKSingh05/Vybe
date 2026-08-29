@@ -22,8 +22,6 @@ function stubMatchMedia() {
 function renderSettings(overrides: Record<string, unknown> = {}) {
   const handlers = {
     onClose: vi.fn(),
-    onVolumeChange: vi.fn(),
-    onToggleMute: vi.fn(),
     onToggleCrossfade: vi.fn(),
     onCrossfadeMsChange: vi.fn(),
     onRepeatModeChange: vi.fn(),
@@ -33,15 +31,11 @@ function renderSettings(overrides: Record<string, unknown> = {}) {
     <SettingsOverlay
       isOpen
       accent="#b06cff"
-      volume={0.7}
-      isMuted={false}
       crossfadeEnabled
       crossfadeMs={3000}
       repeatMode="all"
       shuffle={false}
       onClose={handlers.onClose}
-      onVolumeChange={handlers.onVolumeChange}
-      onToggleMute={handlers.onToggleMute}
       onToggleCrossfade={handlers.onToggleCrossfade}
       onCrossfadeMsChange={handlers.onCrossfadeMsChange}
       onRepeatModeChange={handlers.onRepeatModeChange}
@@ -57,12 +51,17 @@ describe("SettingsOverlay", () => {
     stubMatchMedia();
   });
 
-  it("renders the dialog and all control sections", () => {
+  it("renders the dialog and both control sections", () => {
     renderSettings();
     expect(screen.getByRole("dialog", { name: "Settings" })).toBeTruthy();
     expect(screen.getByText("Playback order")).toBeTruthy();
     expect(screen.getByText("Crossfade")).toBeTruthy();
-    expect(screen.getByText("Volume")).toBeTruthy();
+  });
+
+  it("does not render a volume section (it lives in the player)", () => {
+    renderSettings();
+    expect(screen.queryByText("Volume")).toBeNull();
+    expect(screen.queryByRole("slider", { name: "Volume" })).toBeNull();
   });
 
   it("reports the correct repeat mode via aria-pressed", () => {
@@ -109,14 +108,6 @@ describe("SettingsOverlay", () => {
       target: { value: "5000" },
     });
     expect(handlers.onCrossfadeMsChange).toHaveBeenCalledWith(5000);
-  });
-
-  it("volume slider reports changes", () => {
-    const handlers = renderSettings();
-    fireEvent.change(screen.getByRole("slider", { name: "Volume" }), {
-      target: { value: "0.5" },
-    });
-    expect(handlers.onVolumeChange).toHaveBeenCalledWith(0.5);
   });
 
   it("closes on Escape", () => {

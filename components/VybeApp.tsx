@@ -107,23 +107,6 @@ export function VybeApp() {
     [player],
   );
 
-  const handlePlayUpNext = useCallback(
-    (index: number) => {
-      // The up-next strip lists upcoming tracks starting at currentIndex + 1.
-      player.playAtIndex(player.currentIndex + 1 + index);
-    },
-    [player],
-  );
-
-  const upNext = player.queueItems
-    .slice(player.currentIndex + 1, player.currentIndex + 4)
-    .map((item) => ({
-      queueItemId: item.queueItemId,
-      title: item.title,
-      artist: item.artist,
-      artwork: item.artwork,
-    }));
-
   const searchOverlay = (
     <SearchOverlay
       query={search.query}
@@ -209,8 +192,6 @@ export function VybeApp() {
         onToggleMute={player.toggleMute}
         onToggleQueue={() => setQueueOpen((o) => !o)}
         onToggleSettings={() => setSettingsOpen((o) => !o)}
-        onPlayUpNext={handlePlayUpNext}
-        upNext={upNext}
         className={cn(
           "transition-opacity duration-300",
           searchOpen && "opacity-0 pointer-events-none",
@@ -220,15 +201,11 @@ export function VybeApp() {
       <SettingsOverlay
         isOpen={settingsOpen}
         accent={player.theme.accent}
-        volume={player.volume}
-        isMuted={player.isMuted}
         crossfadeEnabled={player.crossfadeEnabled}
         crossfadeMs={player.crossfadeMs}
         repeatMode={player.repeatMode}
         shuffle={player.shuffle}
         onClose={() => setSettingsOpen(false)}
-        onVolumeChange={player.changeVolume}
-        onToggleMute={player.toggleMute}
         onToggleCrossfade={() => player.setCrossfadeEnabled(!player.crossfadeEnabled)}
         onCrossfadeMsChange={player.setCrossfadeMs}
         onRepeatModeChange={player.setRepeatMode}

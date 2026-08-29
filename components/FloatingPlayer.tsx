@@ -1,8 +1,8 @@
 "use client";
 
 import { memo, useEffect, useRef } from "react";
-import { ListMusic, Settings2, Play } from "lucide-react";
-import type { QueueItem, Track } from "@/data/types";
+import { ListMusic, Settings2 } from "lucide-react";
+import type { Track } from "@/data/types";
 import { AlbumArt } from "@/components/AlbumArt";
 import { ProgressBar } from "@/components/player/ProgressBar";
 import { TransportControls } from "@/components/player/TransportControls";
@@ -11,13 +11,6 @@ import { TrackInfo } from "@/components/player/TrackInfo";
 import { prefersReducedMotion } from "@/lib/motion";
 import { formatTime } from "@/lib/format-time";
 import { cn } from "@/lib/cn";
-
-interface UpNextItem {
-  queueItemId: string;
-  title: string;
-  artist: string;
-  artwork?: string;
-}
 
 interface FloatingPlayerProps {
   track: Track;
@@ -29,7 +22,6 @@ interface FloatingPlayerProps {
   isMuted: boolean;
   accent: string;
   queueCount?: number;
-  upNext?: UpNextItem[];
   locked?: boolean;
   onTogglePlay: () => void;
   onPrev: () => void;
@@ -39,7 +31,6 @@ interface FloatingPlayerProps {
   onToggleMute: () => void;
   onToggleQueue?: () => void;
   onToggleSettings?: () => void;
-  onPlayUpNext?: (index: number) => void;
   className?: string;
 }
 
@@ -53,7 +44,6 @@ export const FloatingPlayer = memo(function FloatingPlayer({
   isMuted,
   accent,
   queueCount,
-  upNext = [],
   locked = false,
   onTogglePlay,
   onPrev,
@@ -63,7 +53,6 @@ export const FloatingPlayer = memo(function FloatingPlayer({
   onToggleMute,
   onToggleQueue,
   onToggleSettings,
-  onPlayUpNext,
   className,
 }: FloatingPlayerProps) {
   const trackInfoRef = useRef<HTMLDivElement>(null);
@@ -114,36 +103,6 @@ export const FloatingPlayer = memo(function FloatingPlayer({
           </div>
         </div>
 
-        {upNext.length > 0 && onPlayUpNext && (
-          <div className="mb-3 flex flex-col gap-1">
-            <p className="text-[10px] font-medium uppercase tracking-widest text-white/30">
-              Up next
-            </p>
-            <ul className="flex flex-col gap-1">
-              {upNext.map((item, i) => (
-                <li key={item.queueItemId} className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onPlayUpNext(i)}
-                    className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-1.5 py-1 text-left transition-colors hover:bg-white/[0.04] cursor-pointer"
-                    aria-label={`Play ${item.title}`}
-                  >
-                    <span className="shrink-0">
-                      <AlbumArt src={item.artwork} title={item.title} accent={accent} size="xs" />
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-[11px] text-white/60">
-                      {item.title}
-                    </span>
-                    <span className="shrink-0 rounded-full p-1 text-white/25 hover:text-white/70">
-                      <Play className="h-2.5 w-2.5" />
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
         <div className="mb-1">
           <ProgressBar
             progress={progress}
@@ -165,7 +124,6 @@ export const FloatingPlayer = memo(function FloatingPlayer({
             isMuted={isMuted}
             accent={accent}
             size="sm"
-            sliderClassName="hidden sm:block"
             onVolumeChange={onVolumeChange}
             onToggleMute={onToggleMute}
           />
