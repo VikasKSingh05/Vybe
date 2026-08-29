@@ -11,12 +11,10 @@ interface SettingsOverlayProps {
   isOpen: boolean;
   accent: string;
   crossfadeEnabled: boolean;
-  crossfadeMs: number;
   repeatMode: RepeatMode;
   shuffle: boolean;
   onClose: () => void;
   onToggleCrossfade: () => void;
-  onCrossfadeMsChange: (ms: number) => void;
   onRepeatModeChange: (mode: RepeatMode) => void;
   onToggleShuffle: () => void;
 }
@@ -31,12 +29,10 @@ export function SettingsOverlay({
   isOpen,
   accent,
   crossfadeEnabled,
-  crossfadeMs,
   repeatMode,
   shuffle,
   onClose,
   onToggleCrossfade,
-  onCrossfadeMsChange,
   onRepeatModeChange,
   onToggleShuffle,
 }: SettingsOverlayProps) {
@@ -233,30 +229,6 @@ export function SettingsOverlay({
                   )}
                 />
               </button>
-            </div>
-
-            <div className={cn("flex flex-col gap-2", !crossfadeEnabled && "opacity-40 pointer-events-none")}>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-white/50">Duration</span>
-                <span className="text-xs tabular-nums font-mono text-white/70">
-                  {(crossfadeMs / 1000).toFixed(1)}s
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-[10px] text-white/30">0s</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={8000}
-                  step={500}
-                  value={crossfadeMs}
-                  onChange={(e) => onCrossfadeMsChange(parseInt(e.target.value, 10))}
-                  aria-label="Crossfade duration"
-                  className="volume-slider flex-1"
-                  style={{ "--accent": accent } as React.CSSProperties}
-                />
-                <span className="text-[10px] text-white/30">8s</span>
-              </div>
             </div>
           </section>
 

@@ -16,7 +16,6 @@ function makeState(overrides: Partial<PersistedPlayerState> = {}): PersistedPlay
     volume: 0.5,
     isMuted: false,
     crossfadeEnabled: true,
-    crossfadeMs: 3000,
     repeatMode: "all",
     shuffle: false,
     ...overrides,
@@ -89,7 +88,6 @@ describe("player-storage", () => {
   it("round-trips crossfade, repeat and shuffle settings", () => {
     const state = makeState({
       crossfadeEnabled: false,
-      crossfadeMs: 5500,
       repeatMode: "one",
       shuffle: true,
     });
@@ -102,23 +100,14 @@ describe("player-storage", () => {
     const raw = window.localStorage.getItem("vybe.player.v1")!;
     const parsed = JSON.parse(raw);
     delete parsed.crossfadeEnabled;
-    delete parsed.crossfadeMs;
     delete parsed.repeatMode;
     delete parsed.shuffle;
     window.localStorage.setItem("vybe.player.v1", JSON.stringify(parsed));
 
     const restored = loadPlayerState();
     expect(restored?.crossfadeEnabled).toBe(true);
-    expect(restored?.crossfadeMs).toBe(3000);
     expect(restored?.repeatMode).toBe("all");
     expect(restored?.shuffle).toBe(false);
-  });
-
-  it("clamps crossfadeMs into [0,8000]", () => {
-    savePlayerState(makeState({ crossfadeMs: 99999 }));
-    expect(loadPlayerState()?.crossfadeMs).toBe(8000);
-    savePlayerState(makeState({ crossfadeMs: -5 }));
-    expect(loadPlayerState()?.crossfadeMs).toBe(0);
   });
 
   it("rejects an invalid repeatMode and defaults to all", () => {

@@ -17,6 +17,8 @@ import {
   type RepeatMode,
 } from "@/lib/player-modes";
 
+const CROSSFADE_MS = 3000;
+
 interface UsePlayerOptions {
   initialVibeId?: VibeId;
   autoPlay?: boolean;
@@ -55,7 +57,6 @@ export function usePlayer({
   const [volume, setVolumeState] = useState(persisted?.volume ?? 0.75);
   const [isMuted, setIsMutedState] = useState(persisted?.isMuted ?? false);
   const [crossfadeEnabled, setCrossfadeEnabled] = useState(persisted?.crossfadeEnabled ?? true);
-  const [crossfadeMs, setCrossfadeMs] = useState(persisted?.crossfadeMs ?? 3000);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>(persisted?.repeatMode ?? "all");
   const [shuffle, setShuffle] = useState(persisted?.shuffle ?? false);
   const repeatModeRef = useRef(repeatMode);
@@ -130,13 +131,12 @@ export function usePlayer({
         volume,
         isMuted,
         crossfadeEnabled,
-        crossfadeMs,
         repeatMode,
         shuffle,
       });
     }, 400);
     return () => clearTimeout(timer);
-  }, [vibeId, playlist, currentIndex, volume, isMuted, crossfadeEnabled, crossfadeMs, repeatMode, shuffle]);
+  }, [vibeId, playlist, currentIndex, volume, isMuted, crossfadeEnabled, repeatMode, shuffle]);
 
   const preloadNextSong = useCallback(
     async (nextIdx: number) => {
@@ -197,7 +197,7 @@ export function usePlayer({
 
       if (crossfadeEnabled && isPlaying && song.streamUrl) {
         setExtraLoading(false);
-        crossfadeTo(song.streamUrl, crossfadeMs);
+        crossfadeTo(song.streamUrl, CROSSFADE_MS);
         if (shouldPlay && userInteracted) {
           preloadNextSong(safeIndex + 1);
         }
@@ -217,7 +217,7 @@ export function usePlayer({
           .catch(() => {});
       }
     },
-    [resolveSong, preloadNextSong, userInteracted, audioRef, crossfadeEnabled, crossfadeMs, isPlaying, isMuted, volume, crossfadeTo],
+    [resolveSong, preloadNextSong, userInteracted, audioRef, crossfadeEnabled, isPlaying, isMuted, volume, crossfadeTo],
   );
 
   loadSongAtIndexRef.current = loadSongAtIndex;
@@ -597,8 +597,6 @@ export function usePlayer({
     playAtIndex,
     crossfadeEnabled,
     setCrossfadeEnabled,
-    crossfadeMs,
-    setCrossfadeMs,
     repeatMode,
     setRepeatMode,
     shuffle,

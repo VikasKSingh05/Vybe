@@ -202,12 +202,10 @@ export function VybeApp() {
         isOpen={settingsOpen}
         accent={player.theme.accent}
         crossfadeEnabled={player.crossfadeEnabled}
-        crossfadeMs={player.crossfadeMs}
         repeatMode={player.repeatMode}
         shuffle={player.shuffle}
         onClose={() => setSettingsOpen(false)}
         onToggleCrossfade={() => player.setCrossfadeEnabled(!player.crossfadeEnabled)}
-        onCrossfadeMsChange={player.setCrossfadeMs}
         onRepeatModeChange={player.setRepeatMode}
         onToggleShuffle={player.toggleShuffle}
       />

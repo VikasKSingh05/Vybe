@@ -4,9 +4,6 @@ import { isRepeatMode, type RepeatMode } from "@/lib/player-modes";
 
 const STORAGE_KEY = "vybe.player.v1";
 const MAX_PERSISTED_ENTRIES = 200;
-const DEFAULT_CROSSFADE_MS = 3000;
-const MAX_CROSSFADE_MS = 8000;
-const MIN_CROSSFADE_MS = 0;
 
 export interface PersistedPlayerState {
   vibeId: VibeId;
@@ -15,7 +12,6 @@ export interface PersistedPlayerState {
   volume: number;
   isMuted: boolean;
   crossfadeEnabled: boolean;
-  crossfadeMs: number;
   repeatMode: RepeatMode;
   shuffle: boolean;
 }
@@ -59,10 +55,7 @@ export function loadPlayerState(): PersistedPlayerState | null {
         ? Math.min(1, Math.max(0, parsed.volume))
         : 0.75;
 
-    const crossfadeMs =
-      typeof parsed.crossfadeMs === "number" && Number.isFinite(parsed.crossfadeMs)
-        ? Math.min(MAX_CROSSFADE_MS, Math.max(MIN_CROSSFADE_MS, parsed.crossfadeMs))
-        : DEFAULT_CROSSFADE_MS;
+    const crossfadeEnabled = parsed.crossfadeEnabled !== false;
 
     return {
       vibeId: parsed.vibeId,
@@ -70,8 +63,7 @@ export function loadPlayerState(): PersistedPlayerState | null {
       currentIndex,
       volume,
       isMuted: parsed.isMuted === true,
-      crossfadeEnabled: parsed.crossfadeEnabled !== false,
-      crossfadeMs,
+      crossfadeEnabled,
       repeatMode: isRepeatMode(parsed.repeatMode) ? parsed.repeatMode : "all",
       shuffle: parsed.shuffle === true,
     };

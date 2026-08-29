@@ -23,7 +23,6 @@ function renderSettings(overrides: Record<string, unknown> = {}) {
   const handlers = {
     onClose: vi.fn(),
     onToggleCrossfade: vi.fn(),
-    onCrossfadeMsChange: vi.fn(),
     onRepeatModeChange: vi.fn(),
     onToggleShuffle: vi.fn(),
   };
@@ -32,12 +31,10 @@ function renderSettings(overrides: Record<string, unknown> = {}) {
       isOpen
       accent="#b06cff"
       crossfadeEnabled
-      crossfadeMs={3000}
       repeatMode="all"
       shuffle={false}
       onClose={handlers.onClose}
       onToggleCrossfade={handlers.onToggleCrossfade}
-      onCrossfadeMsChange={handlers.onCrossfadeMsChange}
       onRepeatModeChange={handlers.onRepeatModeChange}
       onToggleShuffle={handlers.onToggleShuffle}
       {...overrides}
@@ -102,12 +99,10 @@ describe("SettingsOverlay", () => {
     expect(toggle).toHaveAttribute("aria-checked", "true");
   });
 
-  it("changes crossfade duration via range input", () => {
-    const handlers = renderSettings();
-    fireEvent.change(screen.getByRole("slider", { name: "Crossfade duration" }), {
-      target: { value: "5000" },
-    });
-    expect(handlers.onCrossfadeMsChange).toHaveBeenCalledWith(5000);
+  it("does not render a crossfade duration slider", () => {
+    renderSettings();
+    expect(screen.queryByRole("slider", { name: "Crossfade duration" })).toBeNull();
+    expect(screen.queryByText("Duration")).toBeNull();
   });
 
   it("closes on Escape", () => {
