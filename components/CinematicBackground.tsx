@@ -20,12 +20,32 @@ export function CinematicBackground({
 
   const currentLayerRef = useRef<HTMLDivElement>(null);
   const prevLayerRef = useRef<HTMLDivElement>(null);
+  const loadTokenRef = useRef(0);
 
+  // Swap only after the new background image has loaded, so the crossfade
+  // never reveals the black page underneath a still-fetching image.
   useEffect(() => {
     if (theme.id === currentTheme.id) return;
 
-    setPrevTheme(currentTheme);
-    setCurrentTheme(theme);
+    const token = ++loadTokenRef.current;
+
+    const probe = new window.Image();
+    probe.onload = () => {
+      if (loadTokenRef.current !== token) return;
+      setPrevTheme(currentTheme);
+      setCurrentTheme(theme);
+    };
+    probe.onerror = () => {
+      // Fall back to a hard swap even if the image fails — a stale visual is
+      // better than a frozen one.
+      if (loadTokenRef.current !== token) return;
+      setPrevTheme(currentTheme);
+      setCurrentTheme(theme);
+    };
+    probe.src = theme.background;
+    return () => {
+      loadTokenRef.current += 1;
+    };
   }, [theme, currentTheme]);
 
   // Crossfade + scale between background layers (WAAPI)
