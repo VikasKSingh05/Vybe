@@ -1,11 +1,12 @@
 "use client";
 
 import { memo, useCallback, useRef, useState } from "react";
-import { Music2, X, Play } from "lucide-react";
+import { Music2, X, Play, ThumbsUp } from "lucide-react";
 import type { PartyState } from "@/lib/party/types";
 import { AlbumArt } from "@/components/AlbumArt";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { formatTime } from "@/lib/format-time";
+import { sortQueueByVotes, voteCount, hasVoted } from "@/lib/party/votes";
 import { cn } from "@/lib/cn";
 
 interface PartyQueueProps {
@@ -16,6 +17,7 @@ interface PartyQueueProps {
   className?: string;
   onRemove: (queueId: string) => void;
   onPlayTrack?: (queueId: string) => void;
+  onVote?: (queueId: string) => void;
 }
 
 export const PartyQueue = memo(function PartyQueue({
@@ -26,8 +28,10 @@ export const PartyQueue = memo(function PartyQueue({
   className,
   onRemove,
   onPlayTrack,
+  onVote,
 }: PartyQueueProps) {
   const queue = state?.queue ?? [];
+  const displayedQueue = state ? sortQueueByVotes(queue) : [];
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const confirmingRef = useRef<string | null>(null);
   confirmingRef.current = confirmingId;
@@ -72,10 +76,12 @@ export const PartyQueue = memo(function PartyQueue({
         </div>
       ) : (
         <ul className="divide-y divide-white/5 overflow-y-auto scrollbar-hide lg:min-h-0 lg:flex-1" aria-label="Queue">
-          {queue.map((track, index) => {
+          {displayedQueue.map((track, index) => {
             const isCurrent = state?.playback?.queueId === track.queueId;
             const canRemove = isHost || track.addedBy === memberId;
             const canPlay = isHost && !isCurrent;
+            const votes = voteCount(track);
+            const voted = hasVoted(track, memberId);
             return (
               <li
                 key={track.queueId}
@@ -148,6 +154,29 @@ export const PartyQueue = memo(function PartyQueue({
                     `by ${track.addedByName}`
                   )}
                 </span>
+
+                {/* Vote */}
+                {onVote && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onVote(track.queueId); }}
+                    aria-pressed={voted}
+                    aria-label={voted ? `Remove your vote for ${track.song.title}` : `Vote for ${track.song.title}`}
+                    className={cn(
+                      "flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center gap-1 rounded-full transition-colors cursor-pointer",
+                      voted
+                        ? "text-white"
+                        : "text-white/35 hover:bg-white/10 hover:text-white",
+                    )}
+                    title={`${votes} ${votes === 1 ? "vote" : "votes"}`}
+                  >
+                    <ThumbsUp
+                      className={cn("h-3.5 w-3.5", voted && "fill-current")}
+                      style={voted ? { color: accent } : undefined}
+                    />
+                    <span className="text-[11px] font-semibold tabular-nums">{votes}</span>
+                  </button>
+                )}
 
                 {/* Remove */}
                 {canRemove && (

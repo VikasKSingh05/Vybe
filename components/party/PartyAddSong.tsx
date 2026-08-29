@@ -1,21 +1,24 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Plus, Search, Loader2, X, Check } from "lucide-react";
+import { Plus, Search, Loader2, X, Check, ThumbsUp } from "lucide-react";
 import type { Song } from "@/types/music";
+import type { PartyTrack } from "@/lib/party/types";
+import { voteCount, hasVoted } from "@/lib/party/votes";
 import { AlbumArt } from "@/components/AlbumArt";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/cn";
 
 interface PartyAddSongProps {
   accent: string;
-  queuedIds?: Set<string>;
+  queuedTracks?: Map<string, PartyTrack>;
+  memberId?: string;
   onAdd: (song: Song) => Promise<boolean>;
 }
 
 const DEBOUNCE_MS = 450;
 
-export function PartyAddSong({ accent, queuedIds, onAdd }: PartyAddSongProps) {
+export function PartyAddSong({ accent, queuedTracks, memberId, onAdd }: PartyAddSongProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Song[]>([]);
   const [searching, setSearching] = useState(false);
@@ -206,9 +209,11 @@ export function PartyAddSong({ accent, queuedIds, onAdd }: PartyAddSongProps) {
           {results.length > 0 && (
             <ul className="divide-y divide-white/5">
               {results.map((song) => {
+                const queued = queuedTracks?.get(song.id);
+                const votes = queued ? voteCount(queued) : 0;
+                const iVoted = queued ? hasVoted(queued, memberId ?? "") : false;
                 const added = addedIds.has(song.id);
                 const failed = failedIds.has(song.id);
-                const inQueue = queuedIds?.has(song.id) ?? false;
                 return (
                   <li
                     key={song.id}
@@ -222,36 +227,54 @@ export function PartyAddSong({ accent, queuedIds, onAdd }: PartyAddSongProps) {
                     />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm text-white/85">{song.title}</p>
-                      <p className="truncate text-xs text-white/40">{song.artist}</p>
+                      <p className="flex items-center gap-1.5 truncate text-xs text-white/40">
+                        <span className="truncate">{song.artist}</span>
+                        {queued && (
+                          <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-white/5 px-1.5 py-0.5 text-[9px] font-medium text-white/50">
+                            <ThumbsUp className="h-2.5 w-2.5" style={{ color: iVoted ? accent : undefined, fill: iVoted ? accent : "none" }} />
+                            {votes} {votes === 1 ? "vote" : "votes"}
+                          </span>
+                        )}
+                      </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => handleAdd(song)}
-                      disabled={added || failed || inQueue}
+                      disabled={failed || added}
                       className={cn(
                         "flex min-h-[40px] items-center gap-1 rounded-full px-3 py-2 text-[11px] font-medium transition-all duration-200 shrink-0",
-                        added
-                          ? "bg-white/10 text-white/60"
-                          : failed
-                            ? "bg-red-400/20 text-red-300"
-                            : inQueue
-                              ? "bg-white/[0.07] text-white/50 cursor-default"
+                        failed
+                          ? "bg-red-400/20 text-red-300"
+                          : added
+                            ? "bg-white/10 text-white/60 cursor-default"
+                            : queued
+                              ? "text-white hover:brightness-110 cursor-pointer"
                               : "text-black hover:brightness-110 cursor-pointer",
                       )}
-                      style={!added && !failed && !inQueue ? { backgroundColor: accent } : undefined}
+                      style={!added && !failed && !queued ? { backgroundColor: accent } : undefined}
+                      aria-pressed={queued ? iVoted : undefined}
                     >
-                      {inQueue ? (
-                        <Check className="h-3 w-3" />
+                      {failed ? (
+                        <>
+                          <X className="h-3 w-3" />
+                          Failed
+                        </>
+                      ) : added ? (
+                        <>
+                          <Check className="h-3 w-3" />
+                          Added
+                        </>
+                      ) : queued ? (
+                        <>
+                          <ThumbsUp className="h-3 w-3" style={{ fill: iVoted ? "currentColor" : "none" }} />
+                          {iVoted ? "Voted" : "Vote"}
+                        </>
                       ) : (
-                        <Plus className="h-3 w-3" />
+                        <>
+                          <Plus className="h-3 w-3" />
+                          Add
+                        </>
                       )}
-                      {inQueue
-                        ? "In queue"
-                        : added
-                          ? "Added"
-                          : failed
-                            ? "Failed"
-                            : "Add"}
                     </button>
                   </li>
                 );

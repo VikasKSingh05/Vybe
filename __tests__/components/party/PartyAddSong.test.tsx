@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, fireEvent, screen, act } from "@testing-library/react";
 import { PartyAddSong } from "@/components/party/PartyAddSong";
 import type { Song } from "@/types/music";
+import type { PartyTrack } from "@/lib/party/types";
 
 vi.mock("next/image", () => ({
   __esModule: true,
@@ -31,6 +32,20 @@ function makeSong(id: string, title: string): Song {
     artwork: "",
     duration: 200,
     provider: "jiosaavn",
+  };
+}
+
+function makeQueuedTrack(
+  song: Song,
+  votes: { memberId: string; memberName: string; votedAt: number }[],
+): PartyTrack {
+  return {
+    queueId: `q-${song.id}`,
+    song,
+    addedBy: "someone",
+    addedByName: "Someone",
+    votes,
+    played: false,
   };
 }
 
@@ -85,11 +100,12 @@ function resolveFetch(
 }
 
 describe("PartyAddSong search", () => {
-  function setup(queuedIds?: Set<string>, onAdd = vi.fn(async () => true)) {
+  function setup(queuedTracks?: Map<string, PartyTrack>, onAdd = vi.fn(async () => true)) {
     render(
       <PartyAddSong
         accent="#f97316"
-        queuedIds={queuedIds}
+        queuedTracks={queuedTracks}
+        memberId="me"
         onAdd={onAdd}
       />,
     );
@@ -166,10 +182,10 @@ describe("PartyAddSong duplicates and adding", () => {
     vi.clearAllMocks();
   });
 
-  async function searchAndShow(song: Song, queuedIds?: Set<string>) {
+  async function searchAndShow(song: Song, queuedTracks?: Map<string, PartyTrack>) {
     const onAdd = vi.fn(async () => true);
     render(
-      <PartyAddSong accent="#f97316" queuedIds={queuedIds} onAdd={onAdd} />,
+      <PartyAddSong accent="#f97316" queuedTracks={queuedTracks} memberId="me" onAdd={onAdd} />,
     );
     const input = screen.getByLabelText(/search for songs/i);
     await typeAndSearch(input, "anything");
@@ -177,11 +193,29 @@ describe("PartyAddSong duplicates and adding", () => {
     return { onAdd, input };
   }
 
-  it("disables already-queued songs as 'In queue'", async () => {
+  it("shows vote state for an already-queued song and upvotes on add", async () => {
     const song = makeSong("q1", "Queued Hit");
-    await searchAndShow(song, new Set(["q1"]));
-    const btn = screen.getByRole("button", { name: /in queue/i });
-    expect(btn.hasAttribute("disabled")).toBe(true);
+    const other = { memberId: "other", memberName: "Other", votedAt: 10 };
+    const { onAdd } = await searchAndShow(
+      song,
+      new Map([["q1", makeQueuedTrack(song, [other])]]),
+    );
+    expect(screen.getByText("1 vote")).toBeTruthy();
+    const btn = screen.getByRole("button", { name: /^vote$/i });
+    expect(btn).toBeTruthy();
+    fireEvent.click(btn);
+    expect(onAdd).toHaveBeenCalledWith(song);
+  });
+
+  it("marks a queued song as 'Voted' when the current member already voted", async () => {
+    const song = makeSong("q2", "Voted Hit");
+    const me = { memberId: "me", memberName: "Me", votedAt: 20 };
+    await searchAndShow(
+      song,
+      new Map([["q2", makeQueuedTrack(song, [me])]]),
+    );
+    expect(screen.getByRole("button", { name: /^voted$/i })).toBeTruthy();
+    expect(screen.getByText("1 vote")).toBeTruthy();
   });
 
   it("closes the dropdown on a successful add, then shows 'Added' on reopen before reverting", async () => {
@@ -207,7 +241,7 @@ describe("PartyAddSong duplicates and adding", () => {
     const song = makeSong("f1", "Failing Hit");
     const failing = vi.fn(async () => false);
     render(
-      <PartyAddSong accent="#f97316" queuedIds={undefined} onAdd={failing} />,
+      <PartyAddSong accent="#f97316" queuedTracks={undefined} memberId="me" onAdd={failing} />,
     );
     const input = screen.getByLabelText(/search for songs/i);
     await typeAndSearch(input, "anything");

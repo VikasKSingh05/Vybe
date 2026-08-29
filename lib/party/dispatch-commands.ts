@@ -3,9 +3,10 @@
  * The `apply` callback handles persistence — sync for memory, async for Redis.
  */
 import type { Song } from "@/types/music";
-import type { PartyMember, PartyState } from "./types";
+import type { PartyMember, PartyState, PartyTrack } from "./types";
 import { PARTY_EMOJIS, PARTY_MAX_QUEUE } from "./types";
 import type { DispatchResult } from "./store-interface";
+import { sortQueueByVotes } from "./votes";
 
 export type ApplyFn = (mutator: (s: PartyState) => void) => PartyState | null | Promise<PartyState | null>;
 
@@ -55,6 +56,41 @@ function currentQueueIndex(state: PartyState): number {
   return state.queue.findIndex((t) => t.queueId === state.playback?.queueId);
 }
 
+function upvoteTrack(track: PartyTrack, memberId: string, memberName: string): void {
+  const existing = track.votes.find((v) => v.memberId === memberId);
+  if (existing) {
+    // Refresh the vote timestamp so FIFO ordering reflects the latest intent.
+    existing.votedAt = Date.now();
+    existing.memberName = memberName;
+  } else {
+    track.votes.push({ memberId, memberName, votedAt: Date.now() });
+  }
+}
+
+function removeMemberVotes(state: PartyState, memberId: string): void {
+  for (const track of state.queue) {
+    track.votes = track.votes.filter((v) => v.memberId !== memberId);
+  }
+}
+
+/**
+ * Pick the next track to play using the "sorted queue + rotate" model:
+ * among tracks not yet played this round, take the highest-voted one with
+ * FIFO tie-break; if everything has played, reset the round and re-pick.
+ * Returns the queue index, or -1 when idle.
+ */
+function pickNextIndex(state: PartyState, currentIdx: number): number {
+  if (state.queue.length === 0) return -1;
+  const hasUnplayed = state.queue.some((t) => !t.played);
+  if (!hasUnplayed) {
+    for (const t of state.queue) t.played = false;
+  }
+  const ordered = sortQueueByVotes(state.queue);
+  const target = ordered.find((t) => !t.played && t.queueId !== state.playback?.queueId);
+  if (!target) return currentIdx >= 0 ? currentIdx : 0;
+  return state.queue.findIndex((t) => t.queueId === target.queueId);
+}
+
 function ok(state: PartyState): DispatchResult {
   return { ok: true, state };
 }
@@ -92,6 +128,7 @@ export function dispatchCommand(
       const wire = apply((s) => {
         s.members = s.members.filter((m) => m.id !== member.id);
         s.reactions = s.reactions.filter((r) => r.memberId !== member.id);
+        removeMemberVotes(s, member.id);
         if (s.hostId === member.id) {
           const nextHost = s.members[0] ?? null;
           if (nextHost) {
@@ -107,9 +144,17 @@ export function dispatchCommand(
       const song = payload?.song;
       if (!isValidSong(song)) return err(400, "Invalid song payload");
       if (state.queue.length >= PARTY_MAX_QUEUE) return err(429, "Queue is full");
-      if (state.queue.some((t) => t.song.id === song.id)) {
-        return err(409, "This song is already in the queue");
+
+      // De-dup: adding a song already in the queue registers/refreshes your
+      // vote on the existing entry rather than inserting a duplicate.
+      const existingIdx = state.queue.findIndex((t) => t.song.id === song.id);
+      if (existingIdx !== -1) {
+        const wire = apply((s) => {
+          upvoteTrack(s.queue[existingIdx], member.id, member.name);
+        });
+        return wire instanceof Promise ? applyAsync(wire) : applyResult(wire);
       }
+
       const wire = apply((s) => {
         s.queue.push({
           queueId: generateId(10),
@@ -125,6 +170,8 @@ export function dispatchCommand(
           },
           addedBy: member.id,
           addedByName: member.name,
+          votes: [{ memberId: member.id, memberName: member.name, votedAt: Date.now() }],
+          played: false,
         });
       });
       return wire instanceof Promise ? applyAsync(wire) : applyResult(wire);
@@ -150,13 +197,60 @@ export function dispatchCommand(
       return wire instanceof Promise ? applyAsync(wire) : applyResult(wire);
     }
 
+    case "vote": {
+      const queueId = typeof payload?.queueId === "string" ? payload.queueId : null;
+      if (!queueId) return err(400, "Missing queueId");
+      const trackIndex = state.queue.findIndex((t) => t.queueId === queueId);
+      if (trackIndex === -1) return err(404, "Track not in queue");
+      const wire = apply((s) => {
+        const track = s.queue[trackIndex];
+        if (!track) return;
+        const existingIdx = track.votes.findIndex((v) => v.memberId === member.id);
+        if (existingIdx >= 0) {
+          // Toggle: removing your vote.
+          track.votes.splice(existingIdx, 1);
+        } else {
+          track.votes.push({ memberId: member.id, memberName: member.name, votedAt: Date.now() });
+        }
+      });
+      return wire instanceof Promise ? applyAsync(wire) : applyResult(wire);
+    }
+
+    case "removeMember": {
+      const denied = requiresHost();
+      if (denied) return denied;
+      const targetMemberId =
+        typeof payload?.targetMemberId === "string" ? payload.targetMemberId : null;
+      if (!targetMemberId) return err(400, "Missing target member");
+      if (targetMemberId === member.id) return err(400, "You cannot remove yourself");
+      const target = state.members.find((m) => m.id === targetMemberId);
+      if (!target) return err(400, "That member is not in the room");
+      if (target.isHost) return err(400, "You cannot remove the host");
+      const wire = apply((s) => {
+        s.members = s.members.filter((m) => m.id !== targetMemberId);
+        s.reactions = s.reactions.filter((r) => r.memberId !== targetMemberId);
+        removeMemberVotes(s, targetMemberId);
+      });
+      return wire instanceof Promise ? applyAsync(wire) : applyResult(wire);
+    }
+
+    case "lockRoom": {
+      const denied = requiresHost();
+      if (denied) return denied;
+      const wire = apply((s) => {
+        s.locked = !s.locked;
+      });
+      return wire instanceof Promise ? applyAsync(wire) : applyResult(wire);
+    }
+
     case "next": {
       const denied = requiresHost();
       if (denied) return denied;
       const wire = apply((s) => {
         if (s.queue.length === 0) { s.playback = null; return; }
         const idx = currentQueueIndex(s);
-        startPlayback(s, (idx + 1) % s.queue.length);
+        if (idx >= 0) s.queue[idx].played = true;
+        startPlayback(s, pickNextIndex(s, idx));
       });
       return wire instanceof Promise ? applyAsync(wire) : applyResult(wire);
     }
@@ -222,6 +316,7 @@ export function dispatchCommand(
       const wire = apply((s) => {
         const idx = s.queue.findIndex((t) => t.queueId === queueId);
         if (idx === -1) return;
+        s.queue[idx].played = true;
         startPlayback(s, idx);
       });
       return wire instanceof Promise ? applyAsync(wire) : applyResult(wire);

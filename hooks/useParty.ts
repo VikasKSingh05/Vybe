@@ -66,6 +66,8 @@ export function useParty() {
   const [error, setError] = useState<string | null>(null);
   const [selfId, setSelfId] = useState<string | null>(null);
   const [lostIdentity, setLostIdentity] = useState<LostIdentity | null>(null);
+  /** True once the host removed this member from the room. */
+  const [removed, setRemoved] = useState(false);
 
   const sessionRef = useRef<PartySession | null>(null);
   const esRef = useRef<EventSource | null>(null);
@@ -97,6 +99,22 @@ export function useParty() {
       reconnectTimerRef.current = null;
     }
   }, []);
+
+  /**
+   * The host removed this member (or locked them out). Tear down the local
+   * session so the UI can surface a "you were removed" state.
+   */
+  const handleRemoved = useCallback(() => {
+    stopConnection();
+    clearSession();
+    sessionRef.current = null;
+    setRemoved(true);
+    setStatus("closed");
+    setState(null);
+    setSelfId(null);
+    setLostIdentity(null);
+    setError(null);
+  }, [stopConnection]);
 
   /**
    * EventSource hides HTTP status codes, so every drop looks identical.
@@ -155,6 +173,7 @@ export function useParty() {
       sessionRef.current = session;
       setSelfId(session.memberId);
       setLostIdentity(null);
+      setRemoved(false);
       retryRef.current = 0;
 
       const es = new EventSource(`/api/party/${session.roomId}/stream?memberId=${encodeURIComponent(session.memberId)}`);
@@ -214,10 +233,19 @@ export function useParty() {
             memberId: current.memberId,
             command: "heartbeat",
           }),
-        }).catch(() => {});
+        })
+          .then((res) => {
+            if (
+              res.status === 403 &&
+              current.roomId === sessionRef.current?.roomId
+            ) {
+              handleRemoved();
+            }
+          })
+          .catch(() => {});
       }, HEARTBEAT_MS);
     },
-    [applyState, stopConnection, handleDroppedStream],
+    [applyState, handleRemoved, stopConnection, handleDroppedStream],
   );
 
   openStreamRef.current = openStream;
@@ -316,7 +344,13 @@ export function useParty() {
           return true;
         } else {
           const data = (await res.json().catch(() => null)) as { error?: string } | null;
-          if (data?.error) setError(data.error);
+          if (data?.error) {
+            if (res.status === 403 && data.error.includes("Not a member")) {
+              handleRemoved();
+              return false;
+            }
+            setError(data.error);
+          }
           return false;
         }
       } catch {
@@ -324,7 +358,7 @@ export function useParty() {
         return false;
       }
     },
-    [applyState, status],
+    [applyState, handleRemoved, status],
   );
 
   const leaveParty = useCallback(() => {
@@ -343,6 +377,7 @@ export function useParty() {
     setState(null);
     setStatus("idle");
     setError(null);
+    setRemoved(false);
   }, [stopConnection]);
 
   const reset = useCallback(() => {
@@ -353,6 +388,7 @@ export function useParty() {
     setState(null);
     setStatus("idle");
     setError(null);
+    setRemoved(false);
   }, [stopConnection]);
 
   return {
@@ -362,6 +398,7 @@ export function useParty() {
     isHost: member?.isHost ?? false,
     error,
     lostIdentity,
+    removed,
     createParty,
     joinParty,
     send,

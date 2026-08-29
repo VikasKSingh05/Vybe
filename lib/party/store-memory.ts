@@ -48,6 +48,7 @@ function apply(roomId: string, mutator: (s: PartyState) => void): PartyState | n
   const prevReactions = state.reactions.slice();
   const prevHostId = state.hostId;
   const prevVibeId = state.vibeId;
+  const prevLocked = state.locked;
 
   mutator(state);
   state.version += 1;
@@ -65,6 +66,7 @@ function apply(roomId: string, mutator: (s: PartyState) => void): PartyState | n
     if (JSON.stringify(prevQueue) !== JSON.stringify(wire.queue)) { patch.queue = wire.queue; hasDiff = true; }
     if (prevPlayback !== state.playback) { patch.playback = wire.playback; hasDiff = true; }
     if (JSON.stringify(prevReactions) !== JSON.stringify(wire.reactions)) { patch.reactions = wire.reactions; hasDiff = true; }
+    if (prevLocked !== wire.locked) { patch.locked = wire.locked; hasDiff = true; }
 
     if (!hasDiff) return wire;
 
@@ -93,6 +95,7 @@ export const memoryStore: PartyStore = {
       queue: [],
       playback: null,
       reactions: [],
+      locked: false,
       version: 0,
       serverNow: Date.now(),
     };
@@ -104,6 +107,7 @@ export const memoryStore: PartyStore = {
   joinRoom(roomId: string, name: string) {
     const state = rooms.get(roomId);
     if (!state) return { ok: false, status: 404, error: "Room not found" };
+    if (state.locked) return { ok: false, status: 403, error: "Room is locked" };
     if (state.members.length >= PARTY_MAX_MEMBERS) {
       return { ok: false, status: 429, error: "Room is full" };
     }

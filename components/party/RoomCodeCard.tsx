@@ -1,8 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { Radio, Copy, Check, Share2, Crown, Trash2 } from "lucide-react";
-import { TransportControls } from "@/components/player/TransportControls";
+import { Radio, Copy, Check, Share2, Crown, Trash2, Lock, LockOpen } from "lucide-react";
 import { VolumeControl } from "@/components/player/VolumeControl";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { sharePartyLink } from "@/lib/party/share";
@@ -10,31 +9,27 @@ import { sharePartyLink } from "@/lib/party/share";
 interface RoomCodeCardProps {
   roomId: string;
   isHost: boolean;
+  locked: boolean;
   accent: string;
-  isPlaying: boolean;
   volume: number;
   isMuted: boolean;
-  onTogglePlay: () => void;
-  onPrev: () => void;
-  onNext: () => void;
   onVolumeChange: (v: number) => void;
   onToggleMute: () => void;
   onClearQueue: () => void;
+  onToggleLock: () => void;
 }
 
 export const RoomCodeCard = memo(function RoomCodeCard({
   roomId,
   isHost,
+  locked,
   accent,
-  isPlaying,
   volume,
   isMuted,
-  onTogglePlay,
-  onPrev,
-  onNext,
   onVolumeChange,
   onToggleMute,
   onClearQueue,
+  onToggleLock,
 }: RoomCodeCardProps) {
   const { copied, copy } = useCopyToClipboard();
 
@@ -115,16 +110,6 @@ export const RoomCodeCard = memo(function RoomCodeCard({
 
         {isHost ? (
           <div className="flex flex-col items-center justify-center gap-4">
-            <TransportControls
-              isPlaying={isPlaying}
-              disabled={false}
-              accent={accent}
-              size="sm"
-              onTogglePlay={onTogglePlay}
-              onPrev={onPrev}
-              onNext={onNext}
-            />
-
             <VolumeControl
               volume={volume}
               isMuted={isMuted}
@@ -143,6 +128,21 @@ export const RoomCodeCard = memo(function RoomCodeCard({
               >
                 <Trash2 className="h-3 w-3" />
                 Clear queue
+              </button>
+              <button
+                type="button"
+                onClick={onToggleLock}
+                aria-pressed={locked}
+                aria-label={locked ? "Unlock room" : "Lock room"}
+                title={locked ? "Unlock room" : "Lock room so no one new can join"}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 min-h-[44px] text-[11px] font-medium transition-colors cursor-pointer ${
+                  locked
+                    ? "border-amber-400/30 bg-amber-400/10 text-amber-200"
+                    : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                {locked ? <Lock className="h-3 w-3" /> : <LockOpen className="h-3 w-3" />}
+                {locked ? "Locked" : "Lock room"}
               </button>
             </div>
           </div>
