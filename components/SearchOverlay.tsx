@@ -204,6 +204,9 @@ export function SearchOverlay({
       panel.style.pointerEvents = "none";
       backdrop.style.opacity = "0";
       backdrop.style.pointerEvents = "none";
+      // Return keyboard focus to the trigger (a11y + tests). The pill uses
+      // `outline-none!` so no lingering focus border shows.
+      triggerRef.current?.focus();
     };
 
     if (prefersReducedMotion()) {
