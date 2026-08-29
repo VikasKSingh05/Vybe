@@ -23,6 +23,7 @@ function makeState(overrides: Partial<PartyState> = {}): PartyState {
     queue: [],
     playback: null,
     reactions: [],
+    locked: false,
     version: 0,
     serverNow: 0,
     ...overrides,

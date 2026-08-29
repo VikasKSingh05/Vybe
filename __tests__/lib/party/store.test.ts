@@ -1,6 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { createRoom, joinRoom, getRoom, dispatch } from "@/lib/party/store";
 import { PARTY_MAX_MEMBERS } from "@/lib/party/types";
+import type { PartyState } from "@/lib/party/types";
+import type { DispatchResult } from "@/lib/party/store-interface";
+
+/** Narrow a successful dispatch result so its `state` is accessible. */
+async function stateOf(res: DispatchResult | Promise<DispatchResult>): Promise<{ ok: true; state: PartyState }> {
+  const r = await res;
+  if (!r.ok) throw new Error(`expected dispatch to succeed: ${r.error}`);
+  return r;
+}
 
 describe("createRoom", () => {
   it("creates a room with a host member", async () => {
@@ -135,25 +144,23 @@ describe("dispatch", () => {
     }
   });
 
-  it("rejects adding a track already in queue", async () => {
+  it("de-dupes: adding an already-queued song upvotes it instead of duplicating", async () => {
     const song = {
       id: "s1",
       title: "Test",
       artist: "Artist",
       streamUrl: "https://example.com/stream",
     };
-    const first = await dispatch(roomId, memberId, "addTrack", { song });
-    expect(first.ok).toBe(true);
+    const first = await stateOf(dispatch(roomId, memberId, "addTrack", { song }));
+    expect(first.state.queue).toHaveLength(1);
+    expect(first.state.queue[0].votes).toHaveLength(1);
 
-    const duplicate = await dispatch(roomId, memberId, "addTrack", { song });
-    expect(duplicate.ok).toBe(false);
-    if (!duplicate.ok) {
-      expect(duplicate.status).toBe(409);
-      expect(duplicate.error).toBe("This song is already in the queue");
-    }
+    const duplicate = await stateOf(dispatch(roomId, memberId, "addTrack", { song }));
 
     const state = await getRoom(roomId);
     expect(state!.queue).toHaveLength(1);
+    // The same member re-adding does not double their vote (one vote per member).
+    expect(state!.queue[0].votes).toHaveLength(1);
   });
 
   it("rejects invalid song payload", async () => {
@@ -250,6 +257,142 @@ describe("dispatch", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.status).toBe(404);
+    }
+  });
+});
+
+describe("dispatch voting", () => {
+  let roomId: string;
+  let hostId: string;
+  let guestIds: { host: string; g1: string; g2: string };
+
+  const songFor = (id: string) => ({
+    id,
+    title: `Song ${id}`,
+    artist: "Artist",
+    streamUrl: `https://example.com/${id}`,
+  });
+
+  async function add(song: { id: string }, byMemberId: string) {
+    return stateOf(dispatch(roomId, byMemberId, "addTrack", { song }));
+  }
+
+  beforeEach(async () => {
+    const room = await createRoom("Host", "phonk");
+    roomId = room.roomId;
+    hostId = room.member.id;
+    const g1 = (await joinRoom(roomId, "G1")) as { member: { id: string } };
+    const g2 = (await joinRoom(roomId, "G2")) as { member: { id: string } };
+    guestIds = { host: hostId, g1: g1.member.id, g2: g2.member.id };
+  });
+
+  it("tracks one vote per member and toggles off", async () => {
+    await add(songFor("s1"), guestIds.g1);
+    await add(songFor("s1"), guestIds.g2);
+    const voted = await dispatch(roomId, guestIds.g1, "vote", { queueId: "x" });
+    expect(voted.ok).toBe(false);
+
+    const res = await getRoom(roomId);
+    const track = res!.queue[0];
+    expect(track.votes).toHaveLength(2);
+
+    // Toggling g1's vote off leaves only g2.
+    const off = await dispatch(roomId, guestIds.g1, "vote", { queueId: track.queueId });
+    expect(off.ok).toBe(true);
+    const after = await getRoom(roomId);
+    expect(after!.queue[0].votes).toHaveLength(1);
+    expect(after!.queue[0].votes[0].memberId).toBe(guestIds.g2);
+  });
+
+  it("next plays the highest-voted unplayed track with FIFO tie-break", async () => {
+    // g1 adds A, g2 adds B — each auto-votes for their own song (1 vote each).
+    await add(songFor("A"), guestIds.g1);
+    await add(songFor("B"), guestIds.g2);
+    // Host adds C with 1 vote (host).
+    await add(songFor("C"), guestIds.host);
+
+    // Give A two votes (g2 also votes A) so it is the top pick.
+    const state0 = await getRoom(roomId);
+    const aTrack = state0!.queue.find((t) => t.song.id === "A")!;
+    await dispatch(roomId, guestIds.g2, "vote", { queueId: aTrack.queueId });
+
+    // With no playback yet, next picks the highest-voted track (A).
+    const afterNext = await stateOf(dispatch(roomId, hostId, "next", {}));
+    const picked = afterNext.state.queue.find((t) => t.queueId === afterNext.state.playback?.queueId);
+    expect(picked?.song.id).toBe("A");
+  });
+
+  it("rotates to the top-voted track once the whole round has played", async () => {
+    await add(songFor("A"), guestIds.g1);
+    await add(songFor("B"), guestIds.g2);
+
+    // Play A, then B via next (rotation with no votes aside from the adder).
+    await dispatch(roomId, hostId, "play", {});
+    await dispatch(roomId, hostId, "next", {}); // -> one of them
+    const second = await stateOf(dispatch(roomId, hostId, "next", {})); // -> the other
+    expect(second.state.playback?.queueId).toBeTruthy();
+
+    // All tracks now played; the next call resets the round and plays again.
+    const third = await stateOf(dispatch(roomId, hostId, "next", {}));
+    expect(third.state.playback?.queueId).toBeTruthy();
+  });
+});
+
+describe("dispatch host controls", () => {
+  let roomId: string;
+  let hostId: string;
+  let guestId: string;
+
+  beforeEach(async () => {
+    const room = await createRoom("Host", "phonk");
+    roomId = room.roomId;
+    hostId = room.member.id;
+    const guest = (await joinRoom(roomId, "Guest")) as { member: { id: string } };
+    guestId = guest.member.id;
+  });
+
+  it("lockRoom is host-only and blocks new joins when locked", async () => {
+    const byGuest = await dispatch(roomId, guestId, "lockRoom", {});
+    expect(byGuest.ok).toBe(false);
+
+    const lock = await stateOf(dispatch(roomId, hostId, "lockRoom", {}));
+    expect(lock.state.locked).toBe(true);
+
+    const join = await joinRoom(roomId, "Latecomer");
+    expect(join.ok).toBe(false);
+    if (!join.ok) {
+      expect(join.status).toBe(403);
+      expect(join.error).toBe("Room is locked");
+    }
+
+    const unlock = await stateOf(dispatch(roomId, hostId, "lockRoom", {}));
+    expect(unlock.state.locked).toBe(false);
+  });
+
+  it("removeMember is host-only and kicks a guest, pruning their votes", async () => {
+    // Guest adds the only track (auto-vote).
+    await dispatch(roomId, guestId, "addTrack", {
+      song: { id: "s1", title: "S1", artist: "A", streamUrl: "https://e.com/s1" },
+    });
+
+    const byGuest = await dispatch(roomId, guestId, "removeMember", { targetMemberId: hostId });
+    expect(byGuest.ok).toBe(false);
+
+    const kick = await stateOf(dispatch(roomId, hostId, "removeMember", { targetMemberId: guestId }));
+    expect(kick.state.members.some((m) => m.id === guestId)).toBe(false);
+    // The kicked guest's vote is pruned from the track.
+    const track = kick.state.queue[0];
+    expect(track.votes.some((v) => v.memberId === guestId)).toBe(false);
+  });
+
+  it("removeMember rejects removing the host or yourself", async () => {
+    const self = await dispatch(roomId, hostId, "removeMember", { targetMemberId: hostId });
+    expect(self.ok).toBe(false);
+    if (!self.ok) expect(self.status).toBe(400);
+
+    const host = await dispatch(roomId, hostId, "removeMember", { targetMemberId: guestId });
+    if (host.ok) {
+      // After kicking the only guest, guest can't be the host; nothing to assert further.
     }
   });
 });

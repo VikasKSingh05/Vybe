@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { Crown, UserPlus } from "lucide-react";
+import { Crown, UserPlus, UserX } from "lucide-react";
 import type { PartyMember } from "@/lib/party/types";
 import { getPresence } from "@/lib/party/presence";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -18,6 +18,8 @@ interface PartyMembersProps {
   /** Present only when the viewer is the host — enables hand-over actions. */
   isHostView?: boolean;
   onHandover?: (memberId: string) => void;
+  /** Remove a guest from the room (host only). */
+  onRemoveMember?: (memberId: string) => void;
 }
 
 const AVATAR_COLORS = [
@@ -33,7 +35,7 @@ function getAvatarColor(name: string): string {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-export const PartyMembers = memo(function PartyMembers({ members, hostId, meId, serverNow, accent, loading, onInvite, isHostView, onHandover }: PartyMembersProps) {
+export const PartyMembers = memo(function PartyMembers({ members, hostId, meId, serverNow, accent, loading, onInvite, isHostView, onHandover, onRemoveMember }: PartyMembersProps) {
   return (
     <div className="h-full rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">
       <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3">
@@ -111,6 +113,19 @@ export const PartyMembers = memo(function PartyMembers({ members, hostId, meId, 
                       className="shrink-0 flex h-9 w-9 items-center justify-center rounded-full text-white/25 transition-colors hover:bg-white/5 hover:text-amber-300 cursor-pointer"
                     >
                       <Crown className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+
+                  {/* Kick (host view only, never on own row) */}
+                  {isHostView && !isHost && !isMe && onRemoveMember && (
+                    <button
+                      type="button"
+                      onClick={() => onRemoveMember(member.id)}
+                      aria-label={`Remove ${member.name} from the room`}
+                      title={`Remove ${member.name} from the room`}
+                      className="shrink-0 flex h-9 w-9 items-center justify-center rounded-full text-white/25 transition-colors hover:bg-white/5 hover:text-red-300 cursor-pointer"
+                    >
+                      <UserX className="h-3.5 w-3.5" />
                     </button>
                   )}
 

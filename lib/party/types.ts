@@ -10,11 +10,21 @@ export interface PartyMember {
   lastSeen: number;
 }
 
+export interface PartyVote {
+  memberId: string;
+  memberName: string;
+  votedAt: number;
+}
+
 export interface PartyTrack {
   queueId: string;
   song: Song;
   addedBy: string;
   addedByName: string;
+  /** One vote per member. See lib/party/votes.ts for ordering helpers. */
+  votes: PartyVote[];
+  /** Rotation flag: true once the track has played this round (see next command). */
+  played: boolean;
 }
 
 export interface PartyReaction {
@@ -51,6 +61,8 @@ export interface PartyState {
   queue: PartyTrack[];
   playback: PartyPlayback | null;
   reactions: PartyReaction[];
+  /** When true, new members can no longer join the room. */
+  locked: boolean;
   /** Monotonic version bumped on every mutation; drives SSE clients. */
   version: number;
   /** Server wall-clock at serialization time (for client clock offset). */
@@ -69,7 +81,7 @@ export const PARTY_REACTION_TTL_MS = 30 * 1000;
 export const PARTY_VIBES: VibeId[] = ["phonk", "lofi", "bollywood", "indie", "chill", "random"];
 
 /** Delta-sync patch: only fields that changed since the last broadcast. */
-export type PartyPatch = Partial<Pick<PartyState, "hostId" | "vibeId" | "members" | "queue" | "playback" | "reactions">> & {
+export type PartyPatch = Partial<Pick<PartyState, "hostId" | "vibeId" | "members" | "queue" | "playback" | "reactions" | "locked">> & {
   version: number;
   serverNow: number;
 };

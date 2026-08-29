@@ -90,7 +90,7 @@ export function createRedisStore(redis: RedisClient): PartyStore {
   }
 
   function buildPatch(
-    prev: { hostId: string; vibeId: string; members: PartyMember[]; queue: PartyTrack[]; playback: PartyState["playback"]; reactions: PartyReaction[]; version: number },
+    prev: { hostId: string; vibeId: string; members: PartyMember[]; queue: PartyTrack[]; playback: PartyState["playback"]; reactions: PartyReaction[]; locked: boolean },
     wire: PartyState,
   ): PartyPatch | null {
     const patch: PartyPatch = { version: wire.version, serverNow: Date.now() };
@@ -101,6 +101,7 @@ export function createRedisStore(redis: RedisClient): PartyStore {
     if (JSON.stringify(prev.queue) !== JSON.stringify(wire.queue)) { patch.queue = wire.queue; hasDiff = true; }
     if (JSON.stringify(prev.playback) !== JSON.stringify(wire.playback)) { patch.playback = wire.playback; hasDiff = true; }
     if (JSON.stringify(prev.reactions) !== JSON.stringify(wire.reactions)) { patch.reactions = wire.reactions; hasDiff = true; }
+    if (prev.locked !== wire.locked) { patch.locked = wire.locked; hasDiff = true; }
     return hasDiff ? patch : null;
   }
 
@@ -126,6 +127,7 @@ export function createRedisStore(redis: RedisClient): PartyStore {
       queue: state.queue.slice(),
       playback: state.playback ? { ...state.playback } : null,
       reactions: state.reactions.slice(),
+      locked: state.locked,
     };
 
     mutator(state);
@@ -160,6 +162,7 @@ export function createRedisStore(redis: RedisClient): PartyStore {
         queue: [],
         playback: null,
         reactions: [],
+        locked: false,
         version: 0,
         serverNow: Date.now(),
       };
@@ -172,6 +175,7 @@ export function createRedisStore(redis: RedisClient): PartyStore {
       return (async () => {
         const state = await loadRoom(roomId);
         if (!state) return { ok: false as const, status: 404, error: "Room not found" };
+        if (state.locked) return { ok: false as const, status: 403, error: "Room is locked" };
         if (state.members.length >= PARTY_MAX_MEMBERS) {
           return { ok: false as const, status: 429, error: "Room is full" };
         }

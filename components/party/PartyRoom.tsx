@@ -29,7 +29,7 @@ interface PartyRoomProps {
 }
 
 export function PartyRoom({ party }: PartyRoomProps) {
-  const { state, member, isHost, send, leaveParty, status, error: partyError } = party;
+  const { state, member, isHost, send, leaveParty, status, error: partyError, removed } = party;
   const router = useRouter();
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -106,6 +106,12 @@ export function PartyRoom({ party }: PartyRoomProps) {
   const handleNext = useCallback(() => { if (isHost) send("next"); }, [isHost, send]);
   const handleReact = useCallback((emoji: string) => send("reaction", { emoji }), [send]);
   const handleRemove = useCallback((queueId: string) => send("removeTrack", { queueId }), [send]);
+  const handleVote = useCallback((queueId: string) => send("vote", { queueId }), [send]);
+  const handleRemoveMember = useCallback(
+    (targetMemberId: string) => send("removeMember", { targetMemberId }),
+    [send],
+  );
+  const handleToggleLock = useCallback(() => send("lockRoom"), [send]);
 
   const handleClearQueue = useCallback(() => {
     if (!isHost) return;
@@ -138,8 +144,8 @@ export function PartyRoom({ party }: PartyRoomProps) {
     copy(`${window.location.origin}/party/${state.roomId}`);
   }, [state?.roomId, copy]);
 
-  const queuedSongIds = useMemo(
-    () => new Set(state?.queue.map((t) => t.song.id) ?? []),
+  const queuedTracks = useMemo(
+    () => new Map((state?.queue ?? []).map((t) => [t.song.id, t])),
     [state?.queue],
   );
 
@@ -165,6 +171,13 @@ export function PartyRoom({ party }: PartyRoomProps) {
       toast(`${change.hostName} is now the host`, "info");
     }
   }, [state, member?.id]);
+
+  // Surfacing a kick: the host removed this member from the room.
+  useEffect(() => {
+    if (!removed) return;
+    toast("You were removed from the room", "error");
+    router.push("/party");
+  }, [removed, router]);
 
   // Track the server clock so presence dots stay truthful between patches,
   // and re-render periodically as heartbeats age members in and out.
@@ -225,16 +238,14 @@ export function PartyRoom({ party }: PartyRoomProps) {
             <RoomCodeCard
               roomId={state?.roomId ?? ""}
               isHost={isHost}
+              locked={state?.locked ?? false}
               accent={theme.accent}
-              isPlaying={audio.isPlaying}
               volume={audio.volume}
               isMuted={audio.isMuted}
-              onTogglePlay={handleTogglePlay}
-              onPrev={handlePrev}
-              onNext={handleNext}
               onVolumeChange={audio.setVolume}
               onToggleMute={audio.toggleMute}
               onClearQueue={handleClearQueue}
+              onToggleLock={handleToggleLock}
             />
           </div>
 
@@ -264,6 +275,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
               memberId={member?.id ?? ""}
               onRemove={handleRemove}
               onPlayTrack={handlePlayTrack}
+              onVote={handleVote}
             />
           </div>
 
@@ -280,6 +292,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
                 onInvite={handleInvite}
                 isHostView={isHost}
                 onHandover={handleHandover}
+                onRemoveMember={handleRemoveMember}
               />
             </div>
             <div className="scrollbar-hide lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
@@ -295,7 +308,8 @@ export function PartyRoom({ party }: PartyRoomProps) {
           <div className="w-full max-w-lg">
             <PartyAddSong
               accent={theme.accent}
-              queuedIds={queuedSongIds}
+              queuedTracks={queuedTracks}
+              memberId={member?.id ?? ""}
               onAdd={(song) => send("addTrack", { song })}
             />
           </div>
