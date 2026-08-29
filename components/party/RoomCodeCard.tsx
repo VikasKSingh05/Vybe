@@ -5,6 +5,7 @@ import { Radio, Copy, Check, Share2, Crown, Trash2 } from "lucide-react";
 import { TransportControls } from "@/components/player/TransportControls";
 import { VolumeControl } from "@/components/player/VolumeControl";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import { sharePartyLink } from "@/lib/party/share";
 
 interface RoomCodeCardProps {
   roomId: string;
@@ -39,18 +40,7 @@ export const RoomCodeCard = memo(function RoomCodeCard({
 
   const handleCopy = () => copy(roomId.toUpperCase());
 
-  const handleShare = async () => {
-    const url = `${typeof window !== "undefined" ? window.location.origin : ""}/party/${roomId}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "Join my VYBE Party", url });
-      } catch {
-        // user cancelled or error
-      }
-    } else {
-      copy(url);
-    }
-  };
+  const handleShare = () => { sharePartyLink(roomId); };
 
   return (
     <div className="h-full flex flex-col justify-center rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">

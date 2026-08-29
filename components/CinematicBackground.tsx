@@ -82,6 +82,13 @@ export function CinematicBackground({
         className,
       )}
     >
+      {/* Instant gradient fallback — visible while the image loads */}
+      <div
+        className="absolute inset-0 z-0"
+        style={{ background: currentTheme.overlay }}
+        aria-hidden="true"
+      />
+
       {/* Previous background layer fading out */}
       {prevTheme && (
         <div

@@ -353,7 +353,7 @@ export function SearchOverlay({
         ref={triggerRef}
         type="button"
         onClick={handleOpen}
-        className="flex min-h-[44px] w-full max-w-xl items-center justify-center gap-2.5 rounded-full border border-white/10 bg-black/30 px-4 py-2.5 text-center text-xs text-white/40 backdrop-blur-md transition-colors hover:border-white/20 hover:bg-black/40 hover:text-white/60 cursor-pointer"
+        className="flex min-h-[44px] w-full max-w-xl items-center justify-center gap-2.5 rounded-full border border-white/10 bg-black/30 px-4 py-2.5 text-center text-xs text-white/40 backdrop-blur-md transition-colors hover:border-white/20 hover:bg-black/40 hover:text-white/60 cursor-pointer focus-visible:outline-none"
       >
         <Search className="h-3.5 w-3.5 shrink-0" />
         <span>Search for songs...</span>
