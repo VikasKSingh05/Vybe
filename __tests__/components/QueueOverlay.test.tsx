@@ -82,3 +82,103 @@ describe("QueueOverlay keyboard reorder", () => {
     expect(screen.getByRole("status")).toBeTruthy();
   });
 });
+
+describe("QueueOverlay play selection + keyboard isolation", () => {
+  function setup() {
+    return render(
+      <QueueOverlay
+        queue={[makeItem("a", "Alpha"), makeItem("b", "Bravo")]}
+        currentIndex={0}
+        accent="#ffffff"
+        isOpen={true}
+        onClose={vi.fn()}
+        onRemove={vi.fn()}
+        onPlayItem={vi.fn()}
+      />,
+    );
+  }
+
+  it("blurs the item button after selecting so a follow-up Space cannot re-trigger it", () => {
+    const onPlayItem = vi.fn();
+    render(
+      <QueueOverlay
+        queue={[makeItem("a", "Alpha")]}
+        currentIndex={0}
+        accent="#ffffff"
+        isOpen={true}
+        onClose={vi.fn()}
+        onRemove={vi.fn()}
+        onPlayItem={onPlayItem}
+      />,
+    );
+
+    const playButton = screen.getByRole("button", { name: "Play Alpha" });
+    playButton.focus();
+    fireEvent.click(playButton);
+    expect(onPlayItem).toHaveBeenCalledTimes(1);
+    // Selection moves focus off the button.
+    expect(document.activeElement).not.toBe(playButton);
+
+    // A subsequent Space keydown (native reactivation path) must not fire
+    // onPlayItem again.
+    fireEvent.keyDown(playButton, { key: " " });
+    expect(onPlayItem).toHaveBeenCalledTimes(1);
+  });
+
+  function mockAnimate(): ReturnType<typeof vi.fn> {
+    const animate = vi.fn(() => ({ cancel: vi.fn(), finished: Promise.resolve() }));
+    Object.defineProperty(Element.prototype, "animate", {
+      configurable: true,
+      value: animate,
+      writable: true,
+    });
+    return animate;
+  }
+
+  it("never animates on initial mount while closed (no flash), even under double effect", () => {
+    const animate = mockAnimate();
+
+    render(
+      <QueueOverlay
+        queue={[makeItem("a", "Alpha"), makeItem("b", "Bravo")]}
+        currentIndex={0}
+        accent="#ffffff"
+        isOpen={false}
+        onClose={vi.fn()}
+        onRemove={vi.fn()}
+        onPlayItem={vi.fn()}
+      />,
+    );
+
+    expect(animate).not.toHaveBeenCalled();
+  });
+
+  it("animates once when the overlay is actually opened", () => {
+    const animate = mockAnimate();
+
+    const { rerender } = render(
+      <QueueOverlay
+        queue={[makeItem("a", "Alpha"), makeItem("b", "Bravo")]}
+        currentIndex={0}
+        accent="#ffffff"
+        isOpen={false}
+        onClose={vi.fn()}
+        onRemove={vi.fn()}
+        onPlayItem={vi.fn()}
+      />,
+    );
+    rerender(
+      <QueueOverlay
+        queue={[makeItem("a", "Alpha"), makeItem("b", "Bravo")]}
+        currentIndex={0}
+        accent="#ffffff"
+        isOpen={true}
+        onClose={vi.fn()}
+        onRemove={vi.fn()}
+        onPlayItem={vi.fn()}
+      />,
+    );
+
+    expect(animate).toHaveBeenCalledTimes(2); // backdrop + panel
+  });
+});
