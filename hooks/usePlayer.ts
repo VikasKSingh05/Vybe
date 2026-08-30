@@ -226,8 +226,27 @@ export function usePlayer({
 
   loadSongAtIndexRef.current = loadSongAtIndex;
 
-  // Preload the active (or restored) track for display without autoplay
+  // Preload the active (or restored) track for display without autoplay.
+  // With SSR the persisted session isn't readable on the server, so apply it
+  // here on the client after hydration. Idempotent for pure client mounts.
   useEffect(() => {
+    const stored = loadPlayerState();
+    if (stored && stored.playlist.length > 0) {
+      setVibeId(stored.vibeId);
+      setPlaylist(stored.playlist);
+      setCurrentIndex(stored.currentIndex);
+      setVolumeState(stored.volume);
+      setIsMutedState(stored.isMuted);
+      setCrossfadeEnabled(stored.crossfadeEnabled);
+      setRepeatMode(stored.repeatMode);
+      setShuffle(stored.shuffle);
+      activePlaylistRef.current = stored.playlist;
+      currentIndexRef.current = stored.currentIndex;
+      vibeIdRef.current = stored.vibeId;
+      repeatModeRef.current = stored.repeatMode;
+      loadSongAtIndex(stored.currentIndex, false);
+      return;
+    }
     loadSongAtIndex(currentIndex, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Song } from "@/types/music";
 import { Background } from "@/components/Background";
-import { LandingReveal } from "@/components/LandingReveal";
 import { FloatingPlayer } from "@/components/FloatingPlayer";
 import { GenrePills } from "@/components/GenrePills";
 import { Header } from "@/components/Header";
@@ -155,7 +154,6 @@ export function VybeApp() {
   return (
     <div className="relative min-h-dvh overflow-hidden text-white font-sans antialiased select-none">
       <Background theme={player.theme} />
-      <LandingReveal accent={player.theme.accent} />
       <Header />
 
       <main
