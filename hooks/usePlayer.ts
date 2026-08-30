@@ -17,7 +17,7 @@ import {
   type RepeatMode,
 } from "@/lib/player-modes";
 
-const CROSSFADE_MS = 3000;
+const CROSSFADE_MS = 2000;
 
 interface UsePlayerOptions {
   initialVibeId?: VibeId;
@@ -112,7 +112,9 @@ export function usePlayer({
         getActiveAudio()?.pause();
         return;
       }
-      loadSongAtIndexRef.current?.(advance, true);
+      // Automatic track transition (natural end / random auto-advance):
+      // crossfade into the next track, keep the old one fading out.
+      loadSongAtIndexRef.current?.(advance, true, { crossfade: true });
     },
     onError: () => {
       const audio = getActiveAudio();
@@ -193,13 +195,14 @@ export function usePlayer({
       setExtraLoading(true);
       setErrorState(null);
 
-      // Crossfade only when an existing track is actually playing and this is
-      // not an explicit hard switch (e.g. a vibe change).
+      // Crossfade ONLY on automatic transitions (natural end / random advance),
+      // which pass { crossfade: true }. Every user-initiated track change omits
+      // the flag and therefore hard-switches (stopping any in-flight crossfade).
       const willCrossfade =
-        options?.crossfade !== false && crossfadeEnabled && isPlaying;
+        options?.crossfade === true && crossfadeEnabled;
       if (!willCrossfade) {
-        // Stop and clear BOTH elements (aborting any pending load/play) and
-        // re-center on the primary element before loading the new source.
+        // Stop and clear BOTH elements (aborting any pending crossfade/load/
+        // play) and re-center on the primary element before the new source.
         stopPlayback();
       }
 
@@ -258,7 +261,7 @@ export function usePlayer({
           .catch(() => {});
       }
     },
-    [resolveSong, preloadNextSong, userInteracted, stopPlayback, getActiveAudio, crossfadeEnabled, isPlaying, isMuted, volume, crossfadeTo],
+    [resolveSong, preloadNextSong, userInteracted, stopPlayback, getActiveAudio, crossfadeEnabled, isMuted, volume, crossfadeTo],
   );
 
   loadSongAtIndexRef.current = loadSongAtIndex;
@@ -411,7 +414,7 @@ export function usePlayer({
           vibeGenerationRef.current === generation &&
           playbackRequestIdRef.current === requestId
         ) {
-          loadSongAtIndexRef.current?.(0, true, { crossfade: false });
+          loadSongAtIndexRef.current?.(0, true);
         }
       }, 50);
     },
