@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { VibeId } from "@/data/types";
-import { vibeThemes } from "@/data/vibes";
+import { vibeThemes, getVibeTheme } from "@/data/vibes";
 import { prefersReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/cn";
 
@@ -12,6 +12,16 @@ interface GenrePillsProps {
   accent: string;
   className?: string;
   searchOverlay?: React.ReactNode;
+}
+
+const backgroundCache = new Set<string>();
+
+function preloadBackground(url: string) {
+  if (backgroundCache.has(url)) return;
+  const img = new window.Image();
+  img.onload = () => backgroundCache.add(url);
+  img.onerror = () => backgroundCache.add(url);
+  img.src = url;
 }
 
 export function GenrePills({
@@ -35,6 +45,11 @@ export function GenrePills({
     return () => anim.cancel();
   }, [activeId]);
 
+  const handleVibeHover = (vibeId: VibeId) => {
+    const theme = getVibeTheme(vibeId);
+    preloadBackground(theme.background);
+  };
+
   return (
     <div
       className={cn(
@@ -48,18 +63,20 @@ export function GenrePills({
         aria-label="Select vibe"
         className="flex flex-wrap items-center justify-center gap-2 py-2 px-1"
       >
-        {vibeThemes.map((vibe) => {
-          const isActive = vibe.id === activeId;
-          return (
-            <button
-              key={vibe.id}
-              data-vibe-id={vibe.id}
-              type="button"
-              role="radio"
-              aria-checked={isActive}
-              aria-label={`${vibe.label} vibe${isActive ? " (selected)" : ""}`}
-              onClick={() => onChange(vibe.id)}
-              className={cn(
+{vibeThemes.map((vibe) => {
+            const isActive = vibe.id === activeId;
+            return (
+              <button
+                key={vibe.id}
+                data-vibe-id={vibe.id}
+                type="button"
+                role="radio"
+                aria-checked={isActive}
+                aria-label={`${vibe.label} vibe${isActive ? " (selected)" : ""}`}
+                onClick={() => onChange(vibe.id)}
+                onMouseEnter={() => handleVibeHover(vibe.id)}
+                onFocus={() => handleVibeHover(vibe.id)}
+                className={cn(
                 "group relative shrink-0 rounded-full px-4 py-2.5 min-h-[44px] text-[11px] font-medium tracking-[0.2em] uppercase transition-all duration-300 ease-out cursor-pointer",
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
                 isActive

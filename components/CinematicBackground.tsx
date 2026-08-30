@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import type { VibeTheme } from "@/data/types";
 import { prefersReducedMotion } from "@/lib/motion";
@@ -24,25 +24,48 @@ export function CinematicBackground({
   const loadTokenRef = useRef(0);
   const currentThemeIdRef = useRef(theme.id);
   const loadedRef = useRef(new Set<string>());
+  const isMountedRef = useRef(false);
 
-  // Swap the theme immediately so the vibe UI (tint, gradient, pills)
-  // responds without waiting for the background image. The new image is
-  // warmed in the browser cache and the crossfade is gated on readiness.
+  // Preload a background image
+  const preloadBackground = useCallback((url: string) => {
+    if (loadedRef.current.has(url)) return;
+    const probe = new window.Image();
+    probe.onload = () => {
+      loadedRef.current.add(url);
+    };
+    probe.onerror = () => {
+      loadedRef.current.add(url);
+    };
+    probe.src = url;
+  }, []);
+
+  // Swap theme immediately for UI responsiveness; crossfade gated on image readiness
   useEffect(() => {
     if (theme.id === currentThemeIdRef.current) return;
 
     const token = ++loadTokenRef.current;
     currentThemeIdRef.current = theme.id;
 
+    // If we haven't mounted yet, just swap immediately without animation
+    if (!isMountedRef.current) {
+      setCurrentTheme(theme);
+      setPrevTheme(null);
+      setCurrentReady(true);
+      return;
+    }
+
+    // Move current to prev, set new current
     setPrevTheme(currentTheme);
     setCurrentTheme(theme);
     setCurrentReady(false);
 
+    // Check if already loaded
     if (loadedRef.current.has(theme.background)) {
       setCurrentReady(true);
       return;
     }
 
+    // Load new background in background
     const probe = new window.Image();
     probe.onload = () => {
       if (loadTokenRef.current !== token) return;
@@ -50,7 +73,6 @@ export function CinematicBackground({
       setCurrentReady(true);
     };
     probe.onerror = () => {
-      // Fall back to the gradient-only layer if the image cannot load.
       if (loadTokenRef.current !== token) return;
       loadedRef.current.add(theme.background);
       setCurrentReady(true);
@@ -62,15 +84,27 @@ export function CinematicBackground({
     };
   }, [theme]);
 
-  // Crossfade + scale between background layers (WAAPI), only once the new
-  // background image is cached. Before that, hold the previous image fully
-  // visible so the old vibe never dips into black.
+  // Crossfade animation when new background is ready
   useEffect(() => {
     const current = currentLayerRef.current;
     const prev = prevLayerRef.current;
     if (!current) return;
 
+    // On first mount, no animation needed
+    if (!isMountedRef.current) {
+      isMountedRef.current = true;
+      current.style.opacity = "1";
+      current.style.transform = "none";
+      if (prev) {
+        prev.style.opacity = "0";
+        prev.style.transform = "none";
+      }
+      return;
+    }
+
+    // Wait for new image to be ready before starting crossfade
     if (!currentReady) {
+      // Keep prev layer visible, current layer hidden until ready
       current.style.opacity = "0";
       current.style.transform = "none";
       if (prev) {
@@ -80,11 +114,11 @@ export function CinematicBackground({
       return;
     }
 
-    // Resting state after the transition completes.
+    // Resting state after transition
     current.style.opacity = "1";
     current.style.transform = "none";
 
-    // First mount — nothing to fade from.
+    // Nothing to fade from
     if (!prev || prefersReducedMotion()) {
       setPrevTheme(null);
       return;
@@ -98,6 +132,7 @@ export function CinematicBackground({
       {
         duration: 850,
         easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+        fill: "forwards",
       },
     );
 
@@ -112,6 +147,7 @@ export function CinematicBackground({
         fill: "forwards",
       },
     );
+
     outAnim.finished
       .then(() => setPrevTheme(null))
       .catch(() => {});
@@ -121,6 +157,20 @@ export function CinematicBackground({
       outAnim.cancel();
     };
   }, [currentTheme, currentReady]);
+
+  // Expose preload function for GenrePills to use
+  useEffect(() => {
+    // Preload all vibe backgrounds on mount for instant transitions
+    const backgrounds = [
+      "/backgrounds/bg-phonk.jpg",
+      "/backgrounds/lofi.png",
+      "/backgrounds/bolly.jpg",
+      "/backgrounds/mountains.jpg",
+      "/backgrounds/chill.jpg",
+      "/backgrounds/fields.jpg",
+    ];
+    backgrounds.forEach(preloadBackground);
+  }, [preloadBackground]);
 
   return (
     <div
@@ -159,10 +209,9 @@ export function CinematicBackground({
         </div>
       )}
 
-      {/* Current background layer fading in */}
+      {/* Current background layer fading in - NO key prop to prevent remount */}
       <div
         ref={currentLayerRef}
-        key={currentTheme.id}
         className="absolute inset-0 z-10"
         aria-hidden="true"
       >

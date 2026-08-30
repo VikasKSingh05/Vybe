@@ -49,7 +49,6 @@ export function QueueOverlay({
   const backdropRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const hasMounted = useRef(false);
   const listRef = useRef<HTMLUListElement>(null);
   const rowRefs = useRef<(HTMLLIElement | null)[]>([]);
   const dragState = useRef<DragState | null>(null);
@@ -58,6 +57,7 @@ export function QueueOverlay({
     velocity: 0,
   });
   const [moveNote, setMoveNote] = useState("");
+  const wasOpenRef = useRef(isOpen);
 
   const canReorder = Boolean(onReorder) && queue.length > 1;
 
@@ -115,13 +115,17 @@ export function QueueOverlay({
   useEffect(() => () => stopAutoScroll(), [stopAutoScroll]);
 
   useEffect(() => {
-    if (!hasMounted.current) {
-      hasMounted.current = true;
-      return;
-    }
     const panel = panelRef.current;
     const backdrop = backdropRef.current;
     if (!panel || !backdrop) return;
+
+    // Only animate on actual open/close changes, not on initial mount.
+    // On mount with isOpen=false, inline styles already match closed state.
+    if (wasOpenRef.current === isOpen) {
+      wasOpenRef.current = isOpen;
+      return;
+    }
+    wasOpenRef.current = isOpen;
 
     // Inline styles keep the closed state; every transition defines both
     // endpoints explicitly, so cancelling a finished animation never flickers.

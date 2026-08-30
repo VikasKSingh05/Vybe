@@ -9,6 +9,8 @@ export interface ShortcutHandlers {
   onNext: () => void;
   onPrev: () => void;
   onToggleMute: () => void;
+  /** If true, all keyboard shortcuts are disabled (e.g., when an overlay is open). */
+  isOverlayOpen?: boolean;
 }
 
 const SEEK_STEP_S = 5;
@@ -56,6 +58,9 @@ export function useKeyboardShortcuts(handlers: ShortcutHandlers): void {
     function onKeyDown(e: KeyboardEvent): void {
       // Never hijack browser/OS combos
       if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      // Disable all shortcuts when any overlay is open
+      if (handlersRef.current.isOverlayOpen) return;
 
       const target = e.target;
       if (isTypingTarget(target)) return;

@@ -19,6 +19,7 @@ interface UseAudioElementReturn {
   duration: number;
   isPlaying: boolean;
   isLoading: boolean;
+  isCrossfading: boolean;
   crossfadeTo: (src: string, fadeMs?: number) => void;
 }
 
@@ -29,6 +30,7 @@ export function useAudioElement(handlers: AudioEventHandlers = {}): UseAudioElem
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCrossfading, setIsCrossfading] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const secondaryRef = useRef<HTMLAudioElement | null>(null);
   const activeIsPrimaryRef = useRef(true);
@@ -129,6 +131,11 @@ export function useAudioElement(handlers: AudioEventHandlers = {}): UseAudioElem
     incoming.src = src;
     incoming.load();
 
+    // Ensure outgoing is paused before starting crossfade to prevent double play
+    outgoing.pause();
+
+    setIsCrossfading(true);
+
     const startFade = () => {
       const steps = 20;
       const stepDuration = fadeMs / steps;
@@ -159,10 +166,13 @@ export function useAudioElement(handlers: AudioEventHandlers = {}): UseAudioElem
           }
           activeIsPrimaryRef.current = !activeIsPrimaryRef.current;
           crossfadeTimerRef.current = null;
+          setIsCrossfading(false);
         }
       };
 
-      incoming.play().then(() => tick()).catch(() => {});
+      incoming.play().then(() => tick()).catch(() => {
+        setIsCrossfading(false);
+      });
     };
 
     if (incoming.readyState >= 2) {
@@ -172,5 +182,5 @@ export function useAudioElement(handlers: AudioEventHandlers = {}): UseAudioElem
     }
   }, []);
 
-  return { audioRef, currentTime, duration, isPlaying, isLoading, crossfadeTo };
+  return { audioRef, currentTime, duration, isPlaying, isLoading, isCrossfading, crossfadeTo };
 }

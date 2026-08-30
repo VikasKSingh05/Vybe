@@ -138,7 +138,7 @@ export const FloatingPlayer = memo(function FloatingPlayer({
             onNext={onNext}
           />
 
-          <div className="flex items-center gap-1 justify-end sm:w-20">
+          <div className="flex items-center gap-1 justify-end w-full sm:w-auto">
             {onToggleQueue && (
               <button
                 type="button"

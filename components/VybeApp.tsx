@@ -15,10 +15,11 @@ import { usePlayer } from "@/hooks/usePlayer";
 import { useSearch } from "@/hooks/useSearch";
 import { useMediaSession } from "@/hooks/useMediaSession";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { OverlayProvider } from "@/components/OverlayContext";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/cn";
 
-export function VybeApp() {
+function VybeAppInner() {
   const player = usePlayer({ initialVibeId: "bollywood", autoPlay: false });
   const search = useSearch();
 
@@ -140,6 +141,8 @@ export function VybeApp() {
     onSeek: player.seek,
   });
 
+  const anyOverlayOpen = queueOpen || searchOpen || settingsOpen;
+
   useKeyboardShortcuts({
     onTogglePlay: player.togglePlay,
     onSeek: (delta) =>
@@ -149,6 +152,7 @@ export function VybeApp() {
     onNext: player.next,
     onPrev: player.prev,
     onToggleMute: player.toggleMute,
+    isOverlayOpen: anyOverlayOpen,
   });
 
   return (
@@ -224,6 +228,14 @@ export function VybeApp() {
 
       <TrackAnnouncer title={player.track?.title} artist={player.track?.artist} />
     </div>
+  );
+}
+
+export function VybeApp() {
+  return (
+    <OverlayProvider>
+      <VybeAppInner />
+    </OverlayProvider>
   );
 }
 

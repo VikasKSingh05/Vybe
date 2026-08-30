@@ -70,7 +70,7 @@ export function usePlayer({
   const fetchRandomSongInProgressRef = useRef(false);
   const fetchRandomSongRef = useRef<(() => Promise<void>) | null>(null);
 
-  const { audioRef, currentTime, duration, isPlaying, isLoading: audioLoading, crossfadeTo } = useAudioElement({
+  const { audioRef, currentTime, duration, isPlaying, isLoading: audioLoading, isCrossfading, crossfadeTo } = useAudioElement({
     onEnded: () => {
       const currentList = activePlaylistRef.current;
       if (currentList.length === 0) {
@@ -389,6 +389,9 @@ export function usePlayer({
     const audio = audioRef.current;
     if (!audio) return;
 
+    // Guard: don't allow toggle during crossfade or loading to prevent double-play
+    if (isCrossfading || audioLoading) return;
+
     if (isPlaying) {
       audio.pause();
     } else {
@@ -402,12 +405,14 @@ export function usePlayer({
         audio.play().catch(() => {});
       }
     }
-  }, [isPlaying, currentSong, currentIndex, loadSongAtIndex, audioRef]);
+  }, [isPlaying, isCrossfading, audioLoading, currentSong, currentIndex, loadSongAtIndex, audioRef]);
 
   const play = useCallback(() => {
     setUserInteracted(true);
     const audio = audioRef.current;
     if (!audio) return;
+    // Guard: don't allow play during crossfade or loading
+    if (isCrossfading || audioLoading) return;
     if (!currentSong || !audio.src) {
       if (vibeIdRef.current === "random" && activePlaylistRef.current.length === 0) {
         fetchRandomSongRef.current?.();
@@ -417,7 +422,7 @@ export function usePlayer({
     } else {
       audio.play().catch(() => {});
     }
-  }, [currentSong, currentIndex, loadSongAtIndex, audioRef]);
+  }, [currentSong, currentIndex, loadSongAtIndex, audioRef, isCrossfading, audioLoading]);
 
   const pause = useCallback(() => {
     if (audioRef.current) {
@@ -571,6 +576,7 @@ export function usePlayer({
     track,
     isPlaying,
     isLoading: extraLoading || audioLoading,
+    isCrossfading,
     error: errorState,
     currentTime: clampedTime,
     duration: currentDuration,

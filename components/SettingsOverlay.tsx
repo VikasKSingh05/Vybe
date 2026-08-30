@@ -39,6 +39,7 @@ export function SettingsOverlay({
   const panelRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const wasOpenRef = useRef(isOpen);
 
   useFocusTrap({
     containerRef: panelRef,
@@ -51,6 +52,14 @@ export function SettingsOverlay({
     const panel = panelRef.current;
     const backdrop = backdropRef.current;
     if (!panel || !backdrop) return;
+
+    // Only animate on actual open/close changes, not on initial mount.
+    // On mount with isOpen=false, inline styles already match closed state.
+    if (wasOpenRef.current === isOpen) {
+      wasOpenRef.current = isOpen;
+      return;
+    }
+    wasOpenRef.current = isOpen;
 
     if (prefersReducedMotion()) {
       panel.style.transform = isOpen ? "translateY(0)" : "translateY(100%)";
