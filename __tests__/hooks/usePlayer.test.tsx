@@ -38,7 +38,9 @@ function makeAudio(): MockAudio {
     load: vi.fn(),
     setAttribute: vi.fn(),
     getAttribute: vi.fn(() => null),
-    removeAttribute: vi.fn(),
+    removeAttribute: vi.fn(function (this: MockAudio, name: string) {
+      if (name === "src") this._src = "";
+    }),
     addEventListener: vi.fn(function (
       this: MockAudio,
       type: string,
@@ -70,6 +72,7 @@ interface Song {
   streamUrl: string;
   artwork: string;
   duration: number;
+  provider: "jiosaavn";
 }
 
 const ALL_PLAYLISTS = [
@@ -86,11 +89,16 @@ function songFor(title: string): Song {
     streamUrl: `https://audio.test/${encodeURIComponent(title)}.mp3`,
     artwork: `/covers/${title}.jpg`,
     duration: 180,
+    provider: "jiosaavn",
   };
 }
 
 function firstSongUrl(vibe: "bollywood" | "lofi" | "indie"): string {
   return songFor(getPlaylistForGenre(vibe)[0].title).streamUrl;
+}
+
+function entryUrl(vibe: "bollywood" | "lofi" | "indie", index: number): string {
+  return songFor(getPlaylistForGenre(vibe)[index].title).streamUrl;
 }
 
 function findSong(url: string): Song {
@@ -191,6 +199,50 @@ describe("usePlayer vibe-switch single-audio invariant", () => {
     });
   }
 
+  // Same as playFirstSong but leaves crossfade ENABLED, so a subsequent
+  // transition that crossfades is observable (and one that must NOT crossfade
+  // can be proven to hard-switch even with crossfade available).
+  async function playFirstWithCrossfade(host: ReturnType<typeof setup>) {
+    const r = host.result;
+    act(() => {
+      r.current.playAtIndex(0);
+    });
+    await act(async () => {
+      await waitFor(() => primary().play.mock.calls.length > 0);
+    });
+  }
+
+  // Runs a user-initiated transition (next/prev/queue/vibe/search) and asserts
+  // it is an IMMEDIATE hard switch: the active surface is stopped+cleared and
+  // the new source plays on the primary element, never crossfaded on secondary.
+  async function expectImmediateSwitch(
+    host: ReturnType<typeof setup>,
+    action: () => void,
+    expectedUrl: string,
+  ) {
+    primary().pause.mockClear();
+    primary().removeAttribute.mockClear();
+    primary().play.mockClear();
+    secondary().play.mockClear();
+    secondary().removeAttribute.mockClear();
+
+    act(() => {
+      action();
+    });
+    await act(async () => {
+      await waitFor(() => primary().src === expectedUrl);
+    });
+
+    // The old source was hard-stopped (not crossfaded into secondary).
+    expect(primary().pause).toHaveBeenCalled();
+    expect(primary().removeAttribute).toHaveBeenCalledWith("src");
+    // Exactly one source playing: the selected track on the primary surface.
+    expect(playableSrcs()).toEqual([expectedUrl]);
+    // Secondary was NOT used as a crossfade destination for the new track.
+    expect(secondary().play).not.toHaveBeenCalled();
+    expect(secondary().src).not.toBe(expectedUrl);
+  }
+
   it("switching vibe while playing stops the old source and plays only the new one", async () => {
     const host = setup();
     await playFirstSong(host);
@@ -285,5 +337,200 @@ describe("usePlayer vibe-switch single-audio invariant", () => {
     expect(host.result.current.vibeId).toBe("indie");
     const playing = playableSrcs();
     expect(playing).toEqual([firstSongUrl("indie")]);
+  });
+
+  it("natural end automatically CROSSFADES into the next track", async () => {
+    const host = setup();
+    await playFirstWithCrossfade(host);
+    primary().load.mockClear();
+    primary().removeAttribute.mockClear();
+    primary().pause.mockClear();
+    secondary().removeAttribute.mockClear();
+
+    act(() => {
+      primary().fire("ended");
+    });
+    await act(async () => {
+      await waitFor(() => secondary().src === entryUrl("bollywood", 1));
+    });
+
+    // The automatic advance loaded the NEXT track into the SECONDARY surface...
+    expect(secondary().load).toHaveBeenCalled();
+    // ...and did NOT hard-stop/clear the currently playing primary surface.
+    expect(primary().removeAttribute).not.toHaveBeenCalled();
+    expect(primary().pause).not.toHaveBeenCalled();
+    expect(host.result.current.currentIndex).toBe(1);
+  });
+
+  it("user Next immediately HARD-SWITCHES without crossfade", async () => {
+    const host = setup();
+    await playFirstWithCrossfade(host); // crossfade intentionally still enabled
+    await expectImmediateSwitch(
+      host,
+      () => host.result.current.next(),
+      entryUrl("bollywood", 1),
+    );
+    expect(host.result.current.currentIndex).toBe(1);
+  });
+
+  it("user Previous immediately HARD-SWITCHES without crossfade", async () => {
+    const host = setup();
+    await playFirstWithCrossfade(host);
+    const lastIdx = getPlaylistForGenre("bollywood").length - 1;
+    await expectImmediateSwitch(
+      host,
+      () => host.result.current.prev(),
+      entryUrl("bollywood", lastIdx),
+    );
+    expect(host.result.current.currentIndex).toBe(lastIdx);
+  });
+
+  it("queue selection immediately HARD-SWITCHES without crossfade", async () => {
+    const host = setup();
+    await playFirstWithCrossfade(host);
+    await expectImmediateSwitch(
+      host,
+      () => host.result.current.playAtIndex(2),
+      entryUrl("bollywood", 2),
+    );
+    expect(host.result.current.currentIndex).toBe(2);
+  });
+
+  it("vibe change immediately HARD-SWITCHES, cancelling an active crossfade", async () => {
+    const host = setup();
+    await playFirstWithCrossfade(host);
+
+    // Start an in-flight crossfade (natural end) so the secondary is the
+    // incoming surface. readyState=2 triggers the fade to actually begin.
+    secondary().readyState = 2;
+    act(() => {
+      primary().fire("ended");
+    });
+    await act(async () => {
+      await waitFor(() => secondary().src === entryUrl("bollywood", 1));
+    });
+    secondary().removeAttribute.mockClear();
+
+    // User changes vibe while that crossfade is in flight.
+    await expectImmediateSwitch(
+      host,
+      () => host.result.current.changeVibe("lofi"),
+      firstSongUrl("lofi"),
+    );
+    // stopPlayback() cleared the in-flight crossfade's incoming surface.
+    expect(secondary().removeAttribute).toHaveBeenCalledWith("src");
+  });
+
+  it("search selection immediately HARD-SWITCHES without crossfade", async () => {
+    const host = setup();
+    await playFirstWithCrossfade(host);
+
+    const indieEntry = getPlaylistForGenre("indie")[0];
+    const resolved = songFor(indieEntry.title);
+    const expectedUrl = resolved.streamUrl;
+
+    await expectImmediateSwitch(
+      host,
+      () => {
+        host.result.current.addToQueue(
+          {
+            jiosaavnId: resolved.id,
+            title: resolved.title,
+            artist: resolved.artist,
+            artwork: resolved.artwork,
+            duration: resolved.duration,
+          },
+          resolved,
+          true, // forcePlay == "user selected this result"
+        );
+      },
+      expectedUrl,
+    );
+    expect(host.result.current.queueItems.some((q) => q.title === indieEntry.title)).toBe(true);
+  });
+
+  it("automatic random advance CROSSFADES into the next track", async () => {
+    const host = setup();
+    // Give the random vibe a populated list (random auto-advance still routes
+    // through onEnded -> loadSongAtIndex(crossfade:true)).
+    act(() => {
+      host.result.current.changeVibe("random");
+      host.result.current.addToQueue(
+        {
+          jiosaavnId: "r1",
+          title: "Random A",
+          artist: "RA",
+          artwork: "/a.jpg",
+          duration: 180,
+        },
+        songFor("Random A"),
+        true,
+      );
+      host.result.current.addToQueue(
+        {
+          jiosaavnId: "r2",
+          title: "Random B",
+          artist: "RB",
+          artwork: "/b.jpg",
+          duration: 180,
+        },
+        songFor("Random B"),
+        false,
+      );
+      host.result.current.setCrossfadeEnabled(true);
+    });
+    await act(async () => {
+      await waitFor(() => playableSrcs().some((s) => s === songFor("Random A").streamUrl));
+    });
+
+    primary().load.mockClear();
+    primary().removeAttribute.mockClear();
+    primary().pause.mockClear();
+    secondary().removeAttribute.mockClear();
+
+    act(() => {
+      primary().fire("ended");
+    });
+    await act(async () => {
+      await waitFor(() => secondary().src === songFor("Random B").streamUrl);
+    });
+
+    expect(secondary().load).toHaveBeenCalled();
+    expect(primary().removeAttribute).not.toHaveBeenCalled();
+    expect(primary().pause).not.toHaveBeenCalled();
+  });
+
+  it("user selection during an active crossfade cancels the crossfade immediately", async () => {
+    const host = setup();
+    await playFirstWithCrossfade(host);
+
+    // Begin a natural-end crossfade (secondary becomes the incoming surface).
+    secondary().readyState = 2;
+    act(() => {
+      primary().fire("ended");
+    });
+    await act(async () => {
+      await waitFor(() => secondary().src === entryUrl("bollywood", 1));
+    });
+    secondary().removeAttribute.mockClear();
+    primary().removeAttribute.mockClear();
+    primary().pause.mockClear();
+
+    // User picks a queue song while the crossfade is in flight.
+    const chosenUrl = entryUrl("bollywood", 2);
+    act(() => {
+      host.result.current.playAtIndex(2);
+    });
+    await act(async () => {
+      await waitFor(() => primary().src === chosenUrl);
+    });
+
+    // The user selection hard-switched to the chosen song; the in-flight
+    // crossfade's incoming surface was cleared and never promoted.
+    expect(primary().pause).toHaveBeenCalled();
+    expect(primary().removeAttribute).toHaveBeenCalledWith("src");
+    expect(secondary().removeAttribute).toHaveBeenCalledWith("src");
+    expect(playableSrcs()).toEqual([chosenUrl]);
+    expect(host.result.current.currentIndex).toBe(2);
   });
 });
