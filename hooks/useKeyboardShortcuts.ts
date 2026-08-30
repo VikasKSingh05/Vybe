@@ -48,12 +48,22 @@ function isActivatingElement(target: EventTarget | null): boolean {
   );
 }
 
-export function useKeyboardShortcuts(handlers: ShortcutHandlers): void {
+export function useKeyboardShortcuts(
+  handlers: ShortcutHandlers,
+  enabled = true,
+): void {
   const handlersRef = useRef(handlers);
   handlersRef.current = handlers;
 
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
+
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent): void {
+      // While an overlay is open, player shortcuts are handled by the focused
+      // UI/overlay; never leak into the underlying player.
+      if (!enabledRef.current) return;
+
       // Never hijack browser/OS combos
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 

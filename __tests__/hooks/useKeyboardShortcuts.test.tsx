@@ -122,4 +122,53 @@ describe("useKeyboardShortcuts", () => {
     expect(latest.onTogglePlay).toHaveBeenCalledTimes(1);
     expect(handlers.onTogglePlay).not.toHaveBeenCalled();
   });
+
+  describe("when disabled (overlay open)", () => {
+    beforeEach(() => {
+      // The outer suite mounts an enabled hook sharing `handlers`; unmount it
+      // so it cannot respond to events in these isolated tests.
+      mounted.unmount();
+    });
+
+    it("does not run any player shortcuts", () => {
+      const h = createHandlers();
+      renderHook(() => useKeyboardShortcuts(h, false));
+
+      press(" ");
+      press("ArrowLeft");
+      press("ArrowRight");
+      press("n");
+      press("P");
+      press("m");
+
+      expect(h.onTogglePlay).not.toHaveBeenCalled();
+      expect(h.onSeek).not.toHaveBeenCalled();
+      expect(h.onNext).not.toHaveBeenCalled();
+      expect(h.onPrev).not.toHaveBeenCalled();
+      expect(h.onToggleMute).not.toHaveBeenCalled();
+    });
+
+    it("does not prevent default (lets the focused UI handle the key)", () => {
+      const h = createHandlers();
+      renderHook(() => useKeyboardShortcuts(h, false));
+
+      const event = press(" ");
+      expect(event.defaultPrevented).toBe(false);
+      expect(h.onTogglePlay).not.toHaveBeenCalled();
+    });
+
+    it("re-enables shortcuts when set back to true", () => {
+      const h = createHandlers();
+      const toggled = renderHook(
+        ({ on }: { on: boolean }) => useKeyboardShortcuts(h, on),
+        { initialProps: { on: false } },
+      );
+      press(" ");
+      expect(h.onTogglePlay).not.toHaveBeenCalled();
+
+      toggled.rerender({ on: true });
+      press(" ");
+      expect(h.onTogglePlay).toHaveBeenCalledTimes(1);
+    });
+  });
 });

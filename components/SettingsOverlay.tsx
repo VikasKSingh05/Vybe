@@ -39,6 +39,7 @@ export function SettingsOverlay({
   const panelRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const prevIsOpen = useRef(isOpen);
 
   useFocusTrap({
     containerRef: panelRef,
@@ -47,7 +48,14 @@ export function SettingsOverlay({
   });
 
   // Slide-up sheet animation (mirrors QueueOverlay's pattern).
+  // Only animate when the open state actually changes; never on initial mount
+  // (avoids a flash under React StrictMode's double effect invocation).
   useEffect(() => {
+    if (prevIsOpen.current === isOpen) {
+      prevIsOpen.current = isOpen;
+      return;
+    }
+    prevIsOpen.current = isOpen;
     const panel = panelRef.current;
     const backdrop = backdropRef.current;
     if (!panel || !backdrop) return;

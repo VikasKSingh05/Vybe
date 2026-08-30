@@ -20,6 +20,16 @@ interface UseAudioElementReturn {
   isPlaying: boolean;
   isLoading: boolean;
   crossfadeTo: (src: string, fadeMs?: number) => void;
+  /** The element that is currently the playback surface (crossfade-aware). */
+  getActiveAudio: () => HTMLAudioElement | null;
+  /**
+   * Hard-stop playback: cancels any in-flight crossfade, then pauses and
+   * clears BOTH audio elements and re-centers on the primary element. Guarantees
+   * no orphaned/previous source can keep (or later resume) playing.
+   */
+  stopPlayback: () => void;
+  /** Apply the user's volume to all audio surfaces. */
+  applyVolume: (volume: number) => void;
 }
 
 const CROSSFADE_DEFAULT_MS = 3000;
@@ -33,6 +43,7 @@ export function useAudioElement(handlers: AudioEventHandlers = {}): UseAudioElem
   const secondaryRef = useRef<HTMLAudioElement | null>(null);
   const activeIsPrimaryRef = useRef(true);
   const crossfadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const crossfadeTokenRef = useRef(0);
   const handlersRef = useRef(handlers);
   handlersRef.current = handlers;
 
@@ -124,17 +135,24 @@ export function useAudioElement(handlers: AudioEventHandlers = {}): UseAudioElem
     const incoming = activeIsPrimaryRef.current ? secondaryRef.current : audioRef.current;
     if (!outgoing || !incoming) return;
 
+    // A token lets stopPlayback() cancel an in-flight crossfade so a stale
+    // source can never resume (or complete) after ownership has moved on.
+    const token = crossfadeTokenRef.current + 1;
+    crossfadeTokenRef.current = token;
+
     const targetVolume = parseFloat(outgoing.getAttribute("data-volume") || "0.75");
 
     incoming.src = src;
     incoming.load();
 
     const startFade = () => {
+      if (crossfadeTokenRef.current !== token) return;
       const steps = 20;
       const stepDuration = fadeMs / steps;
       let step = 0;
 
       const tick = () => {
+        if (crossfadeTokenRef.current !== token) return;
         step++;
         const progress = step / steps;
         const outVol = targetVolume * (1 - progress);
@@ -162,15 +180,63 @@ export function useAudioElement(handlers: AudioEventHandlers = {}): UseAudioElem
         }
       };
 
-      incoming.play().then(() => tick()).catch(() => {});
+      incoming.play().then(() => {
+        if (crossfadeTokenRef.current === token) tick();
+      }).catch(() => {});
+    };
+
+    const onCanPlay = () => {
+      if (crossfadeTokenRef.current === token) startFade();
     };
 
     if (incoming.readyState >= 2) {
       startFade();
     } else {
-      incoming.addEventListener("canplay", startFade, { once: true });
+      incoming.addEventListener("canplay", onCanPlay, { once: true });
     }
   }, []);
 
-  return { audioRef, currentTime, duration, isPlaying, isLoading, crossfadeTo };
+  const getActiveAudio = useCallback((): HTMLAudioElement | null => {
+    return activeIsPrimaryRef.current ? audioRef.current : secondaryRef.current;
+  }, []);
+
+  const stopPlayback = useCallback(() => {
+    // Invalidate any in-flight crossfade/fade.
+    crossfadeTokenRef.current += 1;
+    if (crossfadeTimerRef.current) {
+      clearTimeout(crossfadeTimerRef.current);
+      crossfadeTimerRef.current = null;
+    }
+    // Pause + clear BOTH surfaces so no orphaned source keeps playing or can
+    // resume later (load() also aborts any pending network load/play).
+    [audioRef.current, secondaryRef.current].forEach((el) => {
+      if (!el) return;
+      el.pause();
+      el.removeAttribute("src");
+      try {
+        el.load();
+      } catch {
+        // detached/cleared element
+      }
+    });
+    activeIsPrimaryRef.current = true;
+  }, []);
+
+  const applyVolume = useCallback((volume: number) => {
+    [audioRef.current, secondaryRef.current].forEach((el) => {
+      if (el) el.volume = volume;
+    });
+  }, []);
+
+  return {
+    audioRef,
+    currentTime,
+    duration,
+    isPlaying,
+    isLoading,
+    crossfadeTo,
+    getActiveAudio,
+    stopPlayback,
+    applyVolume,
+  };
 }

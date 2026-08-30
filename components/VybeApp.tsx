@@ -140,16 +140,19 @@ export function VybeApp() {
     onSeek: player.seek,
   });
 
-  useKeyboardShortcuts({
-    onTogglePlay: player.togglePlay,
-    onSeek: (delta) =>
-      player.seek(
-        Math.min(Math.max(0, player.currentTime + delta), player.duration),
-      ),
-    onNext: player.next,
-    onPrev: player.prev,
-    onToggleMute: player.toggleMute,
-  });
+  useKeyboardShortcuts(
+    {
+      onTogglePlay: player.togglePlay,
+      onSeek: (delta) =>
+        player.seek(
+          Math.min(Math.max(0, player.currentTime + delta), player.duration),
+        ),
+      onNext: player.next,
+      onPrev: player.prev,
+      onToggleMute: player.toggleMute,
+    },
+    !queueOpen && !settingsOpen && !searchOpen,
+  );
 
   return (
     <div className="relative min-h-dvh overflow-hidden text-white font-sans antialiased select-none">

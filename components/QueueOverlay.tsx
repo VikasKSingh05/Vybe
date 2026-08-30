@@ -49,7 +49,7 @@ export function QueueOverlay({
   const backdropRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const hasMounted = useRef(false);
+  const prevIsOpen = useRef(isOpen);
   const listRef = useRef<HTMLUListElement>(null);
   const rowRefs = useRef<(HTMLLIElement | null)[]>([]);
   const dragState = useRef<DragState | null>(null);
@@ -115,10 +115,14 @@ export function QueueOverlay({
   useEffect(() => () => stopAutoScroll(), [stopAutoScroll]);
 
   useEffect(() => {
-    if (!hasMounted.current) {
-      hasMounted.current = true;
+    // Only animate when the open state actually changes. This never runs on the
+    // initial mount (even under React StrictMode's double effect invocation),
+    // keeping the queue deterministically hidden until the user opens it.
+    if (prevIsOpen.current === isOpen) {
+      prevIsOpen.current = isOpen;
       return;
     }
+    prevIsOpen.current = isOpen;
     const panel = panelRef.current;
     const backdrop = backdropRef.current;
     if (!panel || !backdrop) return;
@@ -403,7 +407,13 @@ export function QueueOverlay({
                     )}
                     <button
                       type="button"
-                      onClick={() => onPlayItem(i)}
+                      onClick={(e) => {
+                        onPlayItem(i);
+                        // Move focus off the item so a follow-up Space/Enter
+                        // does not natively re-activate this button and
+                        // accidentally play/restart the same track.
+                        e.currentTarget.blur();
+                      }}
                       className="flex min-w-0 flex-1 items-center gap-3 cursor-pointer text-left"
                       aria-label={`Play ${item.title}`}
                     >
