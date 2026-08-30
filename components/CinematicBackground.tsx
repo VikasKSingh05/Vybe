@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import Image from "next/image";
 import type { VibeTheme } from "@/data/types";
 import { prefersReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/cn";
@@ -172,6 +171,13 @@ export function CinematicBackground({
     backgrounds.forEach(preloadBackground);
   }, [preloadBackground]);
 
+  const bgStyle = (url: string, overlay: string) => ({
+    backgroundImage: `url(${url})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+  } as React.CSSProperties);
+
   return (
     <div
       className={cn(
@@ -192,16 +198,10 @@ export function CinematicBackground({
           ref={prevLayerRef}
           className="absolute inset-0 z-0"
           aria-hidden="true"
+          style={{
+            ...bgStyle(prevTheme.background, prevTheme.overlay),
+          }}
         >
-          <Image
-            src={prevTheme.background}
-            alt=""
-            fill
-            priority
-            className="object-cover object-center"
-            sizes="100vw"
-            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-          />
           <div
             className="absolute inset-0"
             style={{ background: prevTheme.overlay }}
@@ -214,16 +214,10 @@ export function CinematicBackground({
         ref={currentLayerRef}
         className="absolute inset-0 z-10"
         aria-hidden="true"
+        style={{
+          ...bgStyle(currentTheme.background, currentTheme.overlay),
+        }}
       >
-        <Image
-          src={currentTheme.background}
-          alt=""
-          fill
-          priority
-          className="object-cover object-center"
-          sizes="100vw"
-          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-        />
         <div
           className="absolute inset-0"
           style={{ background: currentTheme.overlay }}
