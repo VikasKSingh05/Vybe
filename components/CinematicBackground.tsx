@@ -1,126 +1,175 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import type { VibeTheme } from "@/data/types";
 import { prefersReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/cn";
+
+interface Layer {
+  theme: VibeTheme;
+  ready: boolean;
+  failed: boolean;
+}
 
 interface CinematicBackgroundProps {
   theme: VibeTheme;
   className?: string;
 }
 
+function initialLayers(theme: VibeTheme): [Layer, Layer] {
+  return [
+    { theme, ready: true, failed: false },
+    { theme, ready: false, failed: false },
+  ];
+}
+
+/**
+ * Two persistent background layers. Exactly one is fully visible at all times
+ * (inline opacity derived from state), so a vibe switch never drops the frame to
+ * an empty/black/partial surface. The next vibe is written into the hidden slot
+ * and only promoted once ITS OWN <Image> has actually loaded.
+ */
 export function CinematicBackground({
   theme,
   className,
 }: CinematicBackgroundProps) {
-  const [currentTheme, setCurrentTheme] = useState<VibeTheme>(theme);
-  const [prevTheme, setPrevTheme] = useState<VibeTheme | null>(null);
-  const [currentReady, setCurrentReady] = useState(true);
+  const [layers, setLayers] = useState<Layer[]>(() => initialLayers(theme));
+  const [activeIndex, setActiveIndex] = useState(0);
 
-  const currentLayerRef = useRef<HTMLDivElement>(null);
-  const prevLayerRef = useRef<HTMLDivElement>(null);
-  const loadTokenRef = useRef(0);
-  const currentThemeIdRef = useRef(theme.id);
-  const loadedRef = useRef(new Set<string>());
+  const layersRef = useRef(layers);
+  layersRef.current = layers;
+  const activeIndexRef = useRef(activeIndex);
+  activeIndexRef.current = activeIndex;
 
-  // Swap the theme immediately so the vibe UI (tint, gradient, pills)
-  // responds without waiting for the background image. The new image is
-  // warmed in the browser cache and the crossfade is gated on readiness.
-  useEffect(() => {
-    if (theme.id === currentThemeIdRef.current) return;
+  const elRefs = [useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null)];
 
-    const token = ++loadTokenRef.current;
-    currentThemeIdRef.current = theme.id;
+  // Generation/request id: only the latest requested vibe may animate/advance.
+  const transitionIdRef = useRef(1);
+  // Per-slot id of the transition it currently belongs to.
+  const slotTransitionIdRef = useRef([0, 0]);
+  const animRef = useRef<{ cancel: () => void } | null>(null);
+  const handledThemeIdRef = useRef(theme.id);
 
-    setPrevTheme(currentTheme);
-    setCurrentTheme(theme);
-    setCurrentReady(false);
-
-    if (loadedRef.current.has(theme.background)) {
-      setCurrentReady(true);
-      return;
+  const cancelFade = useCallback(() => {
+    if (animRef.current) {
+      animRef.current.cancel();
+      animRef.current = null;
     }
+  }, []);
 
-    const probe = new window.Image();
-    probe.onload = () => {
-      if (loadTokenRef.current !== token) return;
-      loadedRef.current.add(theme.background);
-      setCurrentReady(true);
-    };
-    probe.onerror = () => {
-      // Fall back to the gradient-only layer if the image cannot load.
-      if (loadTokenRef.current !== token) return;
-      loadedRef.current.add(theme.background);
-      setCurrentReady(true);
-    };
-    probe.src = theme.background;
+  const startFade = useCallback(
+    (to: number) => {
+      const from = 1 - to;
+      const fromEl = elRefs[from].current;
+      const toEl = elRefs[to].current;
+      if (!fromEl || !toEl) return;
 
-    return () => {
-      loadTokenRef.current += 1;
-    };
-  }, [theme]);
+      const reduce = prefersReducedMotion();
+      const sameVisual =
+        layersRef.current[from].theme.id === layersRef.current[to].theme.id;
 
-  // Crossfade + scale between background layers (WAAPI), only once the new
-  // background image is cached. Before that, hold the previous image fully
-  // visible so the old vibe never dips into black.
-  useEffect(() => {
-    const current = currentLayerRef.current;
-    const prev = prevLayerRef.current;
-    if (!current) return;
-
-    if (!currentReady) {
-      current.style.opacity = "0";
-      current.style.transform = "none";
-      if (prev) {
-        prev.style.opacity = "1";
-        prev.style.transform = "none";
+      if (reduce || sameVisual) {
+        toEl.style.opacity = "1";
+        fromEl.style.opacity = "0";
+        setActiveIndex(to);
+        return;
       }
+
+      const inAnim = toEl.animate(
+        [{ opacity: 0 }, { opacity: 1 }],
+        { duration: 850, easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)" },
+      );
+      const outAnim = fromEl.animate(
+        [{ opacity: 1 }, { opacity: 0 }],
+        { duration: 850, easing: "cubic-bezier(0.455, 0.03, 0.515, 0.955)" },
+      );
+
+      const controller = {
+        cancel() {
+          inAnim.cancel();
+          outAnim.cancel();
+        },
+      };
+      animRef.current = controller;
+
+      Promise.allSettled([inAnim.finished, outAnim.finished]).then(() => {
+        // A newer vibe request arrived and cancelled this fade — don't commit.
+        if (animRef.current !== controller) return;
+        animRef.current = null;
+        toEl.style.opacity = "1";
+        fromEl.style.opacity = "0";
+        setActiveIndex(to);
+      });
+    },
+    [],
+  );
+
+  const handleLoad = useCallback(
+    (i: number) => {
+      if (slotTransitionIdRef.current[i] !== transitionIdRef.current) return;
+      if (i === activeIndexRef.current) return;
+      setLayers((prev) => {
+        if (!prev[i] || prev[i].ready || prev[i].failed) return prev;
+        const next = [...prev];
+        next[i] = { ...next[i], ready: true };
+        return next;
+      });
+    },
+    [],
+  );
+
+  const handleError = useCallback((i: number) => {
+    if (slotTransitionIdRef.current[i] !== transitionIdRef.current) return;
+    setLayers((prev) => {
+      const next = [...prev];
+      next[i] = { ...next[i], ready: false, failed: true };
+      return next;
+    });
+  }, []);
+
+  // Drive the crossfade when the incoming (hidden) layer becomes ready.
+  useEffect(() => {
+    const incoming = 1 - activeIndexRef.current;
+    const layer = layers[incoming];
+    if (!layer || !layer.ready || layer.failed) return;
+    if (slotTransitionIdRef.current[incoming] !== transitionIdRef.current) return;
+    if (layer.theme.id === layers[activeIndexRef.current].theme.id) return;
+    startFade(incoming);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layers]);
+
+  // New vibe requested.
+  useEffect(() => {
+    if (theme.id === handledThemeIdRef.current) return;
+    handledThemeIdRef.current = theme.id;
+
+    const id = ++transitionIdRef.current;
+    const activeIdx = activeIndexRef.current;
+    const activeLayer = layersRef.current[activeIdx];
+
+    // Same vibe is already the fully visible background: stop any in-flight
+    // crossfade and drop the stale pending load so it can never surface.
+    if (theme.id === activeLayer.theme.id) {
+      cancelFade();
+      slotTransitionIdRef.current[1 - activeIdx] = 0;
       return;
     }
 
-    // Resting state after the transition completes.
-    current.style.opacity = "1";
-    current.style.transform = "none";
+    // Cancel any crossfade in flight first. Cancelling the WAAPI animation
+    // returns the active layer to full visibility; the hidden one stays hidden,
+    // so an observer never sees a momentarily-empty or intermediate surface.
+    cancelFade();
 
-    // First mount — nothing to fade from.
-    if (!prev || prefersReducedMotion()) {
-      setPrevTheme(null);
-      return;
-    }
-
-    const inAnim = current.animate(
-      [
-        { opacity: 0, transform: "scale(1.07)" },
-        { opacity: 1, transform: "scale(1)" },
-      ],
-      {
-        duration: 850,
-        easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
-      },
-    );
-
-    const outAnim = prev.animate(
-      [
-        { opacity: 1, transform: "scale(1)" },
-        { opacity: 0, transform: "scale(1.04)" },
-      ],
-      {
-        duration: 850,
-        easing: "cubic-bezier(0.455, 0.03, 0.515, 0.955)",
-        fill: "forwards",
-      },
-    );
-    outAnim.finished
-      .then(() => setPrevTheme(null))
-      .catch(() => {});
-
-    return () => {
-      inAnim.cancel();
-      outAnim.cancel();
-    };
-  }, [currentTheme, currentReady]);
+    const incoming = 1 - activeIdx;
+    slotTransitionIdRef.current[incoming] = id;
+    setLayers((prev) => {
+      const next = [...prev];
+      next[incoming] = { theme, ready: false, failed: false };
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [theme]);
 
   return (
     <div
@@ -129,57 +178,42 @@ export function CinematicBackground({
         className,
       )}
     >
-      {/* Instant gradient fallback — visible while the image loads */}
+      {/* Instant gradient fallback — always present below the visible layer */}
       <div
         className="absolute inset-0 z-0"
-        style={{ background: currentTheme.overlay }}
+        style={{ background: theme.overlay }}
         aria-hidden="true"
       />
 
-      {/* Previous background layer fading out */}
-      {prevTheme && (
-        <div
-          ref={prevLayerRef}
-          className="absolute inset-0 z-0"
-          aria-hidden="true"
-        >
-          <Image
-            src={prevTheme.background}
-            alt=""
-            fill
-            priority
-            className="object-cover object-center"
-            sizes="100vw"
-            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-          />
+      {/* Two stable background slots. Exactly one is at opacity 1 at all times;
+          the other is hidden (opacity 0) and loads without being seen. */}
+      {[0, 1].map((i) => {
+        const layer = layers[i];
+        return (
           <div
-            className="absolute inset-0"
-            style={{ background: prevTheme.overlay }}
-          />
-        </div>
-      )}
-
-      {/* Current background layer fading in */}
-      <div
-        ref={currentLayerRef}
-        key={currentTheme.id}
-        className="absolute inset-0 z-10"
-        aria-hidden="true"
-      >
-        <Image
-          src={currentTheme.background}
-          alt=""
-          fill
-          priority
-          className="object-cover object-center"
-          sizes="100vw"
-          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-        />
-        <div
-          className="absolute inset-0"
-          style={{ background: currentTheme.overlay }}
-        />
-      </div>
+            key={`layer-${i}`}
+            ref={elRefs[i]}
+            className="absolute inset-0 z-10"
+            style={{ opacity: i === activeIndex ? 1 : 0 }}
+            aria-hidden="true"
+          >
+            <Image
+              src={layer.theme.background}
+              alt=""
+              fill
+              priority
+              className="object-cover object-center"
+              sizes="100vw"
+              onLoad={() => handleLoad(i)}
+              onError={() => handleError(i)}
+            />
+            <div
+              className="absolute inset-0"
+              style={{ background: layer.theme.overlay }}
+            />
+          </div>
+        );
+      })}
 
       {/* Subtle atmospheric dark gradient overlay & vignette */}
       <div
@@ -194,7 +228,7 @@ export function CinematicBackground({
       <div
         className="pointer-events-none absolute inset-0 z-20 mix-blend-soft-light opacity-30 transition-colors duration-1000"
         style={{
-          background: `linear-gradient(135deg, ${currentTheme.accent}22 0%, transparent 50%, rgba(0,0,0,0.3) 100%)`,
+          background: `linear-gradient(135deg, ${theme.accent}22 0%, transparent 50%, rgba(0,0,0,0.3) 100%)`,
         }}
       />
 
