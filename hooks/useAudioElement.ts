@@ -20,6 +20,10 @@ interface UseAudioElementReturn {
   isPlaying: boolean;
   isLoading: boolean;
   crossfadeTo: (src: string, fadeMs?: number) => void;
+  /** Resolve the element that is currently audible (the crossfade target). */
+  getActive: () => HTMLAudioElement | null;
+  /** Pause + reset both audio nodes so no stale element can keep playing. */
+  pauseAll: () => void;
 }
 
 const CROSSFADE_DEFAULT_MS = 3000;
@@ -172,5 +176,27 @@ export function useAudioElement(handlers: AudioEventHandlers = {}): UseAudioElem
     }
   }, []);
 
-  return { audioRef, currentTime, duration, isPlaying, isLoading, crossfadeTo };
+  const getActive = useCallback(() => {
+    return activeIsPrimaryRef.current ? audioRef.current : secondaryRef.current;
+  }, []);
+
+  const pauseAll = useCallback(() => {
+    [audioRef.current, secondaryRef.current].forEach((el) => {
+      if (el) {
+        el.pause();
+        el.currentTime = 0;
+      }
+    });
+  }, []);
+
+  return {
+    audioRef,
+    currentTime,
+    duration,
+    isPlaying,
+    isLoading,
+    crossfadeTo,
+    getActive,
+    pauseAll,
+  };
 }

@@ -70,7 +70,7 @@ export function usePlayer({
   const fetchRandomSongInProgressRef = useRef(false);
   const fetchRandomSongRef = useRef<(() => Promise<void>) | null>(null);
 
-  const { audioRef, currentTime, duration, isPlaying, isLoading: audioLoading, crossfadeTo } = useAudioElement({
+  const { audioRef, currentTime, duration, isPlaying, isLoading: audioLoading, crossfadeTo, getActive, pauseAll } = useAudioElement({
     onEnded: () => {
       const currentList = activePlaylistRef.current;
       if (currentList.length === 0) {
@@ -116,10 +116,12 @@ export function usePlayer({
   });
 
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = isMuted ? 0 : volume;
+    const active = getActive();
+    if (active) {
+      active.volume = isMuted ? 0 : volume;
+      active.setAttribute("data-volume", String(isMuted ? 0 : volume));
     }
-  }, [volume, isMuted, audioRef]);
+  }, [volume, isMuted, getActive]);
 
   // Persist the session (debounced) so a refresh restores queue + vibe
   useEffect(() => {
@@ -157,7 +159,7 @@ export function usePlayer({
 
   const loadSongAtIndex = useCallback(
     async (index: number, shouldPlay = true) => {
-      const audio = audioRef.current;
+      const audio = getActive();
       if (!audio) return;
 
       const currentList = activePlaylistRef.current;
@@ -172,8 +174,10 @@ export function usePlayer({
       setExtraLoading(true);
       setErrorState(null);
 
-      audio.pause();
-      audio.currentTime = 0;
+      // Stop every audio node before switching tracks. This is the key fix
+      // for the double-play bug: after a crossfade the audible element is the
+      // *secondary* node, so pausing only audioA let the old song keep going.
+      pauseAll();
 
       const song = await resolveSong(entry);
 
@@ -217,7 +221,7 @@ export function usePlayer({
           .catch(() => {});
       }
     },
-    [resolveSong, preloadNextSong, userInteracted, audioRef, crossfadeEnabled, isPlaying, isMuted, volume, crossfadeTo],
+    [resolveSong, preloadNextSong, userInteracted, getActive, pauseAll, crossfadeEnabled, isPlaying, isMuted, volume, crossfadeTo],
   );
 
   loadSongAtIndexRef.current = loadSongAtIndex;
@@ -349,10 +353,8 @@ export function usePlayer({
       setCurrentIndex(0);
       const generation = ++vibeGenerationRef.current;
 
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.removeAttribute("src");
-      }
+      // Stop every audio node — the whole playlist is being replaced.
+      pauseAll();
 
       if (newVibeId === "random") {
         setCurrentSong(null);
@@ -366,12 +368,13 @@ export function usePlayer({
           setExtraLoading(true);
           resolveSong(entry).then((song) => {
             if (vibeGenerationRef.current !== generation) return;
-            if (song?.streamUrl && audioRef.current) {
+            const audio = getActive();
+            if (song?.streamUrl && audio) {
               setCurrentSong(song);
-              audioRef.current.src = song.streamUrl;
-              audioRef.current.load();
+              audio.src = song.streamUrl;
+              audio.load();
               setExtraLoading(false);
-              audioRef.current
+              audio
                 .play()
                 .catch(() => {});
             } else {
@@ -381,12 +384,12 @@ export function usePlayer({
         }
       }, 50);
     },
-    [resolveSong, audioRef],
+    [resolveSong, getActive, pauseAll],
   );
 
   const togglePlay = useCallback(() => {
     setUserInteracted(true);
-    const audio = audioRef.current;
+    const audio = getActive();
     if (!audio) return;
 
     if (isPlaying) {
@@ -402,11 +405,11 @@ export function usePlayer({
         audio.play().catch(() => {});
       }
     }
-  }, [isPlaying, currentSong, currentIndex, loadSongAtIndex, audioRef]);
+  }, [isPlaying, currentSong, currentIndex, loadSongAtIndex, getActive]);
 
   const play = useCallback(() => {
     setUserInteracted(true);
-    const audio = audioRef.current;
+    const audio = getActive();
     if (!audio) return;
     if (!currentSong || !audio.src) {
       if (vibeIdRef.current === "random" && activePlaylistRef.current.length === 0) {
@@ -417,35 +420,37 @@ export function usePlayer({
     } else {
       audio.play().catch(() => {});
     }
-  }, [currentSong, currentIndex, loadSongAtIndex, audioRef]);
+  }, [currentSong, currentIndex, loadSongAtIndex, getActive]);
 
   const pause = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
+    const active = getActive();
+    if (active) {
+      active.pause();
     }
-  }, [audioRef]);
+  }, [getActive]);
 
   const seek = useCallback((time: number) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = time;
+    const active = getActive();
+    if (active) {
+      active.currentTime = time;
     }
-  }, [audioRef]);
+  }, [getActive]);
 
   const next = useCallback(() => {
     setUserInteracted(true);
     failCountRef.current = 0;
     const isRandom = vibeIdRef.current === "random";
     if (isRandom && currentIndex >= playlist.length - 1) {
-      if (audioRef.current) audioRef.current.pause();
+      pauseAll();
       return;
     }
     const nextIdx = nextIndexHelper(currentIndex, playlist.length, repeatMode);
     if (nextIdx === null) {
-      if (audioRef.current) audioRef.current.pause();
+      pauseAll();
       return;
     }
     loadSongAtIndex(nextIdx, true);
-  }, [currentIndex, playlist.length, repeatMode, loadSongAtIndex, audioRef]);
+  }, [currentIndex, playlist.length, repeatMode, loadSongAtIndex, pauseAll]);
 
   const prev = useCallback(() => {
     setUserInteracted(true);
@@ -498,10 +503,7 @@ export function usePlayer({
       activePlaylistRef.current = newPlaylist;
 
       if (newPlaylist.length === 0) {
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current.removeAttribute("src");
-        }
+        pauseAll();
         setCurrentSong(null);
         setCurrentIndex(0);
         return;
@@ -514,7 +516,7 @@ export function usePlayer({
         loadSongAtIndexRef.current?.(nextIdx, true);
       }
     },
-    [audioRef],
+    [pauseAll],
   );
 
   const clearCustomQueue = useCallback(() => {

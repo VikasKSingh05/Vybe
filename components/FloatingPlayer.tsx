@@ -119,14 +119,18 @@ export const FloatingPlayer = memo(function FloatingPlayer({
         </div>
 
         <div className="flex items-center justify-between">
-          <VolumeControl
-            volume={volume}
-            isMuted={isMuted}
-            accent={accent}
-            size="sm"
-            onVolumeChange={onVolumeChange}
-            onToggleMute={onToggleMute}
-          />
+          {/* Volume is hidden on narrow phones so the transport + queue/settings
+              controls always fit inside the player card. */}
+          <div className="hidden sm:flex">
+            <VolumeControl
+              volume={volume}
+              isMuted={isMuted}
+              accent={accent}
+              size="sm"
+              onVolumeChange={onVolumeChange}
+              onToggleMute={onToggleMute}
+            />
+          </div>
 
           <TransportControls
             isPlaying={isPlaying}
@@ -138,7 +142,7 @@ export const FloatingPlayer = memo(function FloatingPlayer({
             onNext={onNext}
           />
 
-          <div className="flex items-center gap-1 justify-end sm:w-20">
+          <div className="flex shrink-0 items-center gap-1">
             {onToggleQueue && (
               <button
                 type="button"

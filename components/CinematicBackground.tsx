@@ -17,53 +17,29 @@ export function CinematicBackground({
 }: CinematicBackgroundProps) {
   const [currentTheme, setCurrentTheme] = useState<VibeTheme>(theme);
   const [prevTheme, setPrevTheme] = useState<VibeTheme | null>(null);
+  // True once the *actual* current <Image> has painted. The crossfade is gated
+  // on this (not a separate probe) so we never fade over an unfilled layer.
   const [currentReady, setCurrentReady] = useState(true);
 
   const currentLayerRef = useRef<HTMLDivElement>(null);
   const prevLayerRef = useRef<HTMLDivElement>(null);
-  const loadTokenRef = useRef(0);
   const currentThemeIdRef = useRef(theme.id);
-  const loadedRef = useRef(new Set<string>());
 
   // Swap the theme immediately so the vibe UI (tint, gradient, pills)
-  // responds without waiting for the background image. The new image is
-  // warmed in the browser cache and the crossfade is gated on readiness.
+  // responds without waiting for the background image. The new image reports
+  // readiness via its own onLoad, and the crossfade is gated on that.
   useEffect(() => {
     if (theme.id === currentThemeIdRef.current) return;
 
-    const token = ++loadTokenRef.current;
     currentThemeIdRef.current = theme.id;
 
     setPrevTheme(currentTheme);
     setCurrentTheme(theme);
     setCurrentReady(false);
-
-    if (loadedRef.current.has(theme.background)) {
-      setCurrentReady(true);
-      return;
-    }
-
-    const probe = new window.Image();
-    probe.onload = () => {
-      if (loadTokenRef.current !== token) return;
-      loadedRef.current.add(theme.background);
-      setCurrentReady(true);
-    };
-    probe.onerror = () => {
-      // Fall back to the gradient-only layer if the image cannot load.
-      if (loadTokenRef.current !== token) return;
-      loadedRef.current.add(theme.background);
-      setCurrentReady(true);
-    };
-    probe.src = theme.background;
-
-    return () => {
-      loadTokenRef.current += 1;
-    };
-  }, [theme]);
+  }, [theme, currentTheme]);
 
   // Crossfade + scale between background layers (WAAPI), only once the new
-  // background image is cached. Before that, hold the previous image fully
+  // background image has painted. Before that, hold the previous image fully
   // visible so the old vibe never dips into black.
   useEffect(() => {
     const current = currentLayerRef.current;
@@ -125,11 +101,24 @@ export function CinematicBackground({
   return (
     <div
       className={cn(
-        "fixed inset-0 -z-10 overflow-hidden bg-black select-none pointer-events-none",
+        "fixed inset-0 -z-10 overflow-hidden select-none pointer-events-none",
         className,
       )}
+      style={{
+        // The container's own background is an opaque accent-tinted gradient
+        // (never pure black) so that any gap while an image loads shows the
+        // vibe color instead of a black flash.
+        background: `linear-gradient(160deg, ${currentTheme.accent}3d 0%, #17171d 45%, #0c0c11 100%)`,
+      }}
     >
-      {/* Instant gradient fallback — visible while the image loads */}
+      {/* Accent-tinted base — guaranteed non-black backdrop behind the layers */}
+      <div
+        className="absolute inset-0 z-0"
+        style={{ background: `linear-gradient(160deg, ${currentTheme.accent}40 0%, #14141a 50%, #0a0a0f 100%)` }}
+        aria-hidden="true"
+      />
+
+      {/* Instant darkening gradient fallback — visible while the image loads */}
       <div
         className="absolute inset-0 z-0"
         style={{ background: currentTheme.overlay }}
@@ -159,7 +148,8 @@ export function CinematicBackground({
         </div>
       )}
 
-      {/* Current background layer fading in */}
+      {/* Current background layer fading in — opacity is driven by the
+          crossfade effect; the image reports when it has painted. */}
       <div
         ref={currentLayerRef}
         key={currentTheme.id}
@@ -173,7 +163,11 @@ export function CinematicBackground({
           priority
           className="object-cover object-center"
           sizes="100vw"
-          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+          onLoad={() => setCurrentReady(true)}
+          onError={() => {
+            // Fall back to the gradient-only layer if the image cannot load.
+            setCurrentReady(true);
+          }}
         />
         <div
           className="absolute inset-0"
