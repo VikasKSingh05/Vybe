@@ -44,13 +44,20 @@ export function usePlayer({
   const songCacheRef = useRef<Map<string, Song>>(new Map());
   const failCountRef = useRef(0);
   const vibeGenerationRef = useRef(0);
+  const playbackRequestIdRef = useRef(0);
   const activePlaylistRef = useRef(playlist);
   activePlaylistRef.current = playlist;
   const currentIndexRef = useRef(currentIndex);
   currentIndexRef.current = currentIndex;
   const vibeIdRef = useRef(vibeId);
   vibeIdRef.current = vibeId;
-  const loadSongAtIndexRef = useRef<((index: number, shouldPlay?: boolean) => Promise<void>) | null>(null);
+  const loadSongAtIndexRef = useRef<
+    ((
+      index: number,
+      shouldPlay?: boolean,
+      options?: { crossfade?: boolean },
+    ) => Promise<void>) | null
+  >(null);
 
   const theme = getVibeTheme(vibeId);
 
@@ -70,7 +77,17 @@ export function usePlayer({
   const fetchRandomSongInProgressRef = useRef(false);
   const fetchRandomSongRef = useRef<(() => Promise<void>) | null>(null);
 
-  const { audioRef, currentTime, duration, isPlaying, isLoading: audioLoading, crossfadeTo } = useAudioElement({
+  const {
+    audioRef,
+    currentTime,
+    duration,
+    isPlaying,
+    isLoading: audioLoading,
+    crossfadeTo,
+    getActiveAudio,
+    stopPlayback,
+    applyVolume,
+  } = useAudioElement({
     onEnded: () => {
       const currentList = activePlaylistRef.current;
       if (currentList.length === 0) {
@@ -83,7 +100,7 @@ export function usePlayer({
         vibeIdRef.current === "random" &&
         currentIndexRef.current >= currentList.length - 1
       ) {
-        if (audioRef.current) audioRef.current.pause();
+        getActiveAudio()?.pause();
         return;
       }
       const advance = advanceOnEnded(
@@ -92,13 +109,13 @@ export function usePlayer({
         repeatModeRef.current,
       );
       if (advance === null) {
-        if (audioRef.current) audioRef.current.pause();
+        getActiveAudio()?.pause();
         return;
       }
       loadSongAtIndexRef.current?.(advance, true);
     },
     onError: () => {
-      const audio = audioRef.current;
+      const audio = getActiveAudio();
       if (!audio?.src || audio.error?.code === 1) return;
       failCountRef.current += 1;
       const currentList = activePlaylistRef.current;
@@ -116,10 +133,8 @@ export function usePlayer({
   });
 
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = isMuted ? 0 : volume;
-    }
-  }, [volume, isMuted, audioRef]);
+    applyVolume(isMuted ? 0 : volume);
+  }, [volume, isMuted, applyVolume]);
 
   // Persist the session (debounced) so a refresh restores queue + vibe
   useEffect(() => {
@@ -156,11 +171,17 @@ export function usePlayer({
   );
 
   const loadSongAtIndex = useCallback(
-    async (index: number, shouldPlay = true) => {
-      const audio = audioRef.current;
-      if (!audio) return;
-
+    async (
+      index: number,
+      shouldPlay = true,
+      options?: { crossfade?: boolean },
+    ) => {
+      // Every playback request gets a fresh token. Any async continuation that
+      // resolves after a newer request has started is stale and must not touch
+      // the audio element or start playback.
       const currentList = activePlaylistRef.current;
+      const requestId = ++playbackRequestIdRef.current;
+
       if (currentList.length === 0) {
         setExtraLoading(false);
         return;
@@ -172,10 +193,24 @@ export function usePlayer({
       setExtraLoading(true);
       setErrorState(null);
 
-      audio.pause();
-      audio.currentTime = 0;
+      // Crossfade only when an existing track is actually playing and this is
+      // not an explicit hard switch (e.g. a vibe change).
+      const willCrossfade =
+        options?.crossfade !== false && crossfadeEnabled && isPlaying;
+      if (!willCrossfade) {
+        // Stop and clear BOTH elements (aborting any pending load/play) and
+        // re-center on the primary element before loading the new source.
+        stopPlayback();
+      }
+
+      const audio = getActiveAudio();
+      if (!audio) return;
 
       const song = await resolveSong(entry);
+
+      // Superseded by a newer playback request (vibe switch, next, queue,
+      // search, random, etc.) — do nothing.
+      if (playbackRequestIdRef.current !== requestId) return;
 
       if (!song || !song.streamUrl) {
         failCountRef.current += 1;
@@ -186,7 +221,11 @@ export function usePlayer({
           return;
         }
 
-        setTimeout(() => loadSongAtIndexRef.current?.(safeIndex + 1, shouldPlay), 300);
+        setTimeout(() => {
+          if (playbackRequestIdRef.current === requestId) {
+            loadSongAtIndexRef.current?.(safeIndex + 1, shouldPlay);
+          }
+        }, 300);
         return;
       }
 
@@ -195,7 +234,7 @@ export function usePlayer({
 
       audio.setAttribute("data-volume", String(isMuted ? 0 : volume));
 
-      if (crossfadeEnabled && isPlaying && song.streamUrl) {
+      if (willCrossfade && song.streamUrl) {
         setExtraLoading(false);
         crossfadeTo(song.streamUrl, CROSSFADE_MS);
         if (shouldPlay && userInteracted) {
@@ -212,12 +251,14 @@ export function usePlayer({
         audio
           .play()
           .then(() => {
-            preloadNextSong(safeIndex + 1);
+            if (playbackRequestIdRef.current === requestId) {
+              preloadNextSong(safeIndex + 1);
+            }
           })
           .catch(() => {});
       }
     },
-    [resolveSong, preloadNextSong, userInteracted, audioRef, crossfadeEnabled, isPlaying, isMuted, volume, crossfadeTo],
+    [resolveSong, preloadNextSong, userInteracted, stopPlayback, getActiveAudio, crossfadeEnabled, isPlaying, isMuted, volume, crossfadeTo],
   );
 
   loadSongAtIndexRef.current = loadSongAtIndex;
@@ -341,52 +382,45 @@ export function usePlayer({
   const changeVibe = useCallback(
     (newVibeId: VibeId) => {
       setUserInteracted(true);
+
+      // Invalidate every outstanding playback operation from the previous vibe
+      // and hard-stop ALL audio surfaces so the old source cannot continue or
+      // resume. This is the same "stop before you switch" the player uses for
+      // any track change.
+      const generation = ++vibeGenerationRef.current;
+      const requestId = ++playbackRequestIdRef.current;
+      stopPlayback();
+
       setVibeId(newVibeId);
       const newPlaylist = getPlaylistForGenre(newVibeId);
       setPlaylist(newPlaylist);
       activePlaylistRef.current = newPlaylist;
       failCountRef.current = 0;
       setCurrentIndex(0);
-      const generation = ++vibeGenerationRef.current;
-
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.removeAttribute("src");
-      }
+      setCurrentSong(null);
+      setExtraLoading(false);
 
       if (newVibeId === "random") {
-        setCurrentSong(null);
-        setExtraLoading(false);
         return;
       }
 
+      // Let the new vibe settle in the UI, then start its first song through
+      // the canonical pipeline. Only start if nothing newer superseded it.
       setTimeout(() => {
-        const entry = newPlaylist[0];
-        if (entry && vibeGenerationRef.current === generation) {
-          setExtraLoading(true);
-          resolveSong(entry).then((song) => {
-            if (vibeGenerationRef.current !== generation) return;
-            if (song?.streamUrl && audioRef.current) {
-              setCurrentSong(song);
-              audioRef.current.src = song.streamUrl;
-              audioRef.current.load();
-              setExtraLoading(false);
-              audioRef.current
-                .play()
-                .catch(() => {});
-            } else {
-              loadSongAtIndexRef.current?.(0, true);
-            }
-          });
+        if (
+          vibeGenerationRef.current === generation &&
+          playbackRequestIdRef.current === requestId
+        ) {
+          loadSongAtIndexRef.current?.(0, true, { crossfade: false });
         }
       }, 50);
     },
-    [resolveSong, audioRef],
+    [stopPlayback],
   );
 
   const togglePlay = useCallback(() => {
     setUserInteracted(true);
-    const audio = audioRef.current;
+    const audio = getActiveAudio();
     if (!audio) return;
 
     if (isPlaying) {
@@ -402,11 +436,11 @@ export function usePlayer({
         audio.play().catch(() => {});
       }
     }
-  }, [isPlaying, currentSong, currentIndex, loadSongAtIndex, audioRef]);
+  }, [isPlaying, currentSong, currentIndex, loadSongAtIndex, getActiveAudio]);
 
   const play = useCallback(() => {
     setUserInteracted(true);
-    const audio = audioRef.current;
+    const audio = getActiveAudio();
     if (!audio) return;
     if (!currentSong || !audio.src) {
       if (vibeIdRef.current === "random" && activePlaylistRef.current.length === 0) {
@@ -417,35 +451,32 @@ export function usePlayer({
     } else {
       audio.play().catch(() => {});
     }
-  }, [currentSong, currentIndex, loadSongAtIndex, audioRef]);
+  }, [currentSong, currentIndex, loadSongAtIndex, getActiveAudio]);
 
   const pause = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
-  }, [audioRef]);
+    getActiveAudio()?.pause();
+  }, [getActiveAudio]);
 
   const seek = useCallback((time: number) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = time;
-    }
-  }, [audioRef]);
+    const audio = getActiveAudio();
+    if (audio) audio.currentTime = time;
+  }, [getActiveAudio]);
 
   const next = useCallback(() => {
     setUserInteracted(true);
     failCountRef.current = 0;
     const isRandom = vibeIdRef.current === "random";
     if (isRandom && currentIndex >= playlist.length - 1) {
-      if (audioRef.current) audioRef.current.pause();
+      getActiveAudio()?.pause();
       return;
     }
     const nextIdx = nextIndexHelper(currentIndex, playlist.length, repeatMode);
     if (nextIdx === null) {
-      if (audioRef.current) audioRef.current.pause();
+      getActiveAudio()?.pause();
       return;
     }
     loadSongAtIndex(nextIdx, true);
-  }, [currentIndex, playlist.length, repeatMode, loadSongAtIndex, audioRef]);
+  }, [currentIndex, playlist.length, repeatMode, loadSongAtIndex, getActiveAudio]);
 
   const prev = useCallback(() => {
     setUserInteracted(true);
@@ -498,10 +529,7 @@ export function usePlayer({
       activePlaylistRef.current = newPlaylist;
 
       if (newPlaylist.length === 0) {
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current.removeAttribute("src");
-        }
+        stopPlayback();
         setCurrentSong(null);
         setCurrentIndex(0);
         return;
@@ -514,7 +542,7 @@ export function usePlayer({
         loadSongAtIndexRef.current?.(nextIdx, true);
       }
     },
-    [audioRef],
+    [stopPlayback],
   );
 
   const clearCustomQueue = useCallback(() => {
