@@ -74,6 +74,9 @@ export function useParty() {
   const retryRef = useRef(0);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Latest openStream, kept for the backoff-reconnect path so it never
+  // captures a stale closure (see handleDroppedStream).
+  const openStreamRef = useRef<((session: PartySession) => void) | null>(null);
 
   const member: PartyMember | null = state && selfId
     ? (state.members.find((m) => m.id === selfId) ?? null)
@@ -165,7 +168,12 @@ export function useParty() {
     [],
   );
 
-  const openStreamRef = useRef<((session: PartySession) => void) | null>(null);
+  // Stable indirection so openStream can invoke the latest dropped-stream
+  // handler without creating a dependency cycle through openStreamRef.
+  const handleDroppedStreamRef = useRef(handleDroppedStream);
+  useEffect(() => {
+    handleDroppedStreamRef.current = handleDroppedStream;
+  });
 
   const openStream = useCallback(
     (session: PartySession) => {
@@ -220,7 +228,7 @@ export function useParty() {
       es.onerror = () => {
         if (es.readyState !== EventSource.CLOSED) return;
         stopConnection();
-        void handleDroppedStream(session);
+        void handleDroppedStreamRef.current(session);
       };
 
       heartbeatRef.current = setInterval(() => {
@@ -245,10 +253,14 @@ export function useParty() {
           .catch(() => {});
       }, HEARTBEAT_MS);
     },
-    [applyState, handleRemoved, stopConnection, handleDroppedStream],
+    [applyState, handleRemoved, stopConnection],
   );
 
-  openStreamRef.current = openStream;
+  // Keep the reconnect path pointed at the latest openStream (synced after
+  // commit rather than during render).
+  useEffect(() => {
+    openStreamRef.current = openStream;
+  }, [openStream]);
 
   // Auto-rejoin a persisted session on mount. Validate the room still
   // exists before opening the SSE stream to avoid the retry-timeout loop.
@@ -395,7 +407,9 @@ export function useParty() {
     status,
     state,
     member,
-    isHost: member?.isHost ?? false,
+    // Derive authority from hostId (authoritative) rather than the per-member
+    // flag, so a transfer surfaces immediately even across patch boundaries.
+    isHost: member != null && state?.hostId === member.id,
     error,
     lostIdentity,
     removed,

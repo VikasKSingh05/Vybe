@@ -1,13 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Search, X, Music, Loader2, Eraser, Play, ListStart, ListPlus, Clock } from "lucide-react";
+import { Search, X, Music, Eraser, Play, ListStart, ListPlus, Clock } from "lucide-react";
 import type { Song } from "@/types/music";
 import { AlbumArt } from "@/components/AlbumArt";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { prefersReducedMotion } from "@/lib/motion";
-import { cn } from "@/lib/cn";
 
 interface SearchOverlayProps {
   query: string;
@@ -273,7 +272,9 @@ export function SearchOverlay({
     }
     anims.push(lastAnim);
     animsRef.current = anims;
-    lastAnim.finished.then(finish).catch(() => {});
+    // Run `finish` on rejection too: a cancelled/failed animation must still
+    // release the open state, otherwise `searchOpen` wedges true forever.
+    lastAnim.finished.then(finish, finish);
   }, [isOpen, onOpenChange, onQueryChange]);
 
   // Escape to close
@@ -286,7 +287,7 @@ export function SearchOverlay({
     return () => document.removeEventListener("keydown", onKey);
   }, [isOpen, handleClose]);
 
-  // "/" shortcut to open (only when random mode / not already open)
+  // "/" shortcut to open (when not already open)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (

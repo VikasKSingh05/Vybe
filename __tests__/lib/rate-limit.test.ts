@@ -39,19 +39,33 @@ describe("rateLimit", () => {
     const allowed = rateLimit(key, config);
     expect(allowed.allowed).toBe(true);
   });
+
+  it("denied requests do not over-refill the bucket", () => {
+    const key = "test:key4";
+    const config = { maxTokens: 1, refillRate: 0.5 };
+
+    rateLimit(key, config);
+    // Two denials in a row must not accumulate phantom refills: after 1s only
+    // 0.5 tokens should exist, so the bucket is still denied.
+    expect(rateLimit(key, config).allowed).toBe(false);
+    vi.advanceTimersByTime(1000);
+    expect(rateLimit(key, config).allowed).toBe(false);
+    vi.advanceTimersByTime(1000);
+    expect(rateLimit(key, config).allowed).toBe(true);
+  });
 });
 
 describe("getClientIp", () => {
-  it("returns x-forwarded-for header", () => {
+  it("trusts the right-most x-forwarded-for hop (proxy-appended)", () => {
     const request = new Request("http://localhost", {
       headers: { "x-forwarded-for": "1.2.3.4, 5.6.7.8" },
     });
-    expect(getClientIp(request)).toBe("1.2.3.4");
+    expect(getClientIp(request)).toBe("5.6.7.8");
   });
 
-  it("returns x-real-ip header", () => {
+  it("prefers x-real-ip over x-forwarded-for", () => {
     const request = new Request("http://localhost", {
-      headers: { "x-real-ip": "9.10.11.12" },
+      headers: { "x-real-ip": "9.10.11.12", "x-forwarded-for": "1.2.3.4" },
     });
     expect(getClientIp(request)).toBe("9.10.11.12");
   });

@@ -2,31 +2,8 @@ import type { PlaylistEntry } from "@/data/playlists";
 
 export type RepeatMode = "off" | "one" | "all";
 
-export interface PlayerModes {
-  repeatMode: RepeatMode;
-  shuffle: boolean;
-}
-
 export function isRepeatMode(value: unknown): value is RepeatMode {
   return value === "off" || value === "one" || value === "all";
-}
-
-/**
- * Resolves the index to play after the current track "ends" naturally
- * (auto-advance). Repeat-one re-plays the same index; otherwise it defers to
- * the shared nextIndex logic. Returns the same index for repeat-one, null when
- * playback should stop (repeat-off at the last track).
- */
-export function advanceOnEnded(
-  currentIndex: number,
-  length: number,
-  mode: RepeatMode,
-): number | null {
-  if (length === 0) return null;
-  if (mode === "one") return currentIndex;
-  const next = nextIndex(currentIndex, length, mode);
-  if (next === null) return null;
-  return next;
 }
 
 /**

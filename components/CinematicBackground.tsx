@@ -38,11 +38,10 @@ export function CinematicBackground({
   const [activeIndex, setActiveIndex] = useState(0);
 
   const layersRef = useRef(layers);
-  layersRef.current = layers;
   const activeIndexRef = useRef(activeIndex);
-  activeIndexRef.current = activeIndex;
 
-  const elRefs = [useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null)];
+  const layer0Ref = useRef<HTMLDivElement>(null);
+  const layer1Ref = useRef<HTMLDivElement>(null);
 
   // Generation/request id: only the latest requested vibe may animate/advance.
   const transitionIdRef = useRef(1);
@@ -61,8 +60,9 @@ export function CinematicBackground({
   const startFade = useCallback(
     (to: number) => {
       const from = 1 - to;
-      const fromEl = elRefs[from].current;
-      const toEl = elRefs[to].current;
+      const els = [layer0Ref.current, layer1Ref.current];
+      const fromEl = els[from];
+      const toEl = els[to];
       if (!fromEl || !toEl) return;
 
       const reduce = prefersReducedMotion();
@@ -128,6 +128,14 @@ export function CinematicBackground({
     });
   }, []);
 
+  // Sync render state into refs after commit (never during render).
+  useEffect(() => {
+    layersRef.current = layers;
+  }, [layers]);
+  useEffect(() => {
+    activeIndexRef.current = activeIndex;
+  }, [activeIndex]);
+
   // Drive the crossfade when the incoming (hidden) layer becomes ready.
   useEffect(() => {
     const incoming = 1 - activeIndexRef.current;
@@ -192,7 +200,7 @@ export function CinematicBackground({
         return (
           <div
             key={`layer-${i}`}
-            ref={elRefs[i]}
+            ref={i === 0 ? layer0Ref : layer1Ref}
             className="absolute inset-0 z-10"
             style={{ opacity: i === activeIndex ? 1 : 0 }}
             aria-hidden="true"

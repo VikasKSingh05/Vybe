@@ -18,7 +18,7 @@ import {
   PARTY_REACTION_TTL_MS,
   PARTY_ROOM_TTL_MS,
 } from "./types";
-import type { DispatchResult, Envelope, PartyStore, SubscribeFn } from "./store-interface";
+import type { Envelope, PartyStore } from "./store-interface";
 import { toWireState } from "./clock";
 import { dispatchCommand, generateId, sanitizeName, type ApplyFn } from "./dispatch-commands";
 
@@ -119,16 +119,19 @@ export function createRedisStore(redis: RedisClient): PartyStore {
       if (member) member.lastSeen = Date.now();
     }
 
-    const prevSnapshot = {
+    // Deep snapshot BEFORE mutation. Commands mutate member/track entries in
+    // place (host flags, votes, played), so shallow copies would share the same
+    // objects and diff to "no change" — silently dropping the patch.
+    const prevSnapshot = structuredClone({
       hostId: state.hostId,
       vibeId: state.vibeId,
       version: state.version,
-      members: state.members.slice(),
-      queue: state.queue.slice(),
-      playback: state.playback ? { ...state.playback } : null,
-      reactions: state.reactions.slice(),
+      members: state.members,
+      queue: state.queue,
+      playback: state.playback,
+      reactions: state.reactions.slice(-20),
       locked: state.locked,
-    };
+    });
 
     mutator(state);
     state.version += 1;
@@ -267,21 +270,52 @@ export function createRedisStore(redis: RedisClient): PartyStore {
           const raw = await redis.get(key);
           if (!raw) continue;
           const state = JSON.parse(raw) as PartyState;
+          const roomId = key.slice(ROOM_KEY_PREFIX.length);
           const alive = state.members.filter((m) => now - m.lastSeen < PARTY_MEMBER_IDLE_MS);
+          const membersChanged = alive.length !== state.members.length;
 
-          if (alive.length > 0) {
-            alive[0].isHost = true;
-            state.hostId = alive[0].id;
+          // Preserve the current host while they are still present; only
+          // promote a successor (earliest-joined survivor) when the host has
+          // gone idle. Never blindly reassign to alive[0] — that reverts
+          // host transfers.
+          const hostAlive = alive.some((m) => m.id === state.hostId);
+          let hostChanged = false;
+          if (alive.length > 0 && !hostAlive) {
+            const nextHost = alive.reduce(
+              (earliest, m) => (m.joinedAt < earliest.joinedAt ? m : earliest),
+              alive[0],
+            );
+            state.hostId = nextHost.id;
+            hostChanged = true;
           }
-          state.reactions = state.reactions.filter((r) => now - r.at < PARTY_REACTION_TTL_MS);
+          for (const m of alive) {
+            const shouldBeHost = m.id === state.hostId;
+            if (m.isHost !== shouldBeHost) {
+              m.isHost = shouldBeHost;
+              hostChanged = true;
+            }
+          }
           state.members = alive;
+
+          const beforeLen = state.reactions.length;
+          state.reactions = state.reactions.filter((r) => now - r.at < PARTY_REACTION_TTL_MS);
+          const reactionsChanged = beforeLen !== state.reactions.length;
 
           if (state.members.length === 0 && now - state.createdAt > PARTY_ROOM_TTL_MS) {
             await redis.del(key);
-            subscribers.delete(key.slice(ROOM_KEY_PREFIX.length));
+            subscribers.delete(roomId);
             continue;
           }
+
+          if (membersChanged || hostChanged || reactionsChanged) {
+            state.version += 1;
+          }
           await saveRoom(state);
+
+          // Broadcast the full state so remote instances see membership / host
+          // changes and presence (lastSeen/serverNow) stays truthful.
+          const wire = toWireState(state, now);
+          publish(roomId, { event: "state", data: wire });
         } catch {
           // Skip corrupted room to avoid blocking cleanup of other rooms
         }

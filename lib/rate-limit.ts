@@ -49,6 +49,10 @@ export function rateLimit(
   const elapsed = now - bucket.lastRefill;
   const refill = (elapsed / 1000) * config.refillRate;
   bucket.tokens = Math.min(config.maxTokens, bucket.tokens + refill);
+  // Record the refill point BEFORE deciding. If we only advanced it on the
+  // allowed path, a denied request would re-apply the same elapsed time on the
+  // next call and over-refill the bucket.
+  bucket.lastRefill = now;
 
   if (bucket.tokens < 1) {
     const deficit = 1 - bucket.tokens;
@@ -57,14 +61,20 @@ export function rateLimit(
   }
 
   bucket.tokens -= 1;
-  bucket.lastRefill = now;
   return { allowed: true, retryAfterMs: 0 };
 }
 
 export function getClientIp(request: Request): string {
-  const xff = request.headers.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0].trim();
+  // Prefer the address the trusted edge proxy recorded directly. Fall back to
+  // the right-most X-Forwarded-For hop (the one our own proxy appended); the
+  // left-most value is client-controlled and must never be trusted.
   const real = request.headers.get("x-real-ip");
-  if (real) return real.trim();
+  if (real?.trim()) return real.trim();
+
+  const xff = request.headers.get("x-forwarded-for");
+  if (xff) {
+    const hops = xff.split(",").map((hop) => hop.trim()).filter(Boolean);
+    if (hops.length > 0) return hops[hops.length - 1];
+  }
   return "127.0.0.1";
 }

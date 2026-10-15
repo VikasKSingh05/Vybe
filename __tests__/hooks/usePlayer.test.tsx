@@ -166,6 +166,12 @@ describe("usePlayer vibe-switch single-audio invariant", () => {
     gate = undefined;
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
       const url = String(input);
+      // The discover endpoint returns { songs: [...] } (used by radio refill),
+      // unlike the single-song resolver endpoint.
+      if (url.includes("/api/music/discover")) {
+        const discovered = songFor(getPlaylistForGenre("bollywood")[0].title);
+        return { ok: true, json: async () => ({ songs: [discovered] }) } as unknown as Response;
+      }
       if (gate) {
         const gated = await gate(url);
         if (gated) return responseFor(gated);
@@ -532,5 +538,57 @@ describe("usePlayer vibe-switch single-audio invariant", () => {
     expect(secondary().removeAttribute).toHaveBeenCalledWith("src");
     expect(playableSrcs()).toEqual([chosenUrl]);
     expect(host.result.current.currentIndex).toBe(2);
+  });
+
+  it("ends a seeded vibe by extending the radio with discovered songs (endless)", async () => {
+    const host = setup();
+    await playFirstWithCrossfade(host);
+
+    const lastIdx = getPlaylistForGenre("bollywood").length - 1;
+    act(() => {
+      host.result.current.playAtIndex(lastIdx);
+    });
+    await act(async () => {
+      await waitFor(() => primary().src === entryUrl("bollywood", lastIdx));
+    });
+
+    // The lookahead refill appends a freshly discovered track past the seed list.
+    await act(async () => {
+      await waitFor(() => host.result.current.queueLength > lastIdx + 1);
+    });
+    expect(host.result.current.queueLength).toBeGreaterThan(lastIdx + 1);
+
+    // Reaching the tail crossfades INTO the discovered track instead of looping.
+    act(() => {
+      primary().fire("ended");
+    });
+    await act(async () => {
+      await waitFor(() => host.result.current.currentIndex === lastIdx + 1);
+    });
+    expect(host.result.current.currentIndex).toBe(lastIdx + 1);
+  });
+
+  it("starts an empty radio (random) on play by discovering songs", async () => {
+    const host = setup();
+
+    act(() => {
+      host.result.current.changeVibe("random");
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(host.result.current.queueLength).toBe(0);
+
+    act(() => {
+      host.result.current.play();
+    });
+    // Poll an audio-side effect (not React state) so the async discovery →
+    // append → play pipeline is flushed before asserting queue state.
+    await act(async () => {
+      await waitFor(() => playableSrcs().length > 0);
+    });
+
+    expect(host.result.current.queueLength).toBeGreaterThan(0);
+    expect(host.result.current.currentIndex).toBe(0);
   });
 });

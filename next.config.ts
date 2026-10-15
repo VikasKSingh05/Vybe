@@ -27,8 +27,15 @@ const securityHeaders = [
   },
 ];
 
+// Dev-only origins allowed to load the dev server cross-origin. Defaults to a
+// commonly-used LAN address; override with a comma-separated list.
+const allowedDevOrigins = (process.env.ALLOWED_DEV_ORIGINS ?? "192.168.0.102")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["192.168.0.102"],
+  allowedDevOrigins,
   poweredByHeader: false,
   reactStrictMode: true,
   serverExternalPackages: ["ioredis"],

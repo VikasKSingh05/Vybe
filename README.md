@@ -10,24 +10,29 @@ Instead of browsing through endless playlists, VYBE lets you choose a vibe and i
 
 ## ✨ Features
 
-### 🎧 VYBE-based Music Discovery
+### 🎧 VYBE-based Live Radio
 
-Choose a vibe and let VYBE handle the music selection.
+Choose a vibe and VYBE keeps the music flowing like a live radio station.
 
 Available vibes include different moods and energy levels such as:
 
+- 🎬 Bollywood
+- 🎸 Indie
 - 🌿 Lofi
 - 🧘 Chill
 - 🔥 Phonk
 - 🎲 Random
 
-Each VYBE provides a curated listening experience rather than requiring users to manually build a playlist.
+Each VYBE starts from a curated seed pool, then continuously discovers new
+tracks for that vibe as you listen — so the station never loops a finite list
+and never runs out of songs. New tracks are prefetched ahead of time and the
+next song is preloaded for gapless transitions.
 
 ---
 
 ### 🔎 Music Search
 
-Don't want to follow a predefined vibe?
+Available in every vibe — don't want to follow the station?
 
 Search for a specific:
 
@@ -35,7 +40,7 @@ Search for a specific:
 - Artist
 - Track
 
-VYBE resolves the requested track through its music API and plays the highest available audio quality.
+VYBE resolves the requested track through its music API and plays the highest available audio quality. Play a result immediately, queue it, or play it next.
 
 ---
 
@@ -109,20 +114,26 @@ VYBE is split into a frontend application and a music API backend.
 ```
 
 ## 🛠️ Tech Stack
-### Frontend
-- Next.js
+
+This repository is the **frontend + BFF**: a Next.js (App Router) app whose
+`/api/*` route handlers proxy the upstream music service.
+
+### App
+- Next.js (App Router) + React
 - TypeScript
 - Tailwind CSS
 - Lucide React
-### Backend
-- Bun
-- Hono
-- TypeScript
-- Zod
+
+### Backend / BFF
+- Next.js Route Handlers (`/api/music/*`, `/api/party/*`)
+- JioSaavn music API (separate upstream service, `JIOSAAVN_API_URL`)
+- Party room state: per-process memory, or Redis via `REDIS_URL`
+
 ### Development
 - Git
 - ESLint
 - Vitest
+- TypeScript (`tsc --noEmit`)
 
 ## 🚀 Getting Started
 
@@ -130,8 +141,7 @@ VYBE is split into a frontend application and a music API backend.
 
 Make sure you have:
 
-- Node.js
-- Bun
+- Node.js 20+ (or Bun)
 - Git
 
 ### Clone the repository
@@ -142,19 +152,38 @@ cd vybe
 ```
 Install dependencies:
 
-```bun install```
+```bash
+npm install
+```
 
-Environment Variables:
-```NEXT_PUBLIC_API_URL=your_api_url```
+Environment variables — copy `.env.example` to `.env.local` and fill in:
 
-Replace your_api_url with the URL of the VYBE music API.
+```bash
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+JIOSAAVN_API_URL=https://your-jiosaavn-api.example   # upstream music API
+# REDIS_URL=rediss://...                             # optional; unset = in-memory party state
+```
+
+See `.env.example` and [DEPLOY.md](./DEPLOY.md) for the full list.
 
 Start development server:
-```bun run dev```
+
+```bash
+npm run dev
+```
 
 VYBE will be available at:
 
 http://localhost:3000
+
+### ✅ Checks
+
+```bash
+npm run lint        # eslint
+npm run typecheck   # tsc --noEmit
+npm test            # vitest run
+npm run build       # production build
+```
 
 ### 🎉 Testing VYBE Jam Locally
 
@@ -170,27 +199,27 @@ http://192.168.1.10:3000
 Create a Jam room on one device and open the invite URL on another.
 Note: Local in-memory rooms are intended for development/self-hosted environments. They are not suitable for persistent production rooms across server instances.
 
-🧪 Development
+🧪 Deployment
 
-The frontend can be deployed using platforms such as Vercel.
-The backend can be deployed separately using a container-based platform.
-The production architecture can therefore look like:
+The Next.js app (frontend + BFF) deploys to platforms such as Vercel; the
+upstream JioSaavn music API is deployed separately and referenced via
+`JIOSAAVN_API_URL`. See [DEPLOY.md](./DEPLOY.md) for the full runbook. The
+production architecture can look like:
 
                 ┌──────────────────┐
-                │      VYBE        │
-                │     Frontend     │
+                │  VYBE (Vercel)   │
+                │ Next.js App + BFF│
                 └────────┬─────────┘
                          │
                          │ HTTPS
                          ▼
                 ┌──────────────────┐
-                │   VYBE Backend   │
-                │   Hono + Bun     │
+                │  JioSaavn API    │
+                │ (Render, separate)│
                 └────────┬─────────┘
                          │
                          ▼
                 ┌──────────────────┐
-                │                  │
                 │     Sources      │
                 └──────────────────┘
 

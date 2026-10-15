@@ -32,10 +32,14 @@ function mediaSessionSupported(): boolean {
  */
 export function useMediaSession(options: UseMediaSessionOptions): void {
   const optionsRef = useRef(options);
-  optionsRef.current = options;
 
   const { enabled = true, isPlaying, duration, currentTime } = options;
   const { title, artist, artwork } = options;
+
+  // Sync the latest options after commit so action handlers read fresh values.
+  useEffect(() => {
+    optionsRef.current = options;
+  });
 
   const supported =
     enabled &&
@@ -104,18 +108,19 @@ export function useMediaSession(options: UseMediaSessionOptions): void {
     navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
   }, [supported, isPlaying]);
 
+  const roundedTime = Math.round(currentTime);
   useEffect(() => {
     if (!supported) return;
     if (!Number.isFinite(duration) || duration <= 0) return;
-    if (!Number.isFinite(currentTime)) return;
+    if (!Number.isFinite(roundedTime)) return;
     try {
       navigator.mediaSession.setPositionState({
         duration,
         playbackRate: 1,
-        position: Math.min(duration, Math.max(0, currentTime)),
+        position: Math.min(duration, Math.max(0, roundedTime)),
       });
     } catch {
       // Position outside the last known duration mid-seek — ignore
     }
-  }, [supported, duration, Math.round(currentTime)]);
+  }, [supported, duration, roundedTime]);
 }

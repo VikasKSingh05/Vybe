@@ -49,7 +49,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
     () => state?.playback?.queueId
       ? state.queue.find((t) => t.queueId === state.playback?.queueId)
       : null,
-    [state?.playback?.queueId, state?.queue],
+    [state],
   );
 
   const hasQueue = (state?.queue.length ?? 0) > 0;
@@ -139,10 +139,11 @@ export function PartyRoom({ party }: PartyRoomProps) {
     [state?.members],
   );
 
+  const inviteRoomId = state?.roomId;
   const handleInvite = useCallback(() => {
-    if (!state) return;
-    copy(`${window.location.origin}/party/${state.roomId}`);
-  }, [state?.roomId, copy]);
+    if (!inviteRoomId) return;
+    copy(`${window.location.origin}/party/${inviteRoomId}`);
+  }, [inviteRoomId, copy]);
 
   const queuedTracks = useMemo(
     () => new Map((state?.queue ?? []).map((t) => [t.song.id, t])),
@@ -179,18 +180,21 @@ export function PartyRoom({ party }: PartyRoomProps) {
     router.push("/party");
   }, [removed, router]);
 
-  // Track the server clock so presence dots stay truthful between patches,
-  // and re-render periodically as heartbeats age members in and out.
-  const clockOffsetRef = useRef(0);
+  // Approximate the server clock so presence dots stay truthful between
+  // patches: anchor to the last known serverNow and advance on an interval.
+  // Whenever a newer patch lands, the tick is reset during render (derived
+  // state) so the estimate never drifts ahead of the server.
+  const [presenceTick, setPresenceTick] = useState(0);
+  const [anchoredServerNow, setAnchoredServerNow] = useState(state?.serverNow ?? 0);
+  if (state && state.serverNow !== anchoredServerNow) {
+    setAnchoredServerNow(state.serverNow);
+    setPresenceTick(0);
+  }
   useEffect(() => {
-    if (state) clockOffsetRef.current = state.serverNow - Date.now();
-  }, [state]);
-  const [, setPresenceTick] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setPresenceTick((n) => n + 1), 30_000);
+    const t = setInterval(() => setPresenceTick((n) => n + 1), 15_000);
     return () => clearInterval(t);
   }, []);
-  const serverNowEstimate = Date.now() + clockOffsetRef.current;
+  const serverNowEstimate = anchoredServerNow + presenceTick * 15_000;
 
   // Lock-screen / hardware media controls for everyone in the room
   useMediaSession({

@@ -121,7 +121,6 @@ function ToastCard({ item, index }: { item: ToastItem; index: number }) {
       enterAnimRef.current?.cancel();
       exitAnimsRef.current.forEach((a) => a.cancel());
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Lifetime progress bar — paused/resumed in tandem with the lib countdown

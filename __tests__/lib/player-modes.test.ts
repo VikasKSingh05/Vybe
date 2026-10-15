@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import type { PlaylistEntry } from "@/data/playlists";
 import {
-  advanceOnEnded,
   nextIndex,
   prevIndex,
   shuffleList,
@@ -48,26 +47,6 @@ describe("prevIndex", () => {
   it("returns null at the first track when repeat is off", () => {
     expect(prevIndex(0, list.length, "off")).toBeNull();
     expect(prevIndex(2, list.length, "off")).toBe(1);
-  });
-});
-
-describe("advanceOnEnded", () => {
-  const list = [entry("a"), entry("b"), entry("c")];
-
-  it("replays the same index on repeat-one", () => {
-    expect(advanceOnEnded(1, list.length, "one")).toBe(1);
-  });
-
-  it("wraps forward on repeat-all", () => {
-    expect(advanceOnEnded(2, list.length, "all")).toBe(0);
-  });
-
-  it("stops at the end on repeat-off", () => {
-    expect(advanceOnEnded(2, list.length, "off")).toBeNull();
-  });
-
-  it("returns null for an empty list", () => {
-    expect(advanceOnEnded(0, 0, "all")).toBeNull();
   });
 });
 

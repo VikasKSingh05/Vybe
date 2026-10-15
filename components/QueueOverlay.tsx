@@ -34,6 +34,10 @@ const DRAG_ACTIVATE_PX = 6;
 const AUTO_SCROLL_EDGE_PX = 48;
 const AUTO_SCROLL_MAX_SPEED = 12; // px per frame at the very edge
 
+// Fixed equalizer-bar heights (px). Constant values keep the "now playing"
+// indicator from re-randomizing and jittering on every render.
+const PLAYING_BAR_HEIGHTS = [10, 6, 8];
+
 export function QueueOverlay({
   queue,
   currentIndex,
@@ -168,15 +172,6 @@ export function QueueOverlay({
     return () => document.removeEventListener("keydown", handleEsc);
   }, [isOpen, onClose]);
 
-  // Reset any leftover drag styles when the overlay closes mid-gesture
-  useEffect(() => {
-    if (isOpen) return;
-    clearDragStyles();
-    stopAutoScroll();
-    dragState.current = null;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
-
   const clearDragStyles = useCallback(() => {
     rowRefs.current.forEach((el) => {
       if (!el) return;
@@ -186,6 +181,15 @@ export function QueueOverlay({
       el.style.boxShadow = "";
     });
   }, []);
+
+  // Reset any leftover drag styles when the overlay closes mid-gesture
+  useEffect(() => {
+    if (isOpen) return;
+    clearDragStyles();
+    stopAutoScroll();
+    dragState.current = null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const activateDrag = useCallback((ds: DragState, dragged: HTMLLIElement) => {
     ds.activated = true;
@@ -269,7 +273,7 @@ export function QueueOverlay({
         });
       }
     },
-    [activateDrag],
+    [activateDrag, updateAutoScroll],
   );
 
   const handleDragEnd = useCallback(
@@ -434,7 +438,7 @@ export function QueueOverlay({
                                   key={bar}
                                   className="w-0.5 rounded-full bg-white"
                                   style={{
-                                    height: `${6 + Math.random() * 6}px`,
+                                    height: `${PLAYING_BAR_HEIGHTS[bar]}px`,
                                     animation: `pulse 0.8s ease-in-out ${bar * 0.15}s infinite alternate`,
                                   }}
                                 />

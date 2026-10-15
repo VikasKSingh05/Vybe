@@ -53,10 +53,14 @@ export function useKeyboardShortcuts(
   enabled = true,
 ): void {
   const handlersRef = useRef(handlers);
-  handlersRef.current = handlers;
-
   const enabledRef = useRef(enabled);
-  enabledRef.current = enabled;
+
+  // Keep the latest handlers/enabled in refs so the single window listener
+  // never reads stale closures (synced after commit, not during render).
+  useEffect(() => {
+    handlersRef.current = handlers;
+    enabledRef.current = enabled;
+  });
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent): void {

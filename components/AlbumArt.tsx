@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/cn";
 
@@ -21,16 +21,22 @@ export function AlbumArt({
   size = "md",
   className,
 }: AlbumArtProps) {
-  const [currentSrc, setCurrentSrc] = useState<string | undefined>(src);
   const dimensions = size === "sm" ? 44 : size === "lg" ? 120 : 56;
 
-  useEffect(() => {
-    setCurrentSrc(src);
-  }, [src]);
+  // Reset the "failed" flag whenever the incoming src changes, using React's
+  // derived-state-during-render pattern (avoids a setState-in-effect cascade).
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const [prevSrc, setPrevSrc] = useState(src);
+  if (src !== prevSrc) {
+    setPrevSrc(src);
+    setFailedSrc(null);
+  }
+
+  const currentSrc = failedSrc === src && src ? FALLBACK_ARTWORK : src;
 
   const handleError = () => {
     if (currentSrc && currentSrc !== FALLBACK_ARTWORK) {
-      setCurrentSrc(FALLBACK_ARTWORK);
+      setFailedSrc(src ?? null);
     }
   };
 

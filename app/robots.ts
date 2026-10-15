@@ -1,11 +1,13 @@
 import type { MetadataRoute } from "next";
+import { APP_URL } from "@/lib/site";
 
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
       allow: "/",
+      disallow: "/api/",
     },
-    sitemap: `${process.env.NEXT_PUBLIC_APP_URL || "https://vybe.app"}/sitemap.xml`,
+    sitemap: `${APP_URL}/sitemap.xml`,
   };
 }

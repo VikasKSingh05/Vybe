@@ -92,6 +92,7 @@ export function VybeApp() {
       player.changeVibe(id);
       search.clear();
       setQueueOpen(false);
+      setSearchOpen(false);
     },
     [player, search],
   );

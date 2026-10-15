@@ -4,6 +4,17 @@ import type { JioSaavnApiResponse, JioSaavnRawSong } from "./types";
 
 const FETCH_TIMEOUT_MS = 8_000;
 
+/**
+ * Resolves the configured JioSaavn API base URL (trailing slashes trimmed), or
+ * null when it is not configured. Never falls back to a loopback address —
+ * doing so would make the server call itself in production.
+ */
+function getJioSaavnBaseUrl(): string | null {
+  const url = process.env.JIOSAAVN_API_URL?.trim();
+  if (!url) return null;
+  return url.replace(/\/+$/, "");
+}
+
 async function fetchWithTimeout(url: string, init?: RequestInit): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -15,8 +26,8 @@ async function fetchWithTimeout(url: string, init?: RequestInit): Promise<Respon
 }
 
 export async function fetchJioSaavnSong(songId?: string, fallbackQuery?: string): Promise<Song | null> {
-  const baseUrl = process.env.JIOSAAVN_API_URL || "http://localhost:3000";
-  const cleanBaseUrl = baseUrl.replace(/\/+$/, "");
+  const cleanBaseUrl = getJioSaavnBaseUrl();
+  if (!cleanBaseUrl) return null;
 
   const cleanId = songId?.trim();
   const isValidId = cleanId && cleanId !== "search" && cleanId !== "null" && cleanId !== "undefined";
@@ -105,8 +116,8 @@ export async function searchJioSaavnSongs(query: string): Promise<Song[]> {
   const trimmed = query.trim();
   if (!trimmed) return [];
 
-  const baseUrl = process.env.JIOSAAVN_API_URL || "http://localhost:3000";
-  const cleanBaseUrl = baseUrl.replace(/\/+$/, "");
+  const cleanBaseUrl = getJioSaavnBaseUrl();
+  if (!cleanBaseUrl) return [];
 
   const urls = [
     `${cleanBaseUrl}/api/search/songs?query=${encodeURIComponent(trimmed)}`,

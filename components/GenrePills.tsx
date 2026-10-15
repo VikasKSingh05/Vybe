@@ -87,7 +87,7 @@ export function GenrePills({
         })}
       </div>
 
-      {activeId === "random" && searchOverlay && (
+      {searchOverlay && (
         <div className="mt-1 flex justify-center">
           <div className="w-full max-w-xl">{searchOverlay}</div>
         </div>

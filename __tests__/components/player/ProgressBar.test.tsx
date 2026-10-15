@@ -26,7 +26,6 @@ describe("ProgressBar", () => {
       <ProgressBar progress={50} currentTime={30} duration={60} accent="#ff0000" onSeek={onSeek} />,
     );
     const slider = screen.getByRole("slider");
-    const rect = slider.getBoundingClientRect();
     Object.defineProperty(slider, "getBoundingClientRect", {
       value: () => ({ left: 0, width: 100, top: 0, bottom: 10, right: 100 }),
     });

@@ -30,9 +30,13 @@ export function PartyLanding({
   onCreate,
   onJoin,
 }: PartyLandingProps) {
-  const [name, setName] = useState(rejoinIdentity?.name ?? "");
+  // Seed from a remembered identity / stored name at mount time so the
+  // deep-link auto-join below never needs a synchronous setState in an effect.
+  const [name, setName] = useState(
+    () => rejoinIdentity?.name ?? loadPartyName() ?? "",
+  );
   const [roomId, setRoomId] = useState(
-    rejoinIdentity?.roomId ?? initialRoomId ?? "",
+    () => rejoinIdentity?.roomId ?? initialRoomId ?? "",
   );
   const [submitting, setSubmitting] = useState<"create" | "join" | null>(null);
   const [triedSubmit, setTriedSubmit] = useState(false);
@@ -45,8 +49,6 @@ export function PartyLanding({
     const storedName = loadPartyName();
     if (!storedName) return;
     autoJoinAttemptedRef.current = true;
-    setName(storedName);
-    setRoomId(initialRoomId);
     const timer = setTimeout(() => {
       setSubmitting("join");
       onJoin(initialRoomId, storedName);

@@ -1,5 +1,6 @@
 import { searchJioSaavnSongs } from "./jiosaavn";
 import type { Song } from "@/types/music";
+import type { VibeId } from "@/data/types";
 
 const SEED_TERMS = [
   "hindi sad songs",
@@ -44,6 +45,15 @@ const SEED_TERMS = [
   "sleep ambient hindi",
 ];
 
+const VIBE_SEEDS: Record<VibeId, string[]> = {
+  phonk: ["phonk music", "drift phonk", "phonk beats", "memphis rap"],
+  lofi: ["lofi beats", "lofi hip hop", "chill lofi", "study lofi"],
+  bollywood: ["bollywood hits", "romantic bollywood", "bollywood party songs", "90s bollywood hits"],
+  indie: ["indie hindi songs", "indie pop", "indie rock", "acoustic hindi"],
+  chill: ["chill english songs", "chill vibes", "relaxing music", "chill acoustic"],
+  random: SEED_TERMS,
+};
+
 const SEARCH_DELAY_MS = 200;
 
 function shuffleArray<T>(arr: T[]): T[] {
@@ -56,18 +66,37 @@ function shuffleArray<T>(arr: T[]): T[] {
 }
 
 function pickRandom<T>(arr: T[], count: number): T[] {
-  return shuffleArray(arr).slice(0, count);
+  if (arr.length === 0) return [];
+  const take = Math.max(0, count);
+  if (take === 0) return [];
+  return shuffleArray(arr).slice(0, take);
+}
+
+function dedupeByTitleArtist(songs: Song[]): Song[] {
+  const seen = new Set<string>();
+  const result: Song[] = [];
+  for (const song of songs) {
+    const key = `${song.title}-${song.artist}`.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(song);
+  }
+  return result;
 }
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function discoverRandomSongs(
+export async function discoverSongsForVibe(
+  vibe: VibeId,
   count: number,
   excludeIds: Set<string> = new Set(),
 ): Promise<Song[]> {
-  const seeds = pickRandom(SEED_TERMS, Math.min(3, Math.ceil(count / 5)));
+  const pool = VIBE_SEEDS[vibe] ?? VIBE_SEEDS.random;
+  const requested = Math.max(1, count);
+  const seedCount = Math.max(1, Math.min(pool.length, Math.ceil(requested / 5)));
+  const seeds = pickRandom(pool, seedCount);
   const allResults: Song[] = [];
 
   for (let i = 0; i < seeds.length; i++) {
@@ -80,9 +109,14 @@ export async function discoverRandomSongs(
     }
   }
 
-  const unique = allResults.filter(
-    (song) => song.streamUrl && !excludeIds.has(song.id),
-  );
+  const unique = allResults.filter((song) => song.streamUrl && !excludeIds.has(song.id));
+  const deduped = dedupeByTitleArtist(unique);
+  return shuffleArray(deduped).slice(0, requested);
+}
 
-  return shuffleArray(unique).slice(0, count);
+export async function discoverRandomSongs(
+  count: number,
+  excludeIds: Set<string> = new Set(),
+): Promise<Song[]> {
+  return discoverSongsForVibe("random", count, excludeIds);
 }

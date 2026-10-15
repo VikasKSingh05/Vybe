@@ -42,13 +42,18 @@ function apply(roomId: string, mutator: (s: PartyState) => void): PartyState | n
   const state = rooms.get(roomId);
   if (!state) return null;
 
-  const prevMembers = state.members.slice();
-  const prevQueue = state.queue.slice();
-  const prevPlayback = state.playback;
-  const prevReactions = state.reactions.slice();
-  const prevHostId = state.hostId;
-  const prevVibeId = state.vibeId;
-  const prevLocked = state.locked;
+  // Deep snapshot BEFORE mutation. Commands mutate members/queue entries in
+  // place (host flags, votes, played), so a shallow `.slice()` would share the
+  // same objects and diff to "no change" — silently dropping the patch.
+  const prev = structuredClone({
+    hostId: state.hostId,
+    vibeId: state.vibeId,
+    members: state.members,
+    queue: state.queue,
+    playback: state.playback,
+    reactions: state.reactions.slice(-20),
+    locked: state.locked,
+  });
 
   mutator(state);
   state.version += 1;
@@ -60,13 +65,13 @@ function apply(roomId: string, mutator: (s: PartyState) => void): PartyState | n
     const patch: PartyPatch = { version: wire.version, serverNow: now };
     let hasDiff = false;
 
-    if (prevHostId !== wire.hostId) { patch.hostId = wire.hostId; hasDiff = true; }
-    if (prevVibeId !== wire.vibeId) { patch.vibeId = wire.vibeId; hasDiff = true; }
-    if (JSON.stringify(prevMembers) !== JSON.stringify(wire.members)) { patch.members = wire.members; hasDiff = true; }
-    if (JSON.stringify(prevQueue) !== JSON.stringify(wire.queue)) { patch.queue = wire.queue; hasDiff = true; }
-    if (prevPlayback !== state.playback) { patch.playback = wire.playback; hasDiff = true; }
-    if (JSON.stringify(prevReactions) !== JSON.stringify(wire.reactions)) { patch.reactions = wire.reactions; hasDiff = true; }
-    if (prevLocked !== wire.locked) { patch.locked = wire.locked; hasDiff = true; }
+    if (prev.hostId !== wire.hostId) { patch.hostId = wire.hostId; hasDiff = true; }
+    if (prev.vibeId !== wire.vibeId) { patch.vibeId = wire.vibeId; hasDiff = true; }
+    if (JSON.stringify(prev.members) !== JSON.stringify(wire.members)) { patch.members = wire.members; hasDiff = true; }
+    if (JSON.stringify(prev.queue) !== JSON.stringify(wire.queue)) { patch.queue = wire.queue; hasDiff = true; }
+    if (JSON.stringify(prev.playback) !== JSON.stringify(wire.playback)) { patch.playback = wire.playback; hasDiff = true; }
+    if (JSON.stringify(prev.reactions) !== JSON.stringify(wire.reactions)) { patch.reactions = wire.reactions; hasDiff = true; }
+    if (prev.locked !== wire.locked) { patch.locked = wire.locked; hasDiff = true; }
 
     if (!hasDiff) return wire;
 
@@ -173,19 +178,34 @@ export const memoryStore: PartyStore = {
     for (const [roomId, state] of rooms) {
       try {
         const alive = state.members.filter((m) => now - m.lastSeen < PARTY_MEMBER_IDLE_MS);
-        const changed = alive.length !== state.members.length || state.hostId !== alive[0]?.id;
+        const membersChanged = alive.length !== state.members.length;
 
-        if (alive.length > 0) {
-          alive[0].isHost = true;
-          alive[0].lastSeen = Math.max(alive[0].lastSeen, now);
-          state.hostId = alive[0].id;
+        // Preserve the current host while they are still present; only promote
+        // a successor (earliest-joined survivor) when the host has gone idle.
+        // Never blindly reassign to alive[0] — that reverts host transfers.
+        const hostAlive = alive.some((m) => m.id === state.hostId);
+        let hostChanged = false;
+        if (alive.length > 0 && !hostAlive) {
+          const nextHost = alive.reduce(
+            (earliest, m) => (m.joinedAt < earliest.joinedAt ? m : earliest),
+            alive[0],
+          );
+          state.hostId = nextHost.id;
+          hostChanged = true;
         }
+        // Normalize isHost flags so exactly one member (hostId) carries it.
+        for (const m of alive) {
+          const shouldBeHost = m.id === state.hostId;
+          if (m.isHost !== shouldBeHost) {
+            m.isHost = shouldBeHost;
+            hostChanged = true;
+          }
+        }
+        state.members = alive;
 
         const beforeLen = state.reactions.length;
         state.reactions = state.reactions.filter((r) => now - r.at < PARTY_REACTION_TTL_MS);
         const reactionsChanged = beforeLen !== state.reactions.length;
-
-        state.members = alive;
 
         if (state.members.length === 0 && now - state.createdAt > PARTY_ROOM_TTL_MS) {
           rooms.delete(roomId);
@@ -193,10 +213,12 @@ export const memoryStore: PartyStore = {
           continue;
         }
 
-        if (changed || reactionsChanged) {
+        if (membersChanged || hostChanged || reactionsChanged) {
           state.version += 1;
         }
 
+        // Always broadcast the full state so presence (lastSeen/serverNow)
+        // stays truthful between sparse user-driven patches.
         const wire = toWireState(state, now);
         const set = subscribers.get(roomId);
         if (set && set.size > 0) {

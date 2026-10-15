@@ -10,7 +10,6 @@ import { resolveSong as resolveSongFn } from "@/lib/music/resolve";
 import { loadPlayerState, savePlayerState } from "@/lib/player-storage";
 import { applyReorder, insertAfterCurrent } from "@/lib/queue-order";
 import {
-  advanceOnEnded,
   nextIndex as nextIndexHelper,
   prevIndex as prevIndexHelper,
   shuffleList,
@@ -18,6 +17,11 @@ import {
 } from "@/lib/player-modes";
 
 const CROSSFADE_MS = 2000;
+// Endless "live radio": keep at least this many upcoming tracks buffered, pull
+// them in batches, and cap the in-memory queue to keep the UI snappy.
+const RADIO_LOOKAHEAD = 4;
+const RADIO_BATCH = 8;
+const RADIO_MAX_QUEUE = 300;
 
 interface UsePlayerOptions {
   initialVibeId?: VibeId;
@@ -46,11 +50,8 @@ export function usePlayer({
   const vibeGenerationRef = useRef(0);
   const playbackRequestIdRef = useRef(0);
   const activePlaylistRef = useRef(playlist);
-  activePlaylistRef.current = playlist;
   const currentIndexRef = useRef(currentIndex);
-  currentIndexRef.current = currentIndex;
   const vibeIdRef = useRef(vibeId);
-  vibeIdRef.current = vibeId;
   const loadSongAtIndexRef = useRef<
     ((
       index: number,
@@ -58,6 +59,18 @@ export function usePlayer({
       options?: { crossfade?: boolean },
     ) => Promise<void>) | null
   >(null);
+
+  const radioFetchingRef = useRef(false);
+  const radioNextRetryRef = useRef(0);
+  const handleEndedRef = useRef<(() => Promise<void>) | null>(null);
+
+  // Mirror render state into refs after commit so async audio callbacks and
+  // timers always observe the latest values without stale closures.
+  useEffect(() => {
+    activePlaylistRef.current = playlist;
+    currentIndexRef.current = currentIndex;
+    vibeIdRef.current = vibeId;
+  });
 
   const theme = getVibeTheme(vibeId);
 
@@ -67,18 +80,16 @@ export function usePlayer({
   const [repeatMode, setRepeatMode] = useState<RepeatMode>(persisted?.repeatMode ?? "all");
   const [shuffle, setShuffle] = useState(persisted?.shuffle ?? false);
   const repeatModeRef = useRef(repeatMode);
-  repeatModeRef.current = repeatMode;
+  useEffect(() => {
+    repeatModeRef.current = repeatMode;
+  }, [repeatMode]);
 
   const resolveSong = useCallback(
     (entry: PlaylistEntry) => resolveSongFn(songCacheRef.current, entry),
     [],
   );
 
-  const fetchRandomSongInProgressRef = useRef(false);
-  const fetchRandomSongRef = useRef<(() => Promise<void>) | null>(null);
-
   const {
-    audioRef,
     currentTime,
     duration,
     isPlaying,
@@ -89,32 +100,7 @@ export function usePlayer({
     applyVolume,
   } = useAudioElement({
     onEnded: () => {
-      const currentList = activePlaylistRef.current;
-      if (currentList.length === 0) {
-        if (vibeIdRef.current === "random") {
-          fetchRandomSongRef.current?.();
-        }
-        return;
-      }
-      if (
-        vibeIdRef.current === "random" &&
-        currentIndexRef.current >= currentList.length - 1
-      ) {
-        getActiveAudio()?.pause();
-        return;
-      }
-      const advance = advanceOnEnded(
-        currentIndexRef.current,
-        currentList.length,
-        repeatModeRef.current,
-      );
-      if (advance === null) {
-        getActiveAudio()?.pause();
-        return;
-      }
-      // Automatic track transition (natural end / random auto-advance):
-      // crossfade into the next track, keep the old one fading out.
-      loadSongAtIndexRef.current?.(advance, true, { crossfade: true });
+      void handleEndedRef.current?.();
     },
     onError: () => {
       const audio = getActiveAudio();
@@ -264,7 +250,9 @@ export function usePlayer({
     [resolveSong, preloadNextSong, userInteracted, stopPlayback, getActiveAudio, crossfadeEnabled, isMuted, volume, crossfadeTo],
   );
 
-  loadSongAtIndexRef.current = loadSongAtIndex;
+  useEffect(() => {
+    loadSongAtIndexRef.current = loadSongAtIndex;
+  }, [loadSongAtIndex]);
 
   // Preload the active (or restored) track for display without autoplay
   useEffect(() => {
@@ -347,40 +335,148 @@ export function usePlayer({
     setCurrentIndex(result.currentIndex);
   }, []);
 
-  const fetchRandomSong = useCallback(async () => {
-    if (fetchRandomSongInProgressRef.current) return;
-    fetchRandomSongInProgressRef.current = true;
+  // Endless "live radio" refill: fetch more songs for the current vibe and
+  // append them to the queue. Curated playlists act as seeds; once their tail
+  // is reached the station keeps discovering new tracks instead of looping.
+  const refillRadio = useCallback(async (count = RADIO_BATCH): Promise<number> => {
+    const currentLength = activePlaylistRef.current.length;
+    if (radioFetchingRef.current) return currentLength;
+    if (currentLength >= RADIO_MAX_QUEUE) return currentLength;
+    if (Date.now() < radioNextRetryRef.current) return currentLength;
+
+    radioFetchingRef.current = true;
+    const requestedVibe = vibeIdRef.current;
     try {
       const exclude = activePlaylistRef.current
         .map((e) => e.jiosaavnId)
-        .filter(Boolean)
+        .filter((id): id is string => typeof id === "string" && id.length > 0)
         .join(",");
-      const params = new URLSearchParams({ count: "1" });
+      const params = new URLSearchParams({ count: String(count), vibe: requestedVibe });
       if (exclude) params.set("exclude", exclude);
+
       const res = await fetch(`/api/music/discover?${params}`);
-      if (!res.ok) return;
+      if (!res.ok) return activePlaylistRef.current.length;
+
       const data = (await res.json().catch(() => null)) as { songs?: Song[] } | null;
-      const song = data?.songs?.[0];
-      if (!song) return;
-      addToQueue(
-        {
+      const songs = data?.songs ?? [];
+      if (songs.length === 0) {
+        // Back off before trying again so a quiet upstream cannot spin us.
+        radioNextRetryRef.current = Date.now() + 15_000;
+        return activePlaylistRef.current.length;
+      }
+
+      // The user switched vibes while we were fetching — drop the stale batch.
+      if (vibeIdRef.current !== requestedVibe) return activePlaylistRef.current.length;
+
+      const seenIds = new Set(
+        activePlaylistRef.current.map((e) => e.jiosaavnId).filter(Boolean),
+      );
+      const seenTitles = new Set(
+        activePlaylistRef.current.map((e) => `${e.title}-${e.artist}`.toLowerCase()),
+      );
+
+      const additions: PlaylistEntry[] = [];
+      for (const song of songs) {
+        if (!song.streamUrl || seenIds.has(song.id)) continue;
+        const key = `${song.title}-${song.artist}`.toLowerCase();
+        if (seenTitles.has(key)) continue;
+        seenIds.add(song.id);
+        seenTitles.add(key);
+        songCacheRef.current.set(song.id, song);
+        additions.push({
           jiosaavnId: song.id,
           title: song.title,
           artist: song.artist,
           artwork: song.artwork,
           duration: song.duration,
-        },
-        song,
-        true,
-      );
-    } catch {
-      // Silent fail — user can press play or search manually
-    } finally {
-      fetchRandomSongInProgressRef.current = false;
-    }
-  }, [addToQueue]);
+        });
+      }
 
-  fetchRandomSongRef.current = fetchRandomSong;
+      if (additions.length === 0) return activePlaylistRef.current.length;
+
+      const nextList = [...activePlaylistRef.current, ...additions];
+      setPlaylist(nextList);
+      activePlaylistRef.current = nextList;
+      return nextList.length;
+    } catch {
+      // Silent fail — the user can still play the songs already queued.
+      return activePlaylistRef.current.length;
+    } finally {
+      radioFetchingRef.current = false;
+    }
+  }, []);
+
+  // Keep the queue topped up: whenever the upcoming buffer runs low, append a
+  // fresh batch for the active vibe. Empty lists are left alone so the radio
+  // starts on an explicit user gesture (play / next).
+  useEffect(() => {
+    if (playlist.length === 0) return;
+    const upcoming = playlist.length - currentIndex - 1;
+    if (upcoming >= RADIO_LOOKAHEAD) return;
+    void refillRadio(RADIO_BATCH);
+  }, [playlist, currentIndex, refillRadio]);
+
+  const startRadioPlayback = useCallback(async () => {
+    if (activePlaylistRef.current.length === 0) {
+      await refillRadio(RADIO_BATCH);
+    }
+    if (activePlaylistRef.current.length > 0) {
+      loadSongAtIndexRef.current?.(0, true);
+    }
+  }, [refillRadio]);
+
+  // Natural end of a track. Advance within the list; at the tail, extend the
+  // radio with newly discovered songs before wrapping (or stopping).
+  const handleEnded = useCallback(async () => {
+    const list = activePlaylistRef.current;
+    const mode = repeatModeRef.current;
+    const idx = currentIndexRef.current;
+
+    if (list.length === 0) {
+      const length = await refillRadio(RADIO_BATCH);
+      if (length > 0) loadSongAtIndexRef.current?.(0, true);
+      return;
+    }
+
+    if (mode === "one") {
+      loadSongAtIndexRef.current?.(idx, true, { crossfade: true });
+      return;
+    }
+
+    if (idx < list.length - 1) {
+      loadSongAtIndexRef.current?.(idx + 1, true, { crossfade: true });
+      return;
+    }
+
+    const length = await refillRadio(RADIO_BATCH);
+    if (length > idx + 1) {
+      loadSongAtIndexRef.current?.(idx + 1, true, { crossfade: true });
+      return;
+    }
+    if (mode === "all") {
+      loadSongAtIndexRef.current?.(0, true, { crossfade: true });
+      return;
+    }
+    getActiveAudio()?.pause();
+  }, [refillRadio, getActiveAudio]);
+
+  useEffect(() => {
+    handleEndedRef.current = handleEnded;
+  }, [handleEnded]);
+
+  // Manual "next" at the tail behaves like a natural end: extend then advance,
+  // falling back to wrapping under repeat-all (or stopping).
+  const extendAndPlayNext = useCallback(async () => {
+    const idx = currentIndexRef.current;
+    const length = await refillRadio(RADIO_BATCH);
+    if (length > idx + 1) {
+      loadSongAtIndexRef.current?.(idx + 1, true);
+    } else if (repeatModeRef.current === "all" && length > 0) {
+      loadSongAtIndexRef.current?.(0, true);
+    } else {
+      getActiveAudio()?.pause();
+    }
+  }, [refillRadio, getActiveAudio]);
 
   const changeVibe = useCallback(
     (newVibeId: VibeId) => {
@@ -398,6 +494,7 @@ export function usePlayer({
       const newPlaylist = getPlaylistForGenre(newVibeId);
       setPlaylist(newPlaylist);
       activePlaylistRef.current = newPlaylist;
+      radioNextRetryRef.current = 0;
       failCountRef.current = 0;
       setCurrentIndex(0);
       setCurrentSong(null);
@@ -430,8 +527,8 @@ export function usePlayer({
       audio.pause();
     } else {
       if (!currentSong || !audio.src) {
-        if (vibeIdRef.current === "random" && activePlaylistRef.current.length === 0) {
-          fetchRandomSongRef.current?.();
+        if (activePlaylistRef.current.length === 0) {
+          void startRadioPlayback();
         } else {
           loadSongAtIndex(currentIndex, true);
         }
@@ -439,22 +536,22 @@ export function usePlayer({
         audio.play().catch(() => {});
       }
     }
-  }, [isPlaying, currentSong, currentIndex, loadSongAtIndex, getActiveAudio]);
+  }, [isPlaying, currentSong, currentIndex, loadSongAtIndex, getActiveAudio, startRadioPlayback]);
 
   const play = useCallback(() => {
     setUserInteracted(true);
     const audio = getActiveAudio();
     if (!audio) return;
     if (!currentSong || !audio.src) {
-      if (vibeIdRef.current === "random" && activePlaylistRef.current.length === 0) {
-        fetchRandomSongRef.current?.();
+      if (activePlaylistRef.current.length === 0) {
+        void startRadioPlayback();
       } else {
         loadSongAtIndex(currentIndex, true);
       }
     } else {
       audio.play().catch(() => {});
     }
-  }, [currentSong, currentIndex, loadSongAtIndex, getActiveAudio]);
+  }, [currentSong, currentIndex, loadSongAtIndex, getActiveAudio, startRadioPlayback]);
 
   const pause = useCallback(() => {
     getActiveAudio()?.pause();
@@ -468,18 +565,23 @@ export function usePlayer({
   const next = useCallback(() => {
     setUserInteracted(true);
     failCountRef.current = 0;
-    const isRandom = vibeIdRef.current === "random";
-    if (isRandom && currentIndex >= playlist.length - 1) {
-      getActiveAudio()?.pause();
+    const list = activePlaylistRef.current;
+    if (list.length === 0) {
+      void startRadioPlayback();
       return;
     }
-    const nextIdx = nextIndexHelper(currentIndex, playlist.length, repeatMode);
+    const nextIdx = nextIndexHelper(
+      currentIndexRef.current,
+      list.length,
+      repeatModeRef.current,
+    );
     if (nextIdx === null) {
-      getActiveAudio()?.pause();
+      // At the tail with repeat off: extend the radio before giving up.
+      void extendAndPlayNext();
       return;
     }
-    loadSongAtIndex(nextIdx, true);
-  }, [currentIndex, playlist.length, repeatMode, loadSongAtIndex, getActiveAudio]);
+    loadSongAtIndexRef.current?.(nextIdx, true);
+  }, [startRadioPlayback, extendAndPlayNext]);
 
   const prev = useCallback(() => {
     setUserInteracted(true);
@@ -488,17 +590,18 @@ export function usePlayer({
       seek(0);
       return;
     }
-    if (vibeIdRef.current === "random" && currentIndex === 0) {
-      seek(0);
-      return;
-    }
-    const prevIdx = prevIndexHelper(currentIndex, playlist.length, repeatMode);
+    const list = activePlaylistRef.current;
+    const prevIdx = prevIndexHelper(
+      currentIndexRef.current,
+      list.length,
+      repeatModeRef.current,
+    );
     if (prevIdx === null) {
       seek(0);
       return;
     }
-    loadSongAtIndex(prevIdx, true);
-  }, [currentTime, seek, currentIndex, playlist.length, repeatMode, loadSongAtIndex]);
+    loadSongAtIndexRef.current?.(prevIdx, true);
+  }, [currentTime, seek]);
 
   const changeVolume = useCallback((v: number) => {
     const clamped = Math.max(0, Math.min(1, v));
@@ -638,5 +741,3 @@ export function usePlayer({
         : 0,
   };
 }
-
-export type PlayerState = ReturnType<typeof usePlayer>;
