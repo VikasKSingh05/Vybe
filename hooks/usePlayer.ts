@@ -254,12 +254,6 @@ export function usePlayer({
     loadSongAtIndexRef.current = loadSongAtIndex;
   }, [loadSongAtIndex]);
 
-  // Preload the active (or restored) track for display without autoplay
-  useEffect(() => {
-    loadSongAtIndex(currentIndex, false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const addToQueue = useCallback(
     (entry: PlaylistEntry, resolvedSong?: Song, forcePlay = false): boolean => {
       if (entry.jiosaavnId) {
@@ -335,6 +329,56 @@ export function usePlayer({
     setCurrentIndex(result.currentIndex);
   }, []);
 
+  // Fetch a batch of freshly discovered songs for a vibe, de-duplicated against
+  // the entries already queued. Caches the resolved songs but never mutates
+  // state, so callers can append (radio refill) or prepend (fresh vibe start).
+  const fetchDiscoveredEntries = useCallback(
+    async (
+      requestedVibe: VibeId,
+      count: number,
+      existing: PlaylistEntry[],
+    ): Promise<PlaylistEntry[]> => {
+      const seenIds = new Set<string>();
+      const seenTitles = new Set<string>();
+      for (const entry of existing) {
+        if (entry.jiosaavnId) seenIds.add(entry.jiosaavnId);
+        seenTitles.add(`${entry.title}-${entry.artist}`.toLowerCase());
+      }
+
+      try {
+        const params = new URLSearchParams({ count: String(count), vibe: requestedVibe });
+        if (seenIds.size > 0) params.set("exclude", Array.from(seenIds).join(","));
+
+        const res = await fetch(`/api/music/discover?${params}`);
+        if (!res.ok) return [];
+
+        const data = (await res.json().catch(() => null)) as { songs?: Song[] } | null;
+        const songs = data?.songs ?? [];
+
+        const additions: PlaylistEntry[] = [];
+        for (const song of songs) {
+          if (!song.streamUrl || seenIds.has(song.id)) continue;
+          const key = `${song.title}-${song.artist}`.toLowerCase();
+          if (seenTitles.has(key)) continue;
+          seenIds.add(song.id);
+          seenTitles.add(key);
+          songCacheRef.current.set(song.id, song);
+          additions.push({
+            jiosaavnId: song.id,
+            title: song.title,
+            artist: song.artist,
+            artwork: song.artwork,
+            duration: song.duration,
+          });
+        }
+        return additions;
+      } catch {
+        return [];
+      }
+    },
+    [],
+  );
+
   // Endless "live radio" refill: fetch more songs for the current vibe and
   // append them to the queue. Curated playlists act as seeds; once their tail
   // is reached the station keeps discovering new tracks instead of looping.
@@ -347,63 +391,87 @@ export function usePlayer({
     radioFetchingRef.current = true;
     const requestedVibe = vibeIdRef.current;
     try {
-      const exclude = activePlaylistRef.current
-        .map((e) => e.jiosaavnId)
-        .filter((id): id is string => typeof id === "string" && id.length > 0)
-        .join(",");
-      const params = new URLSearchParams({ count: String(count), vibe: requestedVibe });
-      if (exclude) params.set("exclude", exclude);
+      const additions = await fetchDiscoveredEntries(
+        requestedVibe,
+        count,
+        activePlaylistRef.current,
+      );
 
-      const res = await fetch(`/api/music/discover?${params}`);
-      if (!res.ok) return activePlaylistRef.current.length;
+      // The user switched vibes while we were fetching — drop the stale batch.
+      if (vibeIdRef.current !== requestedVibe) return activePlaylistRef.current.length;
 
-      const data = (await res.json().catch(() => null)) as { songs?: Song[] } | null;
-      const songs = data?.songs ?? [];
-      if (songs.length === 0) {
+      if (additions.length === 0) {
         // Back off before trying again so a quiet upstream cannot spin us.
         radioNextRetryRef.current = Date.now() + 15_000;
         return activePlaylistRef.current.length;
       }
 
-      // The user switched vibes while we were fetching — drop the stale batch.
-      if (vibeIdRef.current !== requestedVibe) return activePlaylistRef.current.length;
-
-      const seenIds = new Set(
-        activePlaylistRef.current.map((e) => e.jiosaavnId).filter(Boolean),
-      );
-      const seenTitles = new Set(
-        activePlaylistRef.current.map((e) => `${e.title}-${e.artist}`.toLowerCase()),
-      );
-
-      const additions: PlaylistEntry[] = [];
-      for (const song of songs) {
-        if (!song.streamUrl || seenIds.has(song.id)) continue;
-        const key = `${song.title}-${song.artist}`.toLowerCase();
-        if (seenTitles.has(key)) continue;
-        seenIds.add(song.id);
-        seenTitles.add(key);
-        songCacheRef.current.set(song.id, song);
-        additions.push({
-          jiosaavnId: song.id,
-          title: song.title,
-          artist: song.artist,
-          artwork: song.artwork,
-          duration: song.duration,
-        });
-      }
-
-      if (additions.length === 0) return activePlaylistRef.current.length;
-
       const nextList = [...activePlaylistRef.current, ...additions];
       setPlaylist(nextList);
       activePlaylistRef.current = nextList;
       return nextList.length;
-    } catch {
-      // Silent fail — the user can still play the songs already queued.
-      return activePlaylistRef.current.length;
     } finally {
       radioFetchingRef.current = false;
     }
+  }, [fetchDiscoveredEntries]);
+
+  // Tune into a vibe like a live radio station: show the curated seeds straight
+  // away, then fetch a fresh discovered batch and drop it at the FRONT so every
+  // open starts with new (and different) songs. Seeds stay as endless fallback.
+  const startVibeRadio = useCallback(
+    async (
+      targetVibe: VibeId,
+      generation: number,
+      requestId: number,
+      shouldPlay: boolean,
+    ): Promise<void> => {
+      // Track the target vibe synchronously so the ref always leads any state
+      // commit; refill/guards read it before React flushes the re-render.
+      vibeIdRef.current = targetVibe;
+      const seeds = getPlaylistForGenre(targetVibe);
+      setPlaylist(seeds);
+      activePlaylistRef.current = seeds;
+      setCurrentIndex(0);
+      setCurrentSong(null);
+      failCountRef.current = 0;
+      radioNextRetryRef.current = 0;
+
+      // Random vibes have no seeds and fill lazily on the first play gesture.
+      if (targetVibe === "random" || seeds.length === 0) return;
+
+      radioFetchingRef.current = true;
+      let discovered: PlaylistEntry[] = [];
+      try {
+        discovered = await fetchDiscoveredEntries(targetVibe, RADIO_BATCH, seeds);
+      } finally {
+        radioFetchingRef.current = false;
+      }
+
+      // A newer vibe switch or playback request superseded this one.
+      if (
+        vibeGenerationRef.current !== generation ||
+        playbackRequestIdRef.current !== requestId ||
+        vibeIdRef.current !== targetVibe
+      ) {
+        return;
+      }
+
+      const combined = discovered.length > 0 ? [...discovered, ...seeds] : seeds;
+      setPlaylist(combined);
+      activePlaylistRef.current = combined;
+      loadSongAtIndexRef.current?.(0, shouldPlay);
+    },
+    [fetchDiscoveredEntries],
+  );
+
+  // Tune the initial vibe on mount. A fresh discovered batch is fetched and
+  // fronted so reopening the app starts on new songs; audio is preloaded only
+  // (the browser blocks autoplay until the first user gesture).
+  useEffect(() => {
+    const generation = ++vibeGenerationRef.current;
+    const requestId = ++playbackRequestIdRef.current;
+    void startVibeRadio(vibeId, generation, requestId, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Keep the queue topped up: whenever the upcoming buffer runs low, append a
@@ -491,31 +559,24 @@ export function usePlayer({
       stopPlayback();
 
       setVibeId(newVibeId);
-      const newPlaylist = getPlaylistForGenre(newVibeId);
-      setPlaylist(newPlaylist);
-      activePlaylistRef.current = newPlaylist;
-      radioNextRetryRef.current = 0;
-      failCountRef.current = 0;
-      setCurrentIndex(0);
-      setCurrentSong(null);
       setExtraLoading(false);
 
+      // Random has no seeds: clear and fill lazily on the next play gesture.
       if (newVibeId === "random") {
+        setPlaylist([]);
+        activePlaylistRef.current = [];
+        radioNextRetryRef.current = 0;
+        failCountRef.current = 0;
+        setCurrentIndex(0);
+        setCurrentSong(null);
         return;
       }
 
-      // Let the new vibe settle in the UI, then start its first song through
-      // the canonical pipeline. Only start if nothing newer superseded it.
-      setTimeout(() => {
-        if (
-          vibeGenerationRef.current === generation &&
-          playbackRequestIdRef.current === requestId
-        ) {
-          loadSongAtIndexRef.current?.(0, true);
-        }
-      }, 50);
+      // Tune the new station: show its seeds, then front a fresh discovered
+      // batch so switching vibes starts on new (and different) songs.
+      void startVibeRadio(newVibeId, generation, requestId, true);
     },
-    [stopPlayback],
+    [stopPlayback, startVibeRadio],
   );
 
   const togglePlay = useCallback(() => {

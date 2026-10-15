@@ -23,10 +23,12 @@ Available vibes include different moods and energy levels such as:
 - 🔥 Phonk
 - 🎲 Random
 
-Each VYBE starts from a curated seed pool, then continuously discovers new
-tracks for that vibe as you listen — so the station never loops a finite list
-and never runs out of songs. New tracks are prefetched ahead of time and the
-next song is preloaded for gapless transitions.
+Every time you open or switch a vibe, VYBE fronts a freshly discovered batch of
+songs for that vibe, then keeps discovering more as you listen — so the station
+never loops a finite list, never runs out of songs, and doesn't start on the same
+track each visit. The curated playlists act as a seed pool and fallback. New
+tracks are prefetched ahead of time and the next song is preloaded for gapless
+transitions.
 
 ---
 

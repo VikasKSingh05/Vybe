@@ -93,6 +93,27 @@ function songFor(title: string): Song {
   };
 }
 
+// A Song that is IDENTICAL to a curated seed entry, so the radio's de-dupe
+// drops it and the queue stays equal to the curated list. This keeps the
+// index-based playback assertions stable while still exercising the radio path.
+function seedSong(entry: {
+  jiosaavnId?: string;
+  title: string;
+  artist: string;
+  artwork?: string;
+  duration?: number;
+}): Song {
+  return {
+    id: entry.jiosaavnId ?? entry.title,
+    title: entry.title,
+    artist: entry.artist,
+    streamUrl: `https://audio.test/${encodeURIComponent(entry.title)}.mp3`,
+    artwork: entry.artwork ?? `/covers/${entry.title}.jpg`,
+    duration: entry.duration ?? 180,
+    provider: "jiosaavn",
+  };
+}
+
 function firstSongUrl(vibe: "bollywood" | "lofi" | "indie"): string {
   return songFor(getPlaylistForGenre(vibe)[0].title).streamUrl;
 }
@@ -116,6 +137,11 @@ let originalFetch: typeof fetch;
 
 // Per-test hook to gate a specific request (returns a promise to defer).
 let gate: ((url: string) => Promise<Song> | null) | undefined;
+
+// Optional override for the discovered batch. When unset, the default mock
+// returns the requested vibe's first seed (which de-dupes away) so the queue
+// stays equal to the curated list; random (no seeds) returns a fresh track.
+let discoverSongs: Song[] | undefined;
 
 function primary(): MockAudio {
   return audioInstances[0];
@@ -164,13 +190,20 @@ describe("usePlayer vibe-switch single-audio invariant", () => {
     } as unknown as typeof Audio;
 
     gate = undefined;
+    discoverSongs = undefined;
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
       const url = String(input);
-      // The discover endpoint returns { songs: [...] } (used by radio refill),
+      // The discover endpoint returns { songs: [...] } (used by the radio),
       // unlike the single-song resolver endpoint.
       if (url.includes("/api/music/discover")) {
-        const discovered = songFor(getPlaylistForGenre("bollywood")[0].title);
-        return { ok: true, json: async () => ({ songs: [discovered] }) } as unknown as Response;
+        if (discoverSongs) {
+          return { ok: true, json: async () => ({ songs: discoverSongs }) } as unknown as Response;
+        }
+        const vibe = (new URL(url, "http://localhost").searchParams.get("vibe") ??
+          "random") as "bollywood" | "lofi" | "indie" | "phonk" | "chill" | "random";
+        const entry = getPlaylistForGenre(vibe)[0];
+        const songs = entry ? [seedSong(entry)] : [songFor("Random Discovered")];
+        return { ok: true, json: async () => ({ songs }) } as unknown as Response;
       }
       if (gate) {
         const gated = await gate(url);
@@ -543,6 +576,10 @@ describe("usePlayer vibe-switch single-audio invariant", () => {
   it("ends a seeded vibe by extending the radio with discovered songs (endless)", async () => {
     const host = setup();
     await playFirstWithCrossfade(host);
+
+    // A brand-new track (not in the curated seeds) to prove the radio extends.
+    const discovered = songFor("Discovered One");
+    discoverSongs = [discovered];
 
     const lastIdx = getPlaylistForGenre("bollywood").length - 1;
     act(() => {
