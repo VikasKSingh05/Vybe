@@ -20,7 +20,7 @@ const syne = Syne({
 export const metadata: Metadata = {
   title: "VYBE",
   description:
-    "An immersive, cinematic music discovery experience. Pick a vibe and press play.",
+    "VYBE LIVE is one global radio station everyone hears together. Tune in, or host a VYBE Jam with friends.",
   metadataBase: new URL(APP_URL),
   applicationName: "VYBE",
   appleWebApp: {
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "VYBE",
-    description: "Pick a vibe. Press play.",
+    description: "One station. One world.",
     type: "website",
     url: APP_URL,
     siteName: "VYBE",
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "VYBE",
-    description: "Pick a vibe. Press play.",
+    description: "One station. One world.",
   },
 };
 

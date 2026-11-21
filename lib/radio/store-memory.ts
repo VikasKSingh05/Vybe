@@ -2,7 +2,6 @@ import {
   advanceStationState,
   applyReportedDuration,
   bootstrapStation,
-  emptyState,
   nextVersion,
   normalizeState,
   reconcileStation,

@@ -30,11 +30,18 @@ export function useSharedRadioSync() {
   }, []);
 
   useEffect(() => {
-    void fetchWire();
+    // Defer the initial fetch so state updates never happen synchronously in
+    // the effect body; the interval then keeps the broadcast in sync.
+    const initial = setTimeout(() => {
+      void fetchWire();
+    }, 0);
     const id = setInterval(() => {
       void fetchWire();
     }, RADIO_ENGINE_CONFIG.pollHintMs);
-    return () => clearInterval(id);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(id);
+    };
   }, [fetchWire]);
 
   const post = useCallback(async (path: string, body: unknown): Promise<StationWire | null> => {

@@ -137,14 +137,14 @@ export function PartyRoom({ party }: PartyRoomProps) {
     if (!ok) {
       setHandoverTarget(state.members.find((m) => m.id === targetId) ?? null);
     }
-  }, [handoverTarget, state?.members, send]);
+  }, [handoverTarget, state, send]);
 
   const handleHandover = useCallback(
     (targetMemberId: string) => {
       const target = state?.members.find((m) => m.id === targetMemberId) ?? null;
       setHandoverTarget(target);
     },
-    [state?.members],
+    [state],
   );
 
   const inviteRoomId = state?.roomId;

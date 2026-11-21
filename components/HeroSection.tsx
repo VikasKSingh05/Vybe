@@ -19,6 +19,9 @@ export function HeroSection({ className }: HeroSectionProps) {
       >
         VYBE
       </h1>
+      <p className="mt-5 text-center text-[10px] font-medium tracking-[0.32em] text-white/45 uppercase sm:text-[11px]">
+        VYBE LIVE · One station. One world.
+      </p>
     </section>
   );
 }

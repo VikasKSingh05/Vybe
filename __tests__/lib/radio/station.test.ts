@@ -121,8 +121,8 @@ describe("single live station engine", () => {
 describe("memory radio store", () => {
   async function freshStore(): Promise<RadioStore> {
     vi.resetModules();
-    const module = await import("@/lib/radio/store-memory");
-    return module.memoryRadioStore;
+    const radioModule = await import("@/lib/radio/store-memory");
+    return radioModule.memoryRadioStore;
   }
 
   it("advances once for a repeated skip with the same version", async () => {

@@ -27,7 +27,6 @@ export function relevanceScore(song: Song, query: string): number {
   if (!q) return 0;
 
   const title = normalizeForMatch(song.title);
-  const artist = normalizeForMatch(song.artist);
   const queryTokens = tokenize(q);
   const titleTokens = tokenize(song.title);
   const artistTokens = tokenize(song.artist);

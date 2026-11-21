@@ -191,6 +191,7 @@ export function VybeApp() {
         isMuted={player.isMuted}
         accent={player.theme.accent}
         queueCount={player.queueLength}
+        broadcastLabel="VYBE LIVE"
         onTogglePlay={player.togglePlay}
         onPrev={player.prev}
         onNext={player.next}

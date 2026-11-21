@@ -22,6 +22,8 @@ interface FloatingPlayerProps {
   isMuted: boolean;
   accent: string;
   queueCount?: number;
+  /** Optional source label, e.g. "VYBE LIVE". */
+  broadcastLabel?: string;
   locked?: boolean;
   onTogglePlay: () => void;
   onPrev: () => void;
@@ -44,6 +46,7 @@ export const FloatingPlayer = memo(function FloatingPlayer({
   isMuted,
   accent,
   queueCount,
+  broadcastLabel,
   locked = false,
   onTogglePlay,
   onPrev,
@@ -99,6 +102,15 @@ export const FloatingPlayer = memo(function FloatingPlayer({
             <AlbumArt src={track.cover} title={track.title} accent={accent} size="md" />
           </div>
           <div ref={trackInfoRef} className="min-w-0 flex-1">
+            {broadcastLabel && (
+              <p className="mb-1 flex items-center gap-1.5 text-[9px] font-semibold tracking-[0.24em] text-white/45 uppercase">
+                <span
+                  className="h-1.5 w-1.5 rounded-full"
+                  style={{ backgroundColor: accent }}
+                />
+                {broadcastLabel}
+              </p>
+            )}
             <TrackInfo title={track.title} artist={track.artist} />
           </div>
         </div>
