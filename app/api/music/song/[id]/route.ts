@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchJioSaavnSong } from "@/lib/music/jiosaavn";
+import { getMusicProvider } from "@/lib/music/provider";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -35,7 +35,7 @@ export async function GET(
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get("query") || undefined;
 
-    const song = await fetchJioSaavnSong(id, query);
+    const song = await getMusicProvider().resolve(id, query);
 
     if (!song || !song.streamUrl) {
       return NextResponse.json(
