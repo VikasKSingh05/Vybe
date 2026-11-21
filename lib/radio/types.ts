@@ -1,7 +1,5 @@
-import type { VibeId } from "@/data/types";
-
-/** Shared logical radio stations (excludes personal "random" mode). */
-export type RadioStationId = Exclude<VibeId, "random">;
+/** VYBE has exactly one shared broadcast. Vibes are visual themes only. */
+export type RadioStationId = "live";
 
 export type StationHealth = "live" | "loading" | "recovering" | "unavailable";
 
@@ -17,6 +15,12 @@ export interface StationTrack {
   durationMs: number;
 }
 
+/** A recent playback failure, kept for the cooldown window. */
+export interface FailedTrack {
+  refId: string;
+  failedAtMs: number;
+}
+
 export interface StationState {
   stationId: RadioStationId;
   version: number;
@@ -28,20 +32,8 @@ export interface StationState {
   /** Recent refIds (newest last), bounded. */
   history: string[];
   updatedAtMs: number;
-  /** Last track ref that failed playback (cooldown). */
-  lastFailedRefId?: string;
-}
-
-export interface StationSummary {
-  stationId: RadioStationId;
-  name: string;
-  description: string;
-  status: StationHealth;
-  version: number;
-  current: Pick<StationTrack, "title" | "artist" | "artwork" | "refId" | "trackId"> | null;
-  expectedPositionMs: number;
-  durationMs: number;
-  nextUp: Pick<StationTrack, "title" | "artist"> | null;
+  /** Tracks that failed recently and should not be retried immediately. */
+  failedTracks: FailedTrack[];
 }
 
 export interface StationWire extends StationState {

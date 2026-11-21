@@ -1,20 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import "@/lib/radio/store";
-import { isRadioStationId } from "@/lib/radio/config";
 import { getRadioStore } from "@/lib/radio/store";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type RouteContext = { params: Promise<{ stationId: string }> };
-
-export async function POST(request: NextRequest, context: RouteContext) {
-  const { stationId: rawId } = await context.params;
-  if (!isRadioStationId(rawId)) {
-    return NextResponse.json({ error: "Unknown station" }, { status: 404 });
-  }
-
+export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
   const { allowed, retryAfterMs } = rateLimit(`radio:report:${ip}`, {
     maxTokens: 15,
@@ -41,11 +33,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
   }
 
   try {
-    const store = getRadioStore();
-    const wire = await store.reportFailure(rawId, refId, expectedVersion);
+    const wire = await getRadioStore().reportFailure(refId, expectedVersion);
     return NextResponse.json(wire);
   } catch (error) {
-    console.error(`[API /api/radio/${rawId}/report]`, error);
+    console.error("[API /api/radio/report]", error);
     return NextResponse.json({ error: "Report failed" }, { status: 500 });
   }
 }

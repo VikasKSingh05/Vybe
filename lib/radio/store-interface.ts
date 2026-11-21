@@ -1,11 +1,19 @@
-import type { AdvanceReason, RadioStationId, StationState, StationSummary, StationWire } from "./types";
+import type { AdvanceReason, StationState, StationWire } from "./types";
 
+/**
+ * Contract for the single shared broadcast. Implementations must serialise
+ * mutations so two listeners cannot advance the station twice for one event.
+ */
 export interface RadioStore {
-  getStation(stationId: RadioStationId): Promise<StationState | null>;
-  getWire(stationId: RadioStationId): Promise<StationWire>;
-  listSummaries(): Promise<StationSummary[]>;
-  reconcile(stationId: RadioStationId): Promise<StationWire>;
-  advance(stationId: RadioStationId, reason: AdvanceReason, expectedVersion?: number): Promise<StationWire>;
-  reportFailure(stationId: RadioStationId, refId: string, expectedVersion?: number): Promise<StationWire>;
+  getStation(): Promise<StationState | null>;
+  getWire(): Promise<StationWire>;
+  reconcile(): Promise<StationWire>;
+  advance(reason: AdvanceReason, expectedVersion?: number): Promise<StationWire>;
+  reportFailure(refId: string, expectedVersion?: number): Promise<StationWire>;
+  reportDuration(
+    refId: string,
+    durationMs: number,
+    expectedVersion?: number,
+  ): Promise<StationWire>;
   startMaintenance(): void | Promise<void>;
 }

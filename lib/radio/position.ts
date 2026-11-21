@@ -1,5 +1,5 @@
 import { RADIO_ENGINE_CONFIG } from "./config";
-import type { StationState, StationSummary, StationTrack } from "./types";
+import type { StationState } from "./types";
 
 export function expectedPositionMs(
   state: Pick<StationState, "startedAtMs" | "current">,
@@ -23,49 +23,10 @@ export function shouldAdvanceTrack(
   return elapsed >= duration - RADIO_ENGINE_CONFIG.advanceGraceMs;
 }
 
-export function toSummary(
-  state: StationState,
-  meta: { name: string; description: string },
-  nowMs: number,
-): StationSummary {
-  const durationMs = state.current?.durationMs ?? 0;
-  return {
-    stationId: state.stationId,
-    name: meta.name,
-    description: meta.description,
-    status: state.status,
-    version: state.version,
-    current: state.current
-      ? {
-          refId: state.current.refId,
-          trackId: state.current.trackId,
-          title: state.current.title,
-          artist: state.current.artist,
-          artwork: state.current.artwork,
-        }
-      : null,
-    expectedPositionMs: expectedPositionMs(state, nowMs),
-    durationMs,
-    nextUp: state.queue[0]
-      ? { title: state.queue[0].title, artist: state.queue[0].artist }
-      : null,
-  };
-}
-
 export function wireState(state: StationState, nowMs: number) {
   return {
     ...state,
     serverNowMs: nowMs,
     expectedPositionMs: expectedPositionMs(state, nowMs),
   };
-}
-
-export function sameBroadcast(
-  a: StationTrack | null,
-  b: StationTrack | null,
-  aStarted: number,
-  bStarted: number,
-): boolean {
-  if (!a || !b) return false;
-  return a.refId === b.refId && aStarted === bStarted;
 }

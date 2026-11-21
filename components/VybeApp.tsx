@@ -176,7 +176,6 @@ export function VybeApp() {
               onChange={handleVibeChange}
               accent={player.theme.accent}
               searchOverlay={searchOverlay}
-              stationSummaries={player.stationSummaries}
             />
           </div>
         </div>
@@ -226,7 +225,7 @@ export function VybeApp() {
         onClose={() => setQueueOpen(false)}
         onRemove={handleRemoveFromQueue}
         onPlayItem={handlePlayQueueItem}
-        onClear={player.isRandomMode ? handleClearQueue : undefined}
+        onClear={handleClearQueue}
         onReorder={handleReorder}
       />
 

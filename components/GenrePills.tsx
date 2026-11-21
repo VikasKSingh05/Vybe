@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import type { VibeId } from "@/data/types";
 import { vibeThemes } from "@/data/vibes";
-import type { StationSummary } from "@/lib/radio/types";
 import { prefersReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/cn";
 
@@ -13,7 +12,6 @@ interface GenrePillsProps {
   accent: string;
   className?: string;
   searchOverlay?: React.ReactNode;
-  stationSummaries?: StationSummary[];
 }
 
 export function GenrePills({
@@ -22,7 +20,6 @@ export function GenrePills({
   accent,
   className,
   searchOverlay,
-  stationSummaries = [],
 }: GenrePillsProps) {
   const pillsRef = useRef<HTMLDivElement>(null);
 
@@ -48,16 +45,11 @@ export function GenrePills({
       <div
         ref={pillsRef}
         role="radiogroup"
-        aria-label="Select vibe"
+        aria-label="Select visual theme"
         className="flex flex-wrap items-center justify-center gap-2 py-2 px-1"
       >
         {vibeThemes.map((vibe) => {
           const isActive = vibe.id === activeId;
-          const summary =
-            vibe.id !== "random"
-              ? stationSummaries.find((s) => s.stationId === vibe.id)
-              : undefined;
-          const nowPlaying = summary?.current;
           return (
             <button
               key={vibe.id}
@@ -65,7 +57,7 @@ export function GenrePills({
               type="button"
               role="radio"
               aria-checked={isActive}
-              aria-label={`${vibe.label} vibe${isActive ? " (selected)" : ""}`}
+              aria-label={`${vibe.label} theme${isActive ? " (selected)" : ""}`}
               onClick={() => onChange(vibe.id)}
               className={cn(
                 "group relative shrink-0 rounded-full px-4 py-2.5 min-h-[44px] text-[11px] font-medium tracking-[0.2em] uppercase transition-all duration-300 ease-out cursor-pointer",
@@ -82,7 +74,6 @@ export function GenrePills({
                   : undefined
               }
             >
-              {/* Subtle active pill dot indicator */}
               {isActive && (
                 <span
                   className="inline-block h-1.5 w-1.5 rounded-full mr-2 transition-all"
@@ -90,11 +81,6 @@ export function GenrePills({
                 />
               )}
               <span>{vibe.label}</span>
-              {nowPlaying && !isActive && (
-                <span className="mt-0.5 block max-w-[140px] truncate text-[8px] font-normal tracking-normal text-white/35 normal-case">
-                  {nowPlaying.title}
-                </span>
-              )}
             </button>
           );
         })}

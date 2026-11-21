@@ -1,20 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import "@/lib/radio/store";
-import { isRadioStationId } from "@/lib/radio/config";
 import { getRadioStore } from "@/lib/radio/store";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type RouteContext = { params: Promise<{ stationId: string }> };
-
-export async function POST(request: NextRequest, context: RouteContext) {
-  const { stationId: rawId } = await context.params;
-  if (!isRadioStationId(rawId)) {
-    return NextResponse.json({ error: "Unknown station" }, { status: 404 });
-  }
-
+export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
   const { allowed, retryAfterMs } = rateLimit(`radio:skip:${ip}`, {
     maxTokens: 8,
@@ -36,11 +28,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
   }
 
   try {
-    const store = getRadioStore();
-    const wire = await store.advance(rawId, "skip", expectedVersion);
+    const wire = await getRadioStore().advance("skip", expectedVersion);
     return NextResponse.json(wire);
   } catch (error) {
-    console.error(`[API /api/radio/${rawId}/skip]`, error);
+    console.error("[API /api/radio/skip]", error);
     return NextResponse.json({ error: "Skip failed" }, { status: 500 });
   }
 }

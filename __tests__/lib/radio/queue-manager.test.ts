@@ -14,19 +14,19 @@ function track(id: string, artist = "Artist"): StationTrack {
 }
 
 describe("radio queue manager", () => {
-  it("avoids duplicate ref ids in selection", () => {
+  it("avoids duplicate and cooling-down ref ids in selection", () => {
     const candidates = [track("a"), track("b"), track("c")];
     const picked = pickNextTrack(candidates, {
-      stationId: "lofi",
       queueRefIds: new Set(["jiosaavn:a"]),
       historyRefIds: new Set(),
+      coolingDownRefIds: new Set(["jiosaavn:b"]),
       recentTitleArtist: new Set(),
     });
-    expect(picked?.trackId).toBe("b");
+    expect(picked?.trackId).toBe("c");
   });
 
-  it("provides seed candidates for each station", () => {
-    const seeds = seedCandidates("bollywood");
+  it("mixes curated seeds from every vibe into one pool", () => {
+    const seeds = seedCandidates();
     expect(seeds.length).toBeGreaterThan(0);
     expect(seeds[0].trackId).toBeTruthy();
   });

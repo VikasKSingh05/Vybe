@@ -2,13 +2,16 @@ import { describe, expect, it } from "vitest";
 import { expectedPositionMs, shouldAdvanceTrack } from "@/lib/radio/position";
 import type { StationState } from "@/lib/radio/types";
 
-function state(partial: Partial<StationState> & Pick<StationState, "startedAtMs" | "current">): StationState {
+function state(
+  partial: Partial<StationState> & Pick<StationState, "startedAtMs" | "current">,
+): StationState {
   return {
-    stationId: "lofi",
+    stationId: "live",
     version: 1,
     status: "live",
     queue: [],
     history: [],
+    failedTracks: [],
     updatedAtMs: Date.now(),
     ...partial,
   };

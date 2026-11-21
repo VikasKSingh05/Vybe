@@ -1,17 +1,21 @@
 import { getPlaylistForGenre } from "@/data/playlists";
-import { discoverSongsForVibe } from "@/lib/music/discover";
-import { RADIO_ENGINE_CONFIG, STATION_DEFINITIONS } from "./config";
+import { discoverRandomSongs } from "@/lib/music/discover";
+import type { VibeId } from "@/data/types";
+import { RADIO_ENGINE_CONFIG } from "./config";
 import {
   normalizeTitleArtistKey,
   playlistEntryToStationTrack,
   songToStationTrack,
 } from "./track";
-import type { RadioStationId, StationTrack } from "./types";
+import type { StationTrack } from "./types";
+
+/** Curated collections are mixed together as seeds for the one live station. */
+const SEED_GENRES: VibeId[] = ["phonk", "lofi", "bollywood", "indie", "chill"];
 
 export interface SelectionContext {
-  stationId: RadioStationId;
   queueRefIds: Set<string>;
   historyRefIds: Set<string>;
+  coolingDownRefIds: Set<string>;
   recentTitleArtist: Set<string>;
   lastArtist?: string;
   excludeRefId?: string;
@@ -30,6 +34,7 @@ function passesFilters(track: StationTrack, ctx: SelectionContext): boolean {
   if (ctx.excludeRefId && track.refId === ctx.excludeRefId) return false;
   if (ctx.queueRefIds.has(track.refId)) return false;
   if (ctx.historyRefIds.has(track.refId)) return false;
+  if (ctx.coolingDownRefIds.has(track.refId)) return false;
   const ta = normalizeTitleArtistKey(track.title, track.artist);
   if (ctx.recentTitleArtist.has(ta)) return false;
   if (
@@ -45,15 +50,15 @@ function passesFilters(track: StationTrack, ctx: SelectionContext): boolean {
 function relaxFilters(track: StationTrack, ctx: SelectionContext): boolean {
   if (ctx.excludeRefId && track.refId === ctx.excludeRefId) return false;
   if (ctx.queueRefIds.has(track.refId)) return false;
+  if (ctx.coolingDownRefIds.has(track.refId)) return false;
   return true;
 }
 
 export async function discoverCandidates(
-  stationId: RadioStationId,
   count: number,
   excludeIds: Set<string>,
 ): Promise<StationTrack[]> {
-  const songs = await discoverSongsForVibe(stationId, count, excludeIds);
+  const songs = await discoverRandomSongs(count, excludeIds);
   const tracks: StationTrack[] = [];
   for (const song of songs) {
     const track = songToStationTrack(song);
@@ -62,8 +67,8 @@ export async function discoverCandidates(
   return tracks;
 }
 
-export function seedCandidates(stationId: RadioStationId): StationTrack[] {
-  const entries = shuffle(getPlaylistForGenre(stationId));
+export function seedCandidates(): StationTrack[] {
+  const entries = shuffle(SEED_GENRES.flatMap((genre) => getPlaylistForGenre(genre)));
   const tracks: StationTrack[] = [];
   for (const entry of entries) {
     const track = playlistEntryToStationTrack(entry);
@@ -86,11 +91,11 @@ export function pickNextTrack(
 }
 
 export async function fillQueue(
-  stationId: RadioStationId,
   existingQueue: StationTrack[],
   history: string[],
   current: StationTrack | null,
   targetSize: number,
+  coolingDownRefIds: Set<string> = new Set(),
 ): Promise<StationTrack[]> {
   const queue = [...existingQueue];
   const queueRefIds = new Set(queue.map((t) => t.refId));
@@ -115,20 +120,16 @@ export async function fillQueue(
       ...(current ? [current.trackId] : []),
     ]);
 
-    let pool = await discoverCandidates(
-      stationId,
-      RADIO_ENGINE_CONFIG.discoveryBatchSize,
-      excludeIds,
-    );
+    let pool = await discoverCandidates(RADIO_ENGINE_CONFIG.discoveryBatchSize, excludeIds);
 
     if (pool.length === 0) {
-      pool = seedCandidates(stationId);
+      pool = seedCandidates();
     }
 
     const ctx: SelectionContext = {
-      stationId,
       queueRefIds,
       historyRefIds,
+      coolingDownRefIds,
       recentTitleArtist,
       lastArtist,
     };
@@ -146,8 +147,4 @@ export async function fillQueue(
   }
 
   return queue.slice(0, RADIO_ENGINE_CONFIG.queueTarget);
-}
-
-export function stationMeta(stationId: RadioStationId) {
-  return STATION_DEFINITIONS[stationId];
 }

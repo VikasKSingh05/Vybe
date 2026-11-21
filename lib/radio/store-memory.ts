@@ -1,30 +1,30 @@
 import {
   advanceStationState,
+  applyReportedDuration,
   bootstrapStation,
+  emptyState,
+  nextVersion,
+  normalizeState,
   reconcileStation,
+  recordFailure,
   toWire,
-  allStationIds,
-  getStationDefinition,
 } from "./engine";
-import { toSummary } from "./position";
-import type { AdvanceReason, RadioStationId, StationState } from "./types";
-import type { RadioStore } from "./store-interface";
 import { radioLog } from "./logger";
+import type { StationState } from "./types";
+import type { RadioStore } from "./store-interface";
 
-const stations = new Map<RadioStationId, StationState>();
-const lockTail = new Map<RadioStationId, Promise<void>>();
+let state: StationState | null = null;
+let lockTail: Promise<void> = Promise.resolve();
 
-async function withStationLock<T>(
-  stationId: RadioStationId,
-  fn: () => Promise<T>,
-): Promise<T> {
-  const prev = lockTail.get(stationId) ?? Promise.resolve();
+/** Serialise every mutation: a single broadcast must have a single timeline. */
+async function withLock<T>(fn: () => Promise<T>): Promise<T> {
+  const previous = lockTail;
   let release!: () => void;
   const gate = new Promise<void>((resolve) => {
     release = resolve;
   });
-  lockTail.set(stationId, prev.then(() => gate));
-  await prev;
+  lockTail = previous.then(() => gate);
+  await previous;
   try {
     return await fn();
   } finally {
@@ -32,98 +32,93 @@ async function withStationLock<T>(
   }
 }
 
-async function loadOrCreate(stationId: RadioStationId): Promise<StationState> {
-  const existing = stations.get(stationId);
-  if (existing) return existing;
-  const boot = await bootstrapStation(stationId, Date.now());
-  stations.set(stationId, boot);
+async function loadOrCreate(nowMs: number): Promise<StationState> {
+  const normalized = normalizeState(state);
+  if (normalized) return normalized;
+  const boot = await bootstrapStation(nowMs);
+  state = boot;
   return boot;
 }
 
 export const memoryRadioStore: RadioStore = {
-  async getStation(stationId) {
-    return stations.get(stationId) ?? null;
+  async getStation() {
+    return normalizeState(state);
   },
 
-  async getWire(stationId) {
-    return this.reconcile(stationId);
+  async getWire() {
+    return this.reconcile();
   },
 
-  async listSummaries() {
-    const now = Date.now();
-    const summaries = await Promise.all(
-      allStationIds().map(async (id) => {
-        const wire = await this.reconcile(id);
-        const meta = getStationDefinition(id);
-        return toSummary(wire, { name: meta.name, description: meta.description }, now);
-      }),
-    );
-    return summaries;
-  },
-
-  async reconcile(stationId) {
-    return withStationLock(stationId, async () => {
+  async reconcile() {
+    return withLock(async () => {
       const now = Date.now();
-      const before = stations.get(stationId) ?? null;
-      const next = await reconcileStation(before, stationId, now);
-      let version = before?.version ?? 0;
-      if (!before) {
-        version = Math.max(1, next.version || 1);
-      } else if (
-        before.current?.refId !== next.current?.refId ||
-        before.startedAtMs !== next.startedAtMs
-      ) {
-        version += 1;
-      }
-      next.version = version;
-      stations.set(stationId, next);
+      const before = normalizeState(state);
+      const next = await reconcileStation(before, now);
+      next.version = nextVersion(before, next);
+      state = next;
       return toWire(next, now);
     });
   },
 
-  async advance(stationId, reason, expectedVersion) {
-    return withStationLock(stationId, async () => {
+  async advance(reason, expectedVersion) {
+    return withLock(async () => {
       const now = Date.now();
-      let state = await loadOrCreate(stationId);
-      if (expectedVersion != null && state.version !== expectedVersion) {
-        state = await reconcileStation(state, stationId, now);
-        return toWire(state, now);
+      let current = await loadOrCreate(now);
+      if (expectedVersion != null && current.version !== expectedVersion) {
+        const before = current;
+        current = await reconcileStation(before, now);
+        current.version = nextVersion(before, current);
+        state = current;
+        return toWire(current, now);
       }
-      state = await advanceStationState(state, reason, now);
-      state.version += 1;
-      stations.set(stationId, state);
-      radioLog("store_advance", { stationId, reason, version: state.version });
-      return toWire(state, now);
+      current = await advanceStationState(current, reason, now);
+      current.version += 1;
+      state = current;
+      radioLog("store_advance", { stationId: current.stationId, reason, version: current.version });
+      return toWire(current, now);
     });
   },
 
-  async reportFailure(stationId, refId, expectedVersion) {
-    return withStationLock(stationId, async () => {
+  async reportFailure(refId, expectedVersion) {
+    return withLock(async () => {
       const now = Date.now();
-      let state = await loadOrCreate(stationId);
-      if (expectedVersion != null && state.version !== expectedVersion) {
-        return toWire(await reconcileStation(state, stationId, now), now);
+      let current = await loadOrCreate(now);
+      if (expectedVersion != null && current.version !== expectedVersion) {
+        const before = current;
+        current = await reconcileStation(before, now);
+        current.version = nextVersion(before, current);
+        state = current;
+        return toWire(current, now);
       }
-      state.lastFailedRefId = refId;
-      if (state.current?.refId === refId) {
-        state = await advanceStationState(state, "recovery", now);
+      recordFailure(current, refId, now);
+      if (current.current?.refId === refId) {
+        current = await advanceStationState(current, "recovery", now);
       }
-      state.version += 1;
-      state.updatedAtMs = now;
-      stations.set(stationId, state);
-      return toWire(state, now);
+      current.version += 1;
+      current.updatedAtMs = now;
+      state = current;
+      return toWire(current, now);
+    });
+  },
+
+  async reportDuration(refId, durationMs, expectedVersion) {
+    return withLock(async () => {
+      const now = Date.now();
+      const current = await loadOrCreate(now);
+      if (expectedVersion != null && current.version !== expectedVersion) {
+        return toWire(current, now);
+      }
+      if (applyReportedDuration(current, refId, durationMs)) {
+        current.updatedAtMs = now;
+        state = current;
+      }
+      return toWire(current, now);
     });
   },
 
   startMaintenance() {
-    void (async () => {
-      for (const id of allStationIds()) {
-        try {
-          await memoryRadioStore.reconcile(id);
-        } catch {
-          // maintenance errors are non-fatal
-        }
-      }
-    })();
+    void this.reconcile().catch(() => {
+      // maintenance errors are non-fatal
+    });
   },
 };

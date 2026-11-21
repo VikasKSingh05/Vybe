@@ -39,13 +39,18 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   serverExternalPackages: ["ioredis"],
-  // store-factory.ts loads ioredis through eval'd require(), which file
-  // tracing cannot see — pin it into every party function's bundle so
-  // REDIS_URL works on serverless platforms (Vercel included).
+  // Both the party store and the radio store load ioredis through a dynamic
+  // require(), which file tracing cannot see. Pin it into every function that
+  // touches Redis so REDIS_URL works on serverless platforms (Vercel included).
   outputFileTracingIncludes: {
     "/api/party": ["./node_modules/ioredis/**"],
     "/api/party/[roomId]": ["./node_modules/ioredis/**"],
     "/api/party/[roomId]/stream": ["./node_modules/ioredis/**"],
+    "/api/radio": ["./node_modules/ioredis/**"],
+    "/api/radio/skip": ["./node_modules/ioredis/**"],
+    "/api/radio/complete": ["./node_modules/ioredis/**"],
+    "/api/radio/report": ["./node_modules/ioredis/**"],
+    "/api/radio/duration": ["./node_modules/ioredis/**"],
   },
   images: {
     remotePatterns: [

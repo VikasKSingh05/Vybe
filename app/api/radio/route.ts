@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import "@/lib/radio/store";
 import { getRadioStore } from "@/lib/radio/store";
+import { getStationDefinition } from "@/lib/radio/engine";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -8,9 +9,9 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const ip = getClientIp(request);
-  const { allowed, retryAfterMs } = rateLimit(`radio:list:${ip}`, {
-    maxTokens: 30,
-    refillRate: 1,
+  const { allowed, retryAfterMs } = rateLimit(`radio:get:${ip}`, {
+    maxTokens: 60,
+    refillRate: 2,
   });
   if (!allowed) {
     return NextResponse.json(
@@ -20,11 +21,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const store = getRadioStore();
-    const stations = await store.listSummaries();
-    return NextResponse.json({ stations, serverNowMs: Date.now() });
+    const wire = await getRadioStore().reconcile();
+    const meta = getStationDefinition();
+    return NextResponse.json({ ...wire, name: meta.name, description: meta.description });
   } catch (error) {
     console.error("[API /api/radio]", error);
-    return NextResponse.json({ error: "Failed to load stations" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to load VYBE LIVE" }, { status: 500 });
   }
 }
