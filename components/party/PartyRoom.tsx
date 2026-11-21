@@ -92,9 +92,9 @@ export function PartyRoom({ party }: PartyRoomProps) {
     [isHost, send],
   );
 
-  const confirmLeave = useCallback(() => {
+  const confirmLeave = useCallback(async () => {
     setShowLeaveConfirm(false);
-    leaveParty();
+    await leaveParty();
     router.push("/party");
   }, [leaveParty, router]);
 
@@ -123,13 +123,21 @@ export function PartyRoom({ party }: PartyRoomProps) {
     send("clearQueue");
   }, [send]);
 
-  const confirmHandover = useCallback(() => {
-    const target = handoverTarget;
+  const confirmHandover = useCallback(async () => {
+    const targetId = handoverTarget?.id ?? null;
     setHandoverTarget(null);
-    if (target) {
-      send("transferHost", { targetMemberId: target.id });
+    if (!targetId) return;
+    // The member may have left while the confirmation dialog was open. Never
+    // show an optimistic "handed over" state for a rejected command.
+    if (!state?.members.some((m) => m.id === targetId)) {
+      toast("That member left the party", "error");
+      return;
     }
-  }, [handoverTarget, send]);
+    const ok = await send("transferHost", { targetMemberId: targetId });
+    if (!ok) {
+      setHandoverTarget(state.members.find((m) => m.id === targetId) ?? null);
+    }
+  }, [handoverTarget, state?.members, send]);
 
   const handleHandover = useCallback(
     (targetMemberId: string) => {

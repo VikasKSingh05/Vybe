@@ -9,6 +9,7 @@ import { savePartyName, loadPartyName } from "@/lib/party/share";
 
 interface RejoinIdentity {
   roomId: string;
+  memberId: string;
   name: string;
 }
 
@@ -18,7 +19,7 @@ interface PartyLandingProps {
   /** Remembered identity from a dropped connection — enables one-click rejoin. */
   rejoinIdentity?: RejoinIdentity | null;
   onCreate: (name: string, vibeId: VibeId) => void;
-  onJoin: (roomId: string, name: string) => void;
+  onJoin: (roomId: string, name: string, memberId?: string) => void;
 }
 
 const ACCENT = partyTheme.accent;
@@ -98,7 +99,7 @@ export function PartyLanding({
     setSubmitting("join");
     try {
       savePartyName(rejoinIdentity.name);
-      await onJoin(rejoinIdentity.roomId, rejoinIdentity.name);
+      await onJoin(rejoinIdentity.roomId, rejoinIdentity.name, rejoinIdentity.memberId);
     } finally {
       setSubmitting(null);
     }

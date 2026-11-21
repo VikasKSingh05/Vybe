@@ -37,10 +37,10 @@ export function PartyView({ initialRoomId }: PartyViewProps) {
   );
 
   const handleJoin = useCallback(
-    async (roomId: string, name: string) => {
+    async (roomId: string, name: string, memberId?: string) => {
       setLandingError(null);
       try {
-        await party.joinParty(roomId, name);
+        await party.joinParty(roomId, name, memberId);
       } catch (err) {
         setLandingError(err instanceof Error ? err.message : "Failed to join party");
       }
