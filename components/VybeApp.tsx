@@ -173,6 +173,7 @@ export function VybeApp() {
               onChange={handleVibeChange}
               accent={player.theme.accent}
               searchOverlay={searchOverlay}
+              stationSummaries={player.stationSummaries}
             />
           </div>
         </div>

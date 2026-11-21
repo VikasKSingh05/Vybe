@@ -15,6 +15,9 @@ import {
   shuffleList,
   type RepeatMode,
 } from "@/lib/player-modes";
+import { wireToPlaylist } from "@/lib/radio/wire-playlist";
+import type { StationWire } from "@/lib/radio/types";
+import { useSharedRadioSync } from "./useSharedRadioSync";
 
 const CROSSFADE_MS = 2000;
 // Endless "live radio": keep at least this many upcoming tracks buffered, pull
@@ -35,11 +38,15 @@ export function usePlayer({
   // Read persisted session (queue/vibe/volume) once per hook instance
   const [persisted] = useState(() => loadPlayerState());
 
-  const [vibeId, setVibeId] = useState<VibeId>(persisted?.vibeId ?? initialVibeId);
-  const [playlist, setPlaylist] = useState<PlaylistEntry[]>(() =>
-    persisted?.playlist ?? getPlaylistForGenre(initialVibeId)
+  const initialVibe = persisted?.vibeId ?? initialVibeId;
+  const [vibeId, setVibeId] = useState<VibeId>(initialVibe);
+  const [playlist, setPlaylist] = useState<PlaylistEntry[]>(() => {
+    if (initialVibe !== "random") return [];
+    return persisted?.playlist ?? getPlaylistForGenre(initialVibe);
+  });
+  const [currentIndex, setCurrentIndex] = useState(() =>
+    initialVibe !== "random" ? 0 : (persisted?.currentIndex ?? 0),
   );
-  const [currentIndex, setCurrentIndex] = useState(persisted?.currentIndex ?? 0);
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [extraLoading, setExtraLoading] = useState(false);
   const [errorState, setErrorState] = useState<string | null>(null);
@@ -63,6 +70,24 @@ export function usePlayer({
   const radioFetchingRef = useRef(false);
   const radioNextRetryRef = useRef(0);
   const handleEndedRef = useRef<(() => Promise<void>) | null>(null);
+  const stationBroadcastSigRef = useRef("");
+  const stationSyncingRef = useRef(false);
+  const userPausedRef = useRef(false);
+
+  const sharedRadio = useSharedRadioSync(vibeId);
+  const isSharedStation = sharedRadio.isSharedStation;
+  const sharedRadioRef = useRef(sharedRadio);
+  const userInteractedRef = useRef(userInteracted);
+  const syncFromSharedWireRef =
+    useRef<((wire: StationWire, shouldPlay: boolean) => Promise<void>) | null>(null);
+
+  useEffect(() => {
+    sharedRadioRef.current = sharedRadio;
+  }, [sharedRadio]);
+
+  useEffect(() => {
+    userInteractedRef.current = userInteracted;
+  }, [userInteracted]);
 
   // Mirror render state into refs after commit so async audio callbacks and
   // timers always observe the latest values without stale closures.
@@ -105,6 +130,17 @@ export function usePlayer({
     onError: () => {
       const audio = getActiveAudio();
       if (!audio?.src || audio.error?.code === 1) return;
+      if (vibeIdRef.current !== "random") {
+        const refId = sharedRadioRef.current.wire?.current?.refId;
+        if (refId) {
+          void sharedRadioRef.current.reportFailure(refId).then((wire) => {
+            if (wire) {
+              void syncFromSharedWireRef.current?.(wire, userInteractedRef.current);
+            }
+          });
+        }
+        return;
+      }
       failCountRef.current += 1;
       const currentList = activePlaylistRef.current;
       if (failCountRef.current >= currentList.length) {
@@ -129,8 +165,8 @@ export function usePlayer({
     const timer = setTimeout(() => {
       savePlayerState({
         vibeId,
-        playlist,
-        currentIndex,
+        playlist: vibeId !== "random" ? [] : playlist,
+        currentIndex: vibeId !== "random" ? 0 : currentIndex,
         volume,
         isMuted,
         crossfadeEnabled,
@@ -253,6 +289,89 @@ export function usePlayer({
   useEffect(() => {
     loadSongAtIndexRef.current = loadSongAtIndex;
   }, [loadSongAtIndex]);
+
+  const syncFromSharedWire = useCallback(
+    async (wire: StationWire, shouldPlay: boolean) => {
+      if (stationSyncingRef.current || !wire.current) return;
+
+      const sig = `${wire.version}|${wire.current.refId}|${wire.startedAtMs}`;
+      if (
+        sig === stationBroadcastSigRef.current &&
+        activePlaylistRef.current.length > 0
+      ) {
+        return;
+      }
+
+      stationSyncingRef.current = true;
+      try {
+        stationBroadcastSigRef.current = sig;
+        const entries = wireToPlaylist(wire);
+        setPlaylist(entries);
+        activePlaylistRef.current = entries;
+        setCurrentIndex(0);
+
+        const requestId = ++playbackRequestIdRef.current;
+        setExtraLoading(true);
+        setErrorState(null);
+        stopPlayback();
+
+        const audio = getActiveAudio();
+        if (!audio || entries.length === 0) {
+          setExtraLoading(false);
+          return;
+        }
+
+        const song = await resolveSong(entries[0]);
+        if (playbackRequestIdRef.current !== requestId) return;
+
+        if (!song?.streamUrl) {
+          setExtraLoading(false);
+          setErrorState("This station track is unavailable.");
+          void sharedRadioRef.current.reportFailure(wire.current.refId);
+          return;
+        }
+
+        failCountRef.current = 0;
+        setCurrentSong(song);
+        audio.src = song.streamUrl;
+        audio.load();
+
+        const seekSec = Math.max(0, wire.expectedPositionMs / 1000);
+        const applySeek = () => {
+          if (seekSec <= 0) return;
+          try {
+            const cap =
+              audio.duration && Number.isFinite(audio.duration)
+                ? Math.max(0, audio.duration - 0.5)
+                : seekSec;
+            audio.currentTime = Math.min(seekSec, cap);
+          } catch {
+            // Stream may not support seeking — local playback starts at 0.
+          }
+        };
+        audio.addEventListener("loadedmetadata", applySeek, { once: true });
+
+        setExtraLoading(false);
+        const playNow = shouldPlay && userInteractedRef.current && !userPausedRef.current;
+        if (playNow) {
+          audio.play().catch(() => {});
+        }
+      } finally {
+        stationSyncingRef.current = false;
+      }
+    },
+    [resolveSong, stopPlayback, getActiveAudio],
+  );
+
+  useEffect(() => {
+    syncFromSharedWireRef.current = syncFromSharedWire;
+  }, [syncFromSharedWire]);
+
+  useEffect(() => {
+    if (!isSharedStation || !sharedRadio.wire?.current) return;
+    const shouldPlay = userInteracted && !userPausedRef.current;
+    void syncFromSharedWire(sharedRadio.wire, shouldPlay);
+  }, [sharedRadio.wire, isSharedStation, syncFromSharedWire, userInteracted]);
 
   const addToQueue = useCallback(
     (entry: PlaylistEntry, resolvedSong?: Song, forcePlay = false): boolean => {
@@ -468,6 +587,7 @@ export function usePlayer({
   // fronted so reopening the app starts on new songs; audio is preloaded only
   // (the browser blocks autoplay until the first user gesture).
   useEffect(() => {
+    if (vibeId !== "random") return;
     const generation = ++vibeGenerationRef.current;
     const requestId = ++playbackRequestIdRef.current;
     void startVibeRadio(vibeId, generation, requestId, false);
@@ -478,6 +598,7 @@ export function usePlayer({
   // fresh batch for the active vibe. Empty lists are left alone so the radio
   // starts on an explicit user gesture (play / next).
   useEffect(() => {
+    if (vibeIdRef.current !== "random") return;
     if (playlist.length === 0) return;
     const upcoming = playlist.length - currentIndex - 1;
     if (upcoming >= RADIO_LOOKAHEAD) return;
@@ -496,6 +617,19 @@ export function usePlayer({
   // Natural end of a track. Advance within the list; at the tail, extend the
   // radio with newly discovered songs before wrapping (or stopping).
   const handleEnded = useCallback(async () => {
+    if (vibeIdRef.current !== "random") {
+      const refId = sharedRadioRef.current.wire?.current?.refId;
+      if (!refId) return;
+      const wire = await sharedRadioRef.current.reportComplete(refId);
+      if (wire) {
+        await syncFromSharedWireRef.current?.(
+          wire,
+          userInteractedRef.current && !userPausedRef.current,
+        );
+      }
+      return;
+    }
+
     const list = activePlaylistRef.current;
     const mode = repeatModeRef.current;
     const idx = currentIndexRef.current;
@@ -572,11 +706,15 @@ export function usePlayer({
         return;
       }
 
-      // Tune the new station: show its seeds, then front a fresh discovered
-      // batch so switching vibes starts on new (and different) songs.
-      void startVibeRadio(newVibeId, generation, requestId, true);
+      stationBroadcastSigRef.current = "";
+      setExtraLoading(true);
+      setCurrentSong(null);
+      setPlaylist([]);
+      activePlaylistRef.current = [];
+      setCurrentIndex(0);
+      userPausedRef.current = false;
     },
-    [stopPlayback, startVibeRadio],
+    [stopPlayback],
   );
 
   const togglePlay = useCallback(() => {
@@ -585,8 +723,16 @@ export function usePlayer({
     if (!audio) return;
 
     if (isPlaying) {
+      userPausedRef.current = true;
       audio.pause();
     } else {
+      userPausedRef.current = false;
+      if (vibeIdRef.current !== "random" && sharedRadioRef.current.wire) {
+        void syncFromSharedWireRef.current?.(
+          sharedRadioRef.current.wire,
+          true,
+        );
+      }
       if (!currentSong || !audio.src) {
         if (activePlaylistRef.current.length === 0) {
           void startRadioPlayback();
@@ -601,8 +747,13 @@ export function usePlayer({
 
   const play = useCallback(() => {
     setUserInteracted(true);
+    userPausedRef.current = false;
     const audio = getActiveAudio();
     if (!audio) return;
+    if (vibeIdRef.current !== "random" && sharedRadioRef.current.wire && (!currentSong || !audio.src)) {
+      void syncFromSharedWireRef.current?.(sharedRadioRef.current.wire, true);
+      return;
+    }
     if (!currentSong || !audio.src) {
       if (activePlaylistRef.current.length === 0) {
         void startRadioPlayback();
@@ -615,6 +766,7 @@ export function usePlayer({
   }, [currentSong, currentIndex, loadSongAtIndex, getActiveAudio, startRadioPlayback]);
 
   const pause = useCallback(() => {
+    userPausedRef.current = true;
     getActiveAudio()?.pause();
   }, [getActiveAudio]);
 
@@ -626,6 +778,12 @@ export function usePlayer({
   const next = useCallback(() => {
     setUserInteracted(true);
     failCountRef.current = 0;
+    if (vibeIdRef.current !== "random") {
+      void sharedRadioRef.current.skipStation().then((wire) => {
+        if (wire) void syncFromSharedWireRef.current?.(wire, true);
+      });
+      return;
+    }
     const list = activePlaylistRef.current;
     if (list.length === 0) {
       void startRadioPlayback();
@@ -800,5 +958,9 @@ export function usePlayer({
       currentDuration > 0
         ? Math.min(100, Math.max(0, (clampedTime / currentDuration) * 100))
         : 0,
+    stationSummaries: sharedRadio.summaries,
+    isStationSyncing: sharedRadio.isSyncing,
+    isLiveStation: isSharedStation,
+    stationStatus: sharedRadio.wire?.status ?? null,
   };
 }
