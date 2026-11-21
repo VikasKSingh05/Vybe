@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Search, X, Music, Eraser, Play, ListStart, ListPlus, Clock } from "lucide-react";
+import { Search, X, Music, Eraser, Play, ListStart, ListPlus, Clock, RotateCcw } from "lucide-react";
 import type { Song } from "@/types/music";
 import { AlbumArt } from "@/components/AlbumArt";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -430,8 +430,18 @@ export function SearchOverlay({
           )}
 
           {!isSearching && error && (
-            <div className="px-4 py-12 text-center">
+            <div className="flex flex-col items-center gap-3 px-4 py-12 text-center">
               <p className="text-xs text-red-400/70">{error}</p>
+              {onSearchSubmit && query.trim() && (
+                <button
+                  type="button"
+                  onClick={() => onSearchSubmit(query.trim())}
+                  className="flex min-h-[36px] items-center gap-1.5 rounded-full border border-white/10 px-3 text-[11px] text-white/60 transition-colors hover:border-white/25 hover:text-white/90 cursor-pointer"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Retry
+                </button>
+              )}
             </div>
           )}
 

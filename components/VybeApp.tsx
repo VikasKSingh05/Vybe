@@ -123,7 +123,10 @@ export function VybeApp() {
       onSearchSubmit={search.search}
       history={search.history}
       onClearHistory={search.clearHistory}
-      onOpenChange={setSearchOpen}
+      onOpenChange={(open) => {
+        setSearchOpen(open);
+        if (!open) search.clear();
+      }}
     />
   );
 
