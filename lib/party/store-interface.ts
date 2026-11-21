@@ -10,8 +10,8 @@ export type DispatchResult =
   | { ok: false; status: number; error: string };
 
 export interface Envelope {
-  event: "state" | "patch";
-  data: PartyState | PartyPatch;
+  event: "state" | "patch" | "closed";
+  data?: PartyState | PartyPatch;
 }
 
 export type JoinResult =
@@ -25,8 +25,14 @@ export type SubscribeFn = (
 ) => () => void;
 
 export interface PartyStore {
-  createRoom(hostName: string, vibeId: VibeId): { roomId: string; member: PartyMember; state: PartyState };
-  joinRoom(roomId: string, name: string): JoinResult | Promise<JoinResult>;
+  createRoom(
+    hostName: string,
+    vibeId: VibeId,
+  ):
+    | { roomId: string; member: PartyMember; state: PartyState }
+    | Promise<{ roomId: string; member: PartyMember; state: PartyState }>;
+  /** A supplied memberId reattaches an existing identity instead of minting a new one. */
+  joinRoom(roomId: string, name: string, memberId?: string): JoinResult | Promise<JoinResult>;
   getRoom(roomId: string): PartyState | null | Promise<PartyState | null>;
   subscribe: SubscribeFn;
   dispatch(roomId: string, memberId: string, command: string, payload: Record<string, unknown> | undefined): DispatchResult | Promise<DispatchResult>;

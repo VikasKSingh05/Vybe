@@ -3,15 +3,15 @@ import { render, fireEvent, screen } from "@testing-library/react";
 import { PartyMembers } from "@/components/party/PartyMembers";
 import type { PartyMember } from "@/lib/party/types";
 
-function makeMember(id: string, name: string, isHost: boolean): PartyMember {
-  return { id, name, isHost, joinedAt: 0, lastSeen: Date.now() };
+function makeMember(id: string, name: string): PartyMember {
+  return { id, name, joinedAt: 0, lastSeen: Date.now() };
 }
 
 function setup(overrides: Partial<Parameters<typeof PartyMembers>[0]> = {}) {
   const members = [
-    makeMember("host-1", "Asha", true),
-    makeMember("guest-1", "Bilal", false),
-    makeMember("guest-2", "Chandra", false),
+    makeMember("host-1", "Asha"),
+    makeMember("guest-1", "Bilal"),
+    makeMember("guest-2", "Chandra"),
   ];
   const onHandover = vi.fn();
   const props = {

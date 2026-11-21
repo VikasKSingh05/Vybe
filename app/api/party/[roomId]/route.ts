@@ -43,10 +43,11 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
         ? (body.payload as Record<string, unknown>)
         : undefined;
 
-    // Joining creates a fresh member identity (no memberId yet).
-    if (!memberId && command === "join") {
+    // A memberId on join reattaches the stored identity after a reconnect;
+    // without one, a fresh member is created.
+    if (command === "join") {
       const name = typeof body?.name === "string" ? body.name : "";
-      const joined = await joinRoom(roomId, name);
+      const joined = await joinRoom(roomId, name, memberId || undefined);
       if (!joined.ok) {
         return NextResponse.json({ error: joined.error }, { status: joined.status });
       }

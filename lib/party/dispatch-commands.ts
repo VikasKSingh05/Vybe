@@ -7,6 +7,7 @@ import type { PartyMember, PartyState, PartyTrack } from "./types";
 import { PARTY_EMOJIS, PARTY_MAX_QUEUE } from "./types";
 import type { DispatchResult } from "./store-interface";
 import { sortQueueByVotes } from "./votes";
+import { ensureValidHost } from "./host";
 
 export type ApplyFn = (mutator: (s: PartyState) => void) => PartyState | null | Promise<PartyState | null>;
 
@@ -129,13 +130,9 @@ export function dispatchCommand(
         s.members = s.members.filter((m) => m.id !== member.id);
         s.reactions = s.reactions.filter((r) => r.memberId !== member.id);
         removeMemberVotes(s, member.id);
-        if (s.hostId === member.id) {
-          const nextHost = s.members[0] ?? null;
-          if (nextHost) {
-            nextHost.isHost = true;
-            s.hostId = nextHost.id;
-          }
-        }
+        // Deterministic re-election lives in one place so every store behaves
+        // identically. An empty room is deleted by the store after this mutation.
+        ensureValidHost(s);
       });
       return wire instanceof Promise ? applyAsync(wire) : applyResult(wire);
     }
@@ -225,11 +222,14 @@ export function dispatchCommand(
       if (targetMemberId === member.id) return err(400, "You cannot remove yourself");
       const target = state.members.find((m) => m.id === targetMemberId);
       if (!target) return err(400, "That member is not in the room");
-      if (target.isHost) return err(400, "You cannot remove the host");
+      // Never trust a per-member flag for authority — a stale flag could let a
+      // host remove the real host and leave the room leaderless.
+      if (state.hostId === targetMemberId) return err(400, "You cannot remove the host");
       const wire = apply((s) => {
         s.members = s.members.filter((m) => m.id !== targetMemberId);
         s.reactions = s.reactions.filter((r) => r.memberId !== targetMemberId);
         removeMemberVotes(s, targetMemberId);
+        ensureValidHost(s);
       });
       return wire instanceof Promise ? applyAsync(wire) : applyResult(wire);
     }
@@ -356,9 +356,9 @@ export function dispatchCommand(
       const target = state.members.find((m) => m.id === targetMemberId);
       if (!target) return err(400, "That member is not in the room");
       const wire = apply((s) => {
-        for (const m of s.members) {
-          m.isHost = m.id === targetMemberId;
-        }
+        // Re-check membership inside the mutation: the target may have left
+        // between command validation and persistence on a concurrent request.
+        if (!s.members.some((m) => m.id === targetMemberId)) return;
         s.hostId = targetMemberId;
       });
       return wire instanceof Promise ? applyAsync(wire) : applyResult(wire);

@@ -36,8 +36,8 @@ export function createRoom(hostName: string, vibeId: VibeId) {
   return getStore().createRoom(hostName, vibeId);
 }
 
-export function joinRoom(roomId: string, name: string): JoinResult | Promise<JoinResult> {
-  return getStore().joinRoom(roomId, name);
+export function joinRoom(roomId: string, name: string, memberId?: string): JoinResult | Promise<JoinResult> {
+  return getStore().joinRoom(roomId, name, memberId);
 }
 
 export function getRoom(roomId: string): PartyState | null | Promise<PartyState | null> {

@@ -24,6 +24,10 @@ function encodePatch(patch: PartyPatch): Uint8Array {
   return encoder.encode(`event: patch\ndata: ${JSON.stringify(patch)}\n\n`);
 }
 
+function encodeClosed(): Uint8Array {
+  return encoder.encode(`event: closed\ndata: {}\n\n`);
+}
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ roomId: string }> }) {
   const { roomId } = await params;
 
@@ -58,6 +62,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       headers: { "Content-Type": "application/json" },
     });
   }
+  // A stale/swept identity must not silently watch a room it can no longer
+  // act in — that produced misleading "removed" toasts after every command.
+  if (!memberId || !initial.members.some((m) => m.id === memberId)) {
+    return new Response(JSON.stringify({ error: "Not a member of this room" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
   let cleanup: (() => void) | null = null;
 
@@ -68,9 +80,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       const send = (msg: Envelope) => {
         if (closed) return;
         try {
-          const bytes = msg.event === "state"
-            ? encode(msg.data as PartyState)
-            : encodePatch(msg.data as PartyPatch);
+          const bytes = msg.event === "closed"
+            ? encodeClosed()
+            : msg.event === "state"
+              ? encode(msg.data as PartyState)
+              : encodePatch(msg.data as PartyPatch);
           controller.enqueue(bytes);
         } catch {
           closed = true;

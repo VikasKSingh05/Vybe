@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid vibeId" }, { status: 400 });
     }
 
-    const { roomId, member, state } = createRoom(hostName, vibeId as VibeId);
+    const { roomId, member, state } = await createRoom(hostName, vibeId as VibeId);
     return NextResponse.json({ roomId, member, state }, { status: 201 });
   } catch (error) {
     console.error("[API /api/party] Error:", error);

@@ -5,7 +5,6 @@ export type VibeId = _VibeId;
 export interface PartyMember {
   id: string;
   name: string;
-  isHost: boolean;
   joinedAt: number;
   lastSeen: number;
 }

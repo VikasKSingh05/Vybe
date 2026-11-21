@@ -15,7 +15,7 @@ describe("createRoom", () => {
   it("creates a room with a host member", async () => {
     const result = await createRoom("Test Host", "phonk");
     expect(result.roomId).toBeTruthy();
-    expect(result.member.isHost).toBe(true);
+    expect(result.state.hostId).toBe(result.member.id);
     expect(result.member.name).toBe("Test Host");
     expect(result.state.hostId).toBe(result.member.id);
     expect(result.state.vibeId).toBe("phonk");
@@ -45,7 +45,7 @@ describe("joinRoom", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.member.name).toBe("Guest");
-      expect(result.member.isHost).toBe(false);
+      expect(result.state.hostId).not.toBe(result.member.id);
     }
   });
 
@@ -195,7 +195,7 @@ describe("dispatch", () => {
   });
 
   describe("transferHost", () => {
-    it("swaps the host flags and hostId", async () => {
+    it("moves host authority to the target and revokes the old host", async () => {
       const guest = (await joinRoom(roomId, "Guest")) as { member: { id: string } };
       const result = await dispatch(roomId, memberId, "transferHost", {
         targetMemberId: guest.member.id,
@@ -203,10 +203,8 @@ describe("dispatch", () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.state.hostId).toBe(guest.member.id);
-        const oldHost = result.state.members.find((m) => m.id === memberId);
-        const newHost = result.state.members.find((m) => m.id === guest.member.id);
-        expect(oldHost?.isHost).toBe(false);
-        expect(newHost?.isHost).toBe(true);
+        expect(result.state.members.some((m) => m.id === memberId)).toBe(true);
+        expect(result.state.members.some((m) => m.id === guest.member.id)).toBe(true);
       }
 
       // Control actually moved: the new host can now play, the old cannot
@@ -398,7 +396,7 @@ describe("dispatch host controls", () => {
 });
 
 describe("patch broadcasts", () => {
-  it("broadcasts the members patch on transferHost (in-place host flags are detected)", async () => {
+  it("broadcasts the hostId patch on transferHost", async () => {
     const room = await createRoom("Host", "phonk");
     const hostId = room.member.id;
     const guest = (await joinRoom(room.roomId, "Guest")) as { member: { id: string } };
@@ -413,11 +411,11 @@ describe("patch broadcasts", () => {
       const patch = envelopes.find((e) => e.event === "patch")?.data as PartyPatch | undefined;
       expect(patch).toBeDefined();
       expect(patch!.hostId).toBe(guestId);
-      // The bug: members were omitted because the shallow snapshot shared the
-      // same objects. The patch must carry the updated isHost flags.
+      // The patch still carries the full member list so clients can resolve
+      // the new host's name without a second round-trip.
       expect(patch!.members).toBeDefined();
-      expect(patch!.members!.find((m) => m.id === guestId)?.isHost).toBe(true);
-      expect(patch!.members!.find((m) => m.id === hostId)?.isHost).toBe(false);
+      expect(patch!.members!.some((m) => m.id === guestId)).toBe(true);
+      expect(patch!.members!.some((m) => m.id === hostId)).toBe(true);
     } finally {
       unsub();
     }
@@ -463,7 +461,5 @@ describe("maintenance", () => {
 
     const state = await getRoom(room.roomId);
     expect(state!.hostId).toBe(guestId);
-    expect(state!.members.find((m) => m.id === guestId)?.isHost).toBe(true);
-    expect(state!.members.find((m) => m.id === hostId)?.isHost).toBe(false);
   });
 });
