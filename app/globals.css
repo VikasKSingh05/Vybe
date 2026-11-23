@@ -273,11 +273,6 @@ button:focus-visible {
   animation: signal-travel 3.2s ease-in-out infinite;
 }
 
-.signal-line--slow::after {
-  animation-duration: 5s;
-  animation-delay: 0.8s;
-}
-
 @keyframes signal-travel {
   0%,
   100% {

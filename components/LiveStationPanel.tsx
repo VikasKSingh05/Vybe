@@ -146,7 +146,7 @@ export function LiveStationPanel({
             )}
           </div>
 
-          <div className="mt-auto shrink-0 pt-2">{searchOverlay}</div>
+          <div className="mt-auto shrink-0 pb-5 sm:pb-6">{searchOverlay}</div>
         </aside>
       </div>
     </section>
