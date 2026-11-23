@@ -21,7 +21,7 @@ export default function Image() {
           justifyContent: "center",
           backgroundColor: "#0a0a0a",
           backgroundImage:
-            "radial-gradient(circle at 50% 130%, rgba(176,108,255,0.28), rgba(176,108,255,0) 55%)",
+            "radial-gradient(circle at 50% 130%, rgba(255,107,61,0.3), rgba(255,107,61,0) 55%)",
         }}
       >
         <div
@@ -36,7 +36,7 @@ export default function Image() {
               width: 16,
               height: 84,
               borderRadius: 8,
-              backgroundColor: "#b06cff",
+              backgroundColor: "#ff6b3d",
               display: "flex",
             }}
           />
@@ -55,7 +55,7 @@ export default function Image() {
               width: 16,
               height: 84,
               borderRadius: 8,
-              backgroundColor: "#b06cff",
+              backgroundColor: "#ff6b3d",
               display: "flex",
             }}
           />

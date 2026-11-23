@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import {
+  ArrowUpRight,
   ListMusic,
   Pause,
   Play,
@@ -84,23 +85,40 @@ function resolveStatus(
   };
 }
 
-const TONE_STYLES: Record<StatusTone, { dot: string; text: string; shell: string }> = {
+const TONE_STYLES: Record<
+  StatusTone,
+  { dot: string; text: string; shell: string }
+> = {
   live: {
-    dot: "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]",
-    text: "text-emerald-300",
-    shell: "border-emerald-300/25 bg-emerald-300/10",
+    dot: "bg-mint shadow-[0_0_10px_rgba(158,230,180,0.85)]",
+    text: "text-mint",
+    shell: "border-mint/30 bg-mint/10",
   },
   pending: {
-    dot: "bg-amber-300 shadow-[0_0_10px_rgba(252,211,77,0.7)]",
-    text: "text-amber-200",
-    shell: "border-amber-300/25 bg-amber-300/10",
+    dot: "bg-ember shadow-[0_0_10px_rgba(255,154,107,0.75)]",
+    text: "text-ember",
+    shell: "border-ember/30 bg-ember/10",
   },
   offline: {
-    dot: "bg-rose-400 shadow-[0_0_10px_rgba(251,113,133,0.7)]",
-    text: "text-rose-200",
-    shell: "border-rose-300/25 bg-rose-300/10",
+    dot: "bg-signal shadow-[0_0_10px_rgba(255,107,61,0.8)]",
+    text: "text-signal",
+    shell: "border-signal/40 bg-signal/10",
   },
 };
+
+function Equalizer({ accent }: { accent: string }) {
+  return (
+    <div className="flex h-4 items-end gap-[3px]" aria-hidden="true">
+      {[0, 1, 2, 3, 4].map((i) => (
+        <span
+          key={i}
+          className="eq-bar w-[2px] rounded-full"
+          style={{ backgroundColor: accent }}
+        />
+      ))}
+    </div>
+  );
+}
 
 export function LiveStationPanel({
   track,
@@ -124,159 +142,187 @@ export function LiveStationPanel({
   return (
     <section
       aria-label="VYBE LIVE station"
-      className={cn("w-full max-w-4xl", className)}
+      className={cn("w-full", className)}
     >
-      <div className="mb-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
-        <div
-          aria-live="polite"
-          className={cn(
-            "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-semibold tracking-[0.22em] uppercase",
-            tone.shell,
-            tone.text,
-          )}
-        >
-          <span
+      {/* Transmission header */}
+      <div className="mb-7 flex flex-wrap items-center justify-between gap-3 border-b border-paper/10 pb-4">
+        <div className="flex items-center gap-4">
+          <p className="mono-label text-paper/35">Transmission / 001</p>
+          <div
+            aria-live="polite"
             className={cn(
-              "h-1.5 w-1.5 rounded-full",
-              tone.dot,
-              view.tone === "live" && "motion-safe:animate-pulse",
+              "mono-label inline-flex items-center gap-2 rounded-full border px-2.5 py-1.5",
+              tone.shell,
+              tone.text,
             )}
-          />
-          {view.label}
+          >
+            <span
+              className={cn(
+                "h-1.5 w-1.5 rounded-full",
+                tone.dot,
+                view.tone === "live" && "motion-safe:animate-pulse",
+              )}
+            />
+            {view.label}
+          </div>
         </div>
-        <p className="text-[11px] text-white/45">{view.detail}</p>
+        <p className="hidden text-xs text-paper/45 sm:block">{view.detail}</p>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-        <div className="rounded-2xl border border-white/10 bg-black/35 p-4 shadow-[0_16px_48px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:p-5">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <p className="text-[10px] font-medium tracking-[0.28em] text-white/40 uppercase">
-              Now playing
-            </p>
-            <span className="text-[10px] text-white/35">Shared live</span>
-          </div>
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] lg:gap-12">
+        {/* Artwork stage */}
+        <div className="relative min-w-0">
+          <div className="absolute -top-3 -left-3 h-10 w-10 border-t border-l border-signal/70" />
+          <div className="absolute -right-3 -bottom-3 h-10 w-10 border-r border-b border-paper/20" />
 
-          <div className="flex items-center gap-3.5 sm:gap-4">
+          <div className="relative overflow-hidden rounded-[28px] border border-paper/10 bg-ink-soft shadow-[0_28px_80px_-32px_rgba(0,0,0,0.95)]">
             <AlbumArt
               src={track.cover}
               title={hasCurrentTrack ? track.title : "VYBE LIVE"}
               accent={accent}
               size="lg"
-              className="h-20 w-20 rounded-xl sm:h-24 sm:w-24"
+              className="aspect-square h-auto w-full rounded-[28px]"
             />
+            <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/20 to-transparent" />
 
-            <div className="min-w-0 flex-1">
+            <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-5">
+              <div className="flex items-center gap-2.5">
+                {isPlaying && hasCurrentTrack ? (
+                  <Equalizer accent={accent} />
+                ) : null}
+                <span className="mono-label text-paper/60">On air now</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={onTogglePlay}
+                disabled={!hasCurrentTrack}
+                aria-label={isPlaying ? "Pause VYBE LIVE" : "Play VYBE LIVE"}
+                className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-signal text-ink shadow-[0_10px_30px_rgba(255,107,61,0.35)] transition-transform hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+              >
+                {isPlaying ? (
+                  <Pause className="h-5 w-5 fill-current" />
+                ) : (
+                  <Play className="h-5 w-5 fill-current pl-0.5" />
+                )}
+              </button>
+            </div>
+
+            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7">
               {hasCurrentTrack ? (
                 <>
-                  <p className="truncate text-base font-semibold text-white sm:text-lg">
-                    {track.title}
-                  </p>
-                  <p className="mt-0.5 truncate text-sm text-white/55">{track.artist}</p>
-                  <p className="mt-2 text-[10px] tracking-[0.18em] text-white/35 uppercase">
+                  <p
+                    className="mono-label mb-3 flex items-center gap-2"
+                    style={{ color: accent }}
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-current" />
                     VYBE LIVE
                   </p>
+                  <h2 className="font-display text-3xl leading-[1.02] font-bold tracking-[-0.04em] text-paper sm:text-4xl">
+                    {track.title}
+                  </h2>
+                  <p className="mt-2 text-sm text-paper/60">{track.artist}</p>
                 </>
               ) : (
                 <div aria-live="polite">
-                  <div className="h-4 w-2/3 animate-pulse rounded bg-white/10" />
-                  <div className="mt-2 h-3 w-1/2 animate-pulse rounded bg-white/5" />
-                  <p className="mt-3 text-xs text-white/45">Tuning in to VYBE LIVE…</p>
+                  <div className="h-5 w-2/3 animate-pulse rounded bg-paper/10" />
+                  <div className="mt-2 h-3 w-1/2 animate-pulse rounded bg-paper/5" />
+                  <p className="mt-4 text-xs text-paper/50">
+                    Tuning in to VYBE LIVE…
+                  </p>
                 </div>
               )}
             </div>
-
-            <button
-              type="button"
-              onClick={onTogglePlay}
-              disabled={!hasCurrentTrack}
-              aria-label={isPlaying ? "Pause VYBE LIVE" : "Play VYBE LIVE"}
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-40"
-              style={{ boxShadow: `0 0 18px ${accent}44` }}
-            >
-              {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-            </button>
           </div>
 
-          {canRetry && (
+          {canRetry ? (
             <button
               type="button"
               onClick={onRetry}
-              className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-2 text-[11px] text-white/70 transition hover:bg-white/10 hover:text-white"
+              className="mt-5 inline-flex items-center gap-2 rounded-full border border-signal/40 bg-signal/10 px-4 py-2.5 text-xs text-signal transition-colors hover:bg-signal/20"
             >
               <RotateCw className="h-3.5 w-3.5" />
               Retry connection
             </button>
-          )}
+          ) : null}
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-black/35 p-4 shadow-[0_16px_48px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:p-5">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <p className="text-[10px] font-medium tracking-[0.28em] text-white/40 uppercase">
-              Up next
-            </p>
-            <button
-              type="button"
-              onClick={onOpenQueue}
-              className="flex min-h-[32px] items-center gap-1 text-[11px] text-white/45 transition hover:text-white/80"
-            >
-              Full queue
-              <ListMusic className="h-3.5 w-3.5" />
-            </button>
+        {/* Station rail */}
+        <aside className="flex min-w-0 flex-col gap-8 lg:border-l lg:border-paper/10 lg:pl-9">
+          <div>
+            <div className="mb-4 flex items-baseline justify-between gap-3">
+              <p className="mono-label text-paper/40">Up next</p>
+              <button
+                type="button"
+                onClick={onOpenQueue}
+                className="group flex min-h-[32px] items-center gap-1.5 text-xs text-paper/55 transition-colors hover:text-paper"
+              >
+                Full queue
+                <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </button>
+            </div>
+
+            {upNext.length > 0 ? (
+              <ol className="divide-y divide-paper/10 border-y border-paper/10">
+                {upNext.map((item, index) => (
+                  <li key={item.queueItemId} className="flex items-center gap-3 py-3">
+                    <span className="mono-label w-5 shrink-0 text-paper/30">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <AlbumArt
+                      src={item.artwork}
+                      title={item.title}
+                      accent={accent}
+                      size="sm"
+                      className="h-10 w-10 rounded-lg"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-paper/90">
+                        {item.title}
+                      </p>
+                      <p className="truncate text-xs text-paper/45">{item.artist}</p>
+                    </div>
+                    {item.duration ? (
+                      <span className="shrink-0 font-mono text-[10px] tabular-nums text-paper/30">
+                        {formatTime(item.duration)}
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <div className="flex min-h-[150px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-paper/15 px-4 text-center">
+                <ListMusic className="h-5 w-5 text-paper/25" />
+                <p className="text-xs text-paper/45">
+                  {hasCurrentTrack
+                    ? "More tracks are on the way."
+                    : "The next tracks are loading."}
+                </p>
+              </div>
+            )}
           </div>
 
-          {upNext.length > 0 ? (
-            <ol className="space-y-2">
-              {upNext.map((item, index) => (
-                <li
-                  key={item.queueItemId}
-                  className="flex items-center gap-2.5 rounded-xl border border-white/5 bg-white/[0.04] px-2.5 py-2"
-                >
-                  <span className="w-3 shrink-0 text-center text-[10px] tabular-nums text-white/30">
-                    {index + 1}
+          <div className="mt-auto flex flex-col gap-3">
+            <div className="w-full">{searchOverlay}</div>
+            <Link
+              href="/party"
+              className="group flex min-h-[52px] items-center justify-between gap-3 rounded-xl border border-paper/12 bg-paper/[0.03] px-4 transition-colors hover:border-signal/40 hover:bg-signal/[0.06]"
+            >
+              <span className="flex items-center gap-3">
+                <Users className="h-4 w-4" style={{ color: accent }} />
+                <span>
+                  <span className="block text-sm font-medium text-paper/90">
+                    VYBE Jam
                   </span>
-                  <AlbumArt
-                    src={item.artwork}
-                    title={item.title}
-                    accent={accent}
-                    size="sm"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-medium text-white/85">
-                      {item.title}
-                    </p>
-                    <p className="truncate text-[11px] text-white/40">{item.artist}</p>
-                  </div>
-                  {item.duration ? (
-                    <span className="shrink-0 text-[10px] tabular-nums text-white/30">
-                      {formatTime(item.duration)}
-                    </span>
-                  ) : null}
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <div className="flex min-h-[154px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/10 px-4 text-center">
-              <ListMusic className="h-5 w-5 text-white/25" />
-              <p className="text-xs text-white/45">
-                {hasCurrentTrack
-                  ? "More tracks are on the way."
-                  : "The next tracks are loading."}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-        <div className="w-full sm:max-w-lg">{searchOverlay}</div>
-        <Link
-          href="/party"
-          className="flex min-h-[46px] shrink-0 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 text-xs font-medium text-white/70 transition hover:border-white/30 hover:bg-white/10 hover:text-white"
-        >
-          <Users className="h-4 w-4" style={{ color: accent }} />
-          VYBE Jam
-          <span className="text-white/35">· listen together</span>
-        </Link>
+                  <span className="mono-label mt-1 block text-paper/35">
+                    Listen together
+                  </span>
+                </span>
+              </span>
+              <ArrowUpRight className="h-4 w-4 text-paper/35 transition-all group-hover:text-signal group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            </Link>
+          </div>
+        </aside>
       </div>
     </section>
   );

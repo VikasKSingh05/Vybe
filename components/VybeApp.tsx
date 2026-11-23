@@ -103,7 +103,7 @@ export function VybeApp() {
       isSearching={search.isSearching}
       hasSearched={search.hasSearched}
       error={search.error}
-      accent="#b06cff"
+      accent={player.theme.accent}
       onQueryChange={search.setQuery}
       onPlaySong={handlePlaySong}
       onAddToQueue={handleAddToQueue}
@@ -147,15 +147,12 @@ export function VybeApp() {
   );
 
   return (
-    <div className="relative min-h-dvh overflow-hidden text-white font-sans antialiased select-none">
+    <div className="relative min-h-dvh overflow-x-hidden bg-ink text-paper font-sans antialiased select-none">
       <Background theme={player.theme} />
       <Header />
 
-      <main
-        id="main-content"
-        className="relative z-10 flex h-dvh flex-col items-center overflow-y-auto pb-44 sm:pb-48 md:pb-52"
-      >
-        <div className="my-auto flex w-full flex-col items-center gap-8">
+      <main id="main-content" className="relative z-10 min-h-dvh">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-9 px-5 pt-28 pb-44 sm:px-8 sm:pt-32 sm:pb-48 md:gap-12 md:pb-52">
           <HeroSection theme={player.theme} />
 
           <LiveStationPanel

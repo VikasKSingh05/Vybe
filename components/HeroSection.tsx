@@ -1,4 +1,3 @@
-import { Radio } from "lucide-react";
 import type { VibeTheme } from "@/data/types";
 
 interface HeroSectionProps {
@@ -7,28 +6,38 @@ interface HeroSectionProps {
 
 export function HeroSection({ theme }: HeroSectionProps) {
   return (
-    <header className="flex min-h-0 flex-col items-center justify-center gap-5 px-4 text-center">
-      <div
-        className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 shadow-[0_0_36px_rgba(176,108,255,0.24)] backdrop-blur-md"
-        style={{ color: theme.accent }}
-      >
-        <Radio className="h-6 w-6" />
+    <section className="animate-hero-in flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+      <div className="min-w-0">
+        <div className="mb-4 flex items-center gap-3">
+          <span className="h-px w-8 bg-signal" />
+          <p className="mono-label text-paper/45">Global broadcast / 001</p>
+        </div>
+        <h1 className="font-display text-[clamp(3.6rem,13vw,8.5rem)] leading-[0.78] font-extrabold tracking-[-0.07em] text-paper">
+          VYBE
+          <span className="text-signal">.</span>
+          <br className="hidden sm:block" />
+          <span className="sm:pl-[0.08em]">LIVE</span>
+        </h1>
       </div>
-      <div className="space-y-2">
+
+      <div className="max-w-xs sm:pb-2 sm:text-right">
+        <p className="font-display text-xl leading-tight tracking-tight text-paper sm:text-2xl">
+          One station.
+          <br />
+          Everyone, in sync.
+        </p>
+        <p className="mt-3 text-sm leading-relaxed text-paper/50">
+          A single global frequency. No genres, no filters — just what the room
+          is hearing right now.
+        </p>
         <p
-          className="text-[11px] font-semibold tracking-[0.42em] uppercase"
+          className="mono-label mt-5 flex items-center gap-2 sm:justify-end"
           style={{ color: theme.accent }}
         >
-          VYBE LIVE
-        </p>
-        <h1 className="text-balance text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-          One station. Everyone, in sync.
-        </h1>
-        <p className="mx-auto max-w-md text-balance text-sm leading-relaxed text-white/50">
-          A single global broadcast that keeps playing — no genres to choose,
-          no stations to switch.
+          <span className="h-1.5 w-1.5 rounded-full bg-current motion-safe:animate-pulse" />
+          On air
         </p>
       </div>
-    </header>
+    </section>
   );
 }

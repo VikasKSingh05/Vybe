@@ -43,7 +43,7 @@ export function InstallButton() {
         // Regardless of outcome, the prompt is single-use.
         setPromptEvent(null);
       }}
-      className="flex min-h-[44px] items-center gap-1 px-1 text-[11px] tracking-wide text-white/50 transition-colors duration-300 hover:text-white/90 cursor-pointer"
+      className="mono-label flex min-h-[44px] items-center text-paper/50 transition-colors duration-300 hover:text-paper cursor-pointer"
     >
       Install
     </button>

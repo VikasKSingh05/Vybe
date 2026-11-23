@@ -207,7 +207,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
   // Lock-screen / hardware media controls for everyone in the room
   useMediaSession({
     enabled: playerTrack != null,
-    title: playerTrack?.title ?? "VYBE Party",
+    title: playerTrack?.title ?? "VYBE Jam",
     artist: playerTrack?.artist ?? "",
     artwork: playerTrack?.cover,
     isPlaying: audio.isPlaying,
@@ -221,13 +221,16 @@ export function PartyRoom({ party }: PartyRoomProps) {
   });
 
   return (
-    <div className="relative flex min-h-dvh flex-col text-white font-sans antialiased lg:h-dvh lg:overflow-hidden">
+    <div className="relative flex min-h-dvh flex-col bg-ink font-sans text-paper antialiased lg:h-dvh lg:overflow-hidden">
       <Background theme={theme} />
 
-      {(status === "reconnecting") && (
-        <div role="alert" className="fixed inset-x-0 top-[52px] z-40 flex items-center justify-center gap-3 bg-black/80 px-4 py-3 text-sm backdrop-blur-sm">
-          <RefreshCw className="h-4 w-4 animate-spin text-amber-300" />
-          <span className="text-white/70">Reconnecting…</span>
+      {status === "reconnecting" && (
+        <div
+          role="alert"
+          className="fixed inset-x-0 top-[60px] z-40 flex items-center justify-center gap-3 border-b border-signal/20 bg-signal/10 px-4 py-3 backdrop-blur-xl"
+        >
+          <RefreshCw className="h-4 w-4 animate-spin text-signal" />
+          <span className="mono-label text-signal">Reconnecting…</span>
         </div>
       )}
 

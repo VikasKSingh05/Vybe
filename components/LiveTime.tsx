@@ -23,7 +23,7 @@ export function LiveTime() {
 
   return (
     <span
-      className="text-[11px] tracking-wider text-white/45 uppercase"
+      className="mono-label text-paper/45"
       suppressHydrationWarning
     >
       {time}

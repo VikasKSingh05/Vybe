@@ -79,19 +79,18 @@ export function ProgressBar({
         if (e.key === "ArrowRight") onSeek(Math.min(duration, currentTime + 5));
         if (e.key === "ArrowLeft") onSeek(Math.max(0, currentTime - 5));
       }}
-      className="group relative h-3 cursor-pointer rounded-full bg-white/10 overflow-hidden transition-all sm:h-2 sm:hover:h-3 touch-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-black/50"
+      className="group relative h-2.5 cursor-pointer rounded-full bg-paper/10 overflow-hidden touch-none focus-visible:ring-2 focus-visible:ring-signal/50 focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
     >
       <div
         className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-75 ease-linear"
         style={{
           width: `${clampedProgress}%`,
           backgroundColor: accent,
-          boxShadow: `0 0 10px ${accent}bb`,
         }}
       />
       <div
-        className="absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-white shadow-md opacity-0 transition-opacity group-hover:opacity-100 pointer-events-none max-sm:opacity-100"
-        style={{ left: `calc(${clampedProgress}% - 6px)` }}
+        className="absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-paper opacity-0 transition-opacity group-hover:opacity-100 pointer-events-none max-sm:opacity-100"
+        style={{ left: `calc(${clampedProgress}% - 5px)` }}
       />
     </div>
   );

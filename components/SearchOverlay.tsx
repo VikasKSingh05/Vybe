@@ -355,10 +355,15 @@ export function SearchOverlay({
         ref={triggerRef}
         type="button"
         onClick={handleOpen}
-        className="flex min-h-[44px] w-full max-w-xl items-center justify-center gap-2.5 rounded-full border border-white/10 bg-black/30 px-4 py-2.5 text-center text-xs text-white/40 backdrop-blur-md transition-colors hover:border-white/20 hover:bg-black/40 hover:text-white/60 cursor-pointer outline-none!"
+        className="group flex min-h-[52px] w-full items-center gap-3 rounded-xl border border-paper/12 bg-paper/[0.03] px-4 text-left transition-colors hover:border-signal/40 hover:bg-signal/[0.06] cursor-pointer outline-none!"
       >
-        <Search className="h-3.5 w-3.5 shrink-0" />
-        <span>Search for songs...</span>
+        <Search className="h-4 w-4 shrink-0 text-paper/45 transition-colors group-hover:text-signal" />
+        <span className="flex-1 text-sm text-paper/45 transition-colors group-hover:text-paper/70">
+          Search for songs...
+        </span>
+        <kbd className="mono-label rounded border border-paper/15 px-1.5 py-1 text-paper/35">
+          /
+        </kbd>
       </button>
 
       {/* ─── OVERLAY ─── */}
@@ -372,7 +377,7 @@ export function SearchOverlay({
 
       <div
         ref={panelRef}
-        className="fixed z-[61] flex flex-col overflow-hidden border border-white/10 bg-[#0d0d0d]/95 shadow-2xl backdrop-blur-xl"
+        className="fixed z-[61] flex flex-col overflow-hidden border border-paper/12 bg-ink/95 shadow-[0_32px_100px_-32px_rgba(0,0,0,0.95)] backdrop-blur-2xl"
         style={{
           opacity: 0,
           pointerEvents: "none",
@@ -384,21 +389,21 @@ export function SearchOverlay({
       >
         <div ref={contentRef} className="flex min-h-0 flex-1 flex-col">
           {/* ─── INPUT BAR ─── */}
-          <div className="flex items-center gap-2 border-b border-white/5 px-4 py-3">
-            <Search className="h-4 w-4 shrink-0 text-white/30" />
+          <div className="flex items-center gap-2 border-b border-paper/10 px-4 py-3">
+            <Search className="h-4 w-4 shrink-0 text-paper/35" />
             <input
               ref={inputRef}
               type="text"
               value={query}
               onChange={(e) => handleQueryChange(e.target.value)}
               placeholder="Search songs..."
-              className="flex-1 bg-transparent text-sm text-white/90 placeholder-white/30 outline-none! rounded-lg"
+              className="flex-1 bg-transparent text-sm text-paper/90 placeholder-paper/30 outline-none! rounded-lg"
             />
             {query && (
               <button
                 type="button"
                 onClick={handleClearQuery}
-                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full p-2 text-white/30 hover:text-white/60 transition-colors cursor-pointer"
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full p-2 text-paper/35 hover:text-paper/60 transition-colors cursor-pointer"
               >
                 <Eraser className="h-3.5 w-3.5" />
               </button>
@@ -406,7 +411,7 @@ export function SearchOverlay({
             <button
               type="button"
               onClick={handleClose}
-              className="ml-1 flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full p-2 text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors cursor-pointer"
+              className="ml-1 flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full p-2 text-paper/45 hover:text-paper/70 hover:bg-paper/10 transition-colors cursor-pointer"
               aria-label="Close search"
             >
               <X className="h-4 w-4" />
@@ -436,7 +441,7 @@ export function SearchOverlay({
                 <button
                   type="button"
                   onClick={() => onSearchSubmit(query.trim())}
-                  className="flex min-h-[36px] items-center gap-1.5 rounded-full border border-white/10 px-3 text-[11px] text-white/60 transition-colors hover:border-white/25 hover:text-white/90 cursor-pointer"
+                  className="flex min-h-[36px] items-center gap-1.5 rounded-full border border-paper/15 px-3 text-[11px] text-paper/60 transition-colors hover:border-paper/30 hover:text-paper/90 cursor-pointer"
                 >
                   <RotateCcw className="h-3 w-3" />
                   Retry
@@ -447,40 +452,40 @@ export function SearchOverlay({
 
           {!isSearching && !error && results.length === 0 && hasSearched && (
             <div className="flex flex-col items-center gap-2 px-4 py-12">
-              <Music className="h-8 w-8 text-white/15" />
-              <p className="text-xs text-white/30">No results found</p>
+              <Music className="h-8 w-8 text-paper/15" />
+              <p className="text-xs text-paper/35">No results found</p>
             </div>
           )}
 
           {!hasSearched && !isSearching && history && history.length > 0 && (
             <div className="px-2 py-3">
               <div className="flex items-center justify-between px-2 pb-1.5">
-                <span className="text-[11px] font-medium uppercase tracking-wider text-white/30">
+                <span className="text-[11px] font-medium uppercase tracking-wider text-paper/35">
                   Recent
                 </span>
                 {onClearHistory && (
                   <button
                     type="button"
                     onClick={onClearHistory}
-                    className="rounded-full px-2.5 py-1.5 text-[11px] text-white/30 transition-colors hover:text-white/70 hover:bg-white/5 cursor-pointer min-h-[32px]"
+                    className="rounded-full px-2.5 py-1.5 text-[11px] text-paper/35 transition-colors hover:text-paper/70 hover:bg-paper/5 cursor-pointer min-h-[32px]"
                   >
                     Clear
                   </button>
                 )}
               </div>
-              <ul className="divide-y divide-white/5">
+              <ul className="divide-y divide-paper/10">
                 {history.map((h) => (
                   <li key={h}>
                     <button
                       type="button"
                       onClick={() => handleHistorySearch(h)}
-                      className="flex min-h-[44px] w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-white/[0.04] cursor-pointer"
+                      className="flex min-h-[44px] w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-paper/[0.04] cursor-pointer"
                     >
-                      <Clock className="h-3.5 w-3.5 shrink-0 text-white/25" />
-                      <span className="min-w-0 flex-1 truncate text-sm text-white/70">
+                      <Clock className="h-3.5 w-3.5 shrink-0 text-paper/30" />
+                      <span className="min-w-0 flex-1 truncate text-sm text-paper/70">
                         {h}
                       </span>
-                      <Search className="h-3 w-3 shrink-0 text-white/20" />
+                      <Search className="h-3 w-3 shrink-0 text-paper/25" />
                     </button>
                   </li>
                 ))}
@@ -490,19 +495,19 @@ export function SearchOverlay({
 
           {!hasSearched && !isSearching && (!history || history.length === 0) && (
             <div className="flex flex-col items-center gap-2 px-4 py-12">
-              <Search className="h-8 w-8 text-white/10" />
-              <p className="text-xs text-white/25">
+              <Search className="h-8 w-8 text-paper/10" />
+              <p className="text-xs text-paper/30">
                 Type to search millions of songs
               </p>
             </div>
           )}
 
           {results.length > 0 && (
-            <ul className="divide-y divide-white/5">
+            <ul className="divide-y divide-paper/10">
               {results.map((song) => (
                 <li
                   key={song.id}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] transition-colors"
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-paper/[0.03] transition-colors"
                 >
                   <div className="shrink-0">
                     <AlbumArt
@@ -513,10 +518,10 @@ export function SearchOverlay({
                     />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-white/80">
+                    <p className="truncate text-sm font-medium text-paper/80">
                       {song.title}
                     </p>
-                    <p className="truncate text-[11px] text-white/35">
+                    <p className="truncate text-[11px] text-paper/40">
                       {song.artist}
                     </p>
                   </div>
@@ -526,7 +531,7 @@ export function SearchOverlay({
                       onClick={() => handlePlay(song)}
                       aria-label={`Play ${song.title}`}
                       title="Play"
-                      className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-full p-2 text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                      className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-full p-2 text-paper/70 hover:text-paper hover:bg-paper/10 transition-colors cursor-pointer"
                     >
                       <Play className="h-3.5 w-3.5" />
                     </button>
@@ -536,7 +541,7 @@ export function SearchOverlay({
                         onClick={() => handlePlayNext(song)}
                         aria-label={`Play ${song.title} next`}
                         title="Play next"
-                        className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-full p-2 text-white/40 hover:text-white/80 hover:bg-white/5 transition-colors cursor-pointer"
+                        className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-full p-2 text-paper/45 hover:text-paper/80 hover:bg-paper/5 transition-colors cursor-pointer"
                       >
                         <ListStart className="h-3.5 w-3.5" />
                       </button>
@@ -546,7 +551,7 @@ export function SearchOverlay({
                       onClick={() => handleQueue(song)}
                       aria-label={`Add ${song.title} to queue`}
                       title="Add to queue"
-                      className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-full p-2 text-white/40 hover:text-white/80 hover:bg-white/5 transition-colors cursor-pointer"
+                      className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-full p-2 text-paper/45 hover:text-paper/80 hover:bg-paper/5 transition-colors cursor-pointer"
                     >
                       <ListPlus className="h-3.5 w-3.5" />
                     </button>

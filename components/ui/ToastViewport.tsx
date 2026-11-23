@@ -22,8 +22,8 @@ interface ToneConfig {
 const TONE_CONFIG: Record<ToastTone, ToneConfig> = {
   info: {
     icon: Info,
-    chip: "bg-violet-400/10 text-violet-300",
-    bar: "bg-violet-400/70",
+    chip: "bg-signal/10 text-signal",
+    bar: "bg-signal/70",
   },
   success: {
     icon: CheckCircle2,

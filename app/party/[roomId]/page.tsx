@@ -2,7 +2,7 @@ import { LazyPartyView } from "@/components/LazyPartyView";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "VYBE Party",
+  title: "VYBE Jam",
   description: "Live listening, together. Join a room and vibe in sync.",
 };
 

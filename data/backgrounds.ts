@@ -14,8 +14,9 @@ export const liveTheme: VibeTheme = {
   id: "random",
   label: "VYBE LIVE",
   background: "/backgrounds/fields.jpg",
-  overlay: "linear-gradient(180deg, rgba(16,8,30,0.42) 0%, rgba(0,0,0,0.8) 100%)",
-  accent: "#b06cff",
+  overlay:
+    "linear-gradient(180deg, rgba(12,8,5,0.18) 0%, rgba(9,9,10,0.72) 62%, #09090a 100%)",
+  accent: "#ff6b3d",
   description: "The one global VYBE radio station.",
 };
 

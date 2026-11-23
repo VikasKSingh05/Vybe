@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useEffect, useRef } from "react";
-import { ListMusic, Settings2 } from "lucide-react";
+import { ListMusic } from "lucide-react";
 import type { Track } from "@/data/types";
 import { AlbumArt } from "@/components/AlbumArt";
 import { ProgressBar } from "@/components/player/ProgressBar";
@@ -55,7 +55,6 @@ export const FloatingPlayer = memo(function FloatingPlayer({
   onVolumeChange,
   onToggleMute,
   onToggleQueue,
-  onToggleSettings,
   className,
 }: FloatingPlayerProps) {
   const trackInfoRef = useRef<HTMLDivElement>(null);
@@ -88,34 +87,19 @@ export const FloatingPlayer = memo(function FloatingPlayer({
   return (
     <div
       className={cn(
-        "fixed right-0 bottom-0 left-0 z-40 flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-[max(1.5rem,env(safe-area-inset-bottom))] md:pb-[max(2rem,env(safe-area-inset-bottom))] select-none",
+        "fixed inset-x-0 bottom-0 z-40 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5 sm:pb-[max(1.25rem,env(safe-area-inset-bottom))] select-none",
         className,
       )}
     >
-      <div
-        className={cn(
-          "w-full max-w-md sm:max-w-lg md:max-w-xl rounded-2xl border border-white/10 bg-black/45 p-3.5 sm:p-4 md:p-5 shadow-[0_16px_48px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all duration-300",
-        )}
-      >
-        <div className="mb-3 flex items-center gap-3.5">
-          <div ref={artRef}>
-            <AlbumArt src={track.cover} title={track.title} accent={accent} size="md" />
-          </div>
-          <div ref={trackInfoRef} className="min-w-0 flex-1">
-            {broadcastLabel && (
-              <p className="mb-1 flex items-center gap-1.5 text-[9px] font-semibold tracking-[0.24em] text-white/45 uppercase">
-                <span
-                  className="h-1.5 w-1.5 rounded-full"
-                  style={{ backgroundColor: accent }}
-                />
-                {broadcastLabel}
-              </p>
-            )}
-            <TrackInfo title={track.title} artist={track.artist} />
-          </div>
-        </div>
+      <div className="relative w-full max-w-3xl overflow-hidden rounded-t-[26px] border border-paper/10 bg-ink/90 shadow-[0_-12px_60px_-24px_rgba(0,0,0,0.95)] backdrop-blur-2xl sm:rounded-[26px]">
+        <div
+          className="absolute inset-x-0 top-0 h-px opacity-70"
+          style={{
+            background: `linear-gradient(90deg, transparent 0%, ${accent} 50%, transparent 100%)`,
+          }}
+        />
 
-        <div className="mb-1">
+        <div className="px-4 pt-3 pb-3 sm:px-5 sm:pt-4 sm:pb-4">
           <ProgressBar
             progress={progress}
             currentTime={currentTime}
@@ -123,59 +107,71 @@ export const FloatingPlayer = memo(function FloatingPlayer({
             accent={accent}
             onSeek={onSeek}
           />
-        </div>
+          <div className="mt-1.5 flex justify-between font-mono text-[10px] tabular-nums text-paper/35">
+            <span>{formatTime(currentTime)}</span>
+            <span>{formatTime(duration)}</span>
+          </div>
 
-        <div className="mb-3 flex justify-between text-[10px] tabular-nums font-mono text-white/40">
-          <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(duration)}</span>
-        </div>
+          <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+            <div className="flex min-w-0 items-center gap-3">
+              <div ref={artRef} className="shrink-0">
+                <AlbumArt
+                  src={track.cover}
+                  title={track.title}
+                  accent={accent}
+                  size="md"
+                  className="h-11 w-11 rounded-lg sm:h-12 sm:w-12"
+                />
+              </div>
+              <div ref={trackInfoRef} className="min-w-0 flex-1">
+                {broadcastLabel ? (
+                  <p
+                    className="mono-label mb-1 flex items-center gap-1.5"
+                    style={{ color: accent }}
+                  >
+                    <span className="h-1 w-1 rounded-full bg-current" />
+                    {broadcastLabel}
+                  </p>
+                ) : null}
+                <TrackInfo title={track.title} artist={track.artist} size="sm" />
+              </div>
+            </div>
 
-        <div className="flex items-center justify-between">
-          <VolumeControl
-            volume={volume}
-            isMuted={isMuted}
-            accent={accent}
-            size="sm"
-            onVolumeChange={onVolumeChange}
-            onToggleMute={onToggleMute}
-          />
+            <TransportControls
+              isPlaying={isPlaying}
+              disabled={locked}
+              accent={accent}
+              size="sm"
+              onTogglePlay={onTogglePlay}
+              onPrev={onPrev}
+              onNext={onNext}
+            />
 
-          <TransportControls
-            isPlaying={isPlaying}
-            disabled={locked}
-            accent={accent}
-            size="sm"
-            onTogglePlay={onTogglePlay}
-            onPrev={onPrev}
-            onNext={onNext}
-          />
-
-          <div className="flex items-center gap-1 justify-end sm:w-20">
-            {onToggleQueue && (
-              <button
-                type="button"
-                onClick={onToggleQueue}
-                className="relative rounded-full p-2 text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
-                aria-label="Open queue"
-              >
-                <ListMusic className="h-4 w-4" />
-                {queueCount != null && queueCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-white/20 px-1 text-[8px] font-medium text-white/70">
-                    {queueCount}
-                  </span>
-                )}
-              </button>
-            )}
-            {onToggleSettings && (
-              <button
-                type="button"
-                onClick={onToggleSettings}
-                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full p-2 text-white/40 transition-colors hover:text-white/70 hover:bg-white/10 cursor-pointer"
-                aria-label="Open settings"
-              >
-                <Settings2 className="h-4 w-4" />
-              </button>
-            )}
+            <div className="col-span-2 flex items-center justify-between sm:col-span-1 sm:justify-end sm:gap-1">
+              <VolumeControl
+                volume={volume}
+                isMuted={isMuted}
+                accent={accent}
+                size="sm"
+                onVolumeChange={onVolumeChange}
+                onToggleMute={onToggleMute}
+              />
+              {onToggleQueue ? (
+                <button
+                  type="button"
+                  onClick={onToggleQueue}
+                  className="relative ml-1 grid min-h-[44px] min-w-[44px] place-items-center rounded-full p-2 text-paper/40 transition-colors hover:bg-paper/10 hover:text-paper"
+                  aria-label="Open queue"
+                >
+                  <ListMusic className="h-4 w-4" />
+                  {queueCount != null && queueCount > 0 ? (
+                    <span className="absolute -top-0.5 -right-0.5 grid h-4 min-w-[16px] place-items-center rounded-full bg-signal px-1 font-mono text-[8px] font-semibold text-ink">
+                      {queueCount}
+                    </span>
+                  ) : null}
+                </button>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>
