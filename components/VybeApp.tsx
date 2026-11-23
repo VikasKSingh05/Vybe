@@ -151,11 +151,8 @@ export function VybeApp() {
       <Background theme={player.theme} />
       <Header />
 
-      <main
-        id="main-content"
-        className="scrollbar-hide relative z-10 h-full overflow-y-auto overscroll-contain"
-      >
-        <div className="mx-auto w-full max-w-6xl px-5 pt-24 pb-40 sm:px-8 sm:pt-28 sm:pb-44">
+      <main id="main-content" className="relative z-10 h-full">
+        <div className="mx-auto flex h-full w-full max-w-6xl flex-col px-5 pt-20 pb-32 sm:px-8 sm:pt-24 sm:pb-36">
           <HeroSection />
           <LiveStationPanel
             track={player.track}

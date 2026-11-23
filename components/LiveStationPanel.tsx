@@ -58,8 +58,11 @@ export function LiveStationPanel({
   const canRetry = label === "OFFLINE";
 
   return (
-    <section aria-label="Live broadcast" className={cn("w-full", className)}>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-paper/10 pb-3">
+    <section
+      aria-label="Live broadcast"
+      className={cn("flex min-h-0 flex-1 flex-col", className)}
+    >
+      <div className="mb-5 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-paper/10 pb-3">
         <span className="signal-line h-px w-8 bg-signal/70" />
         <div className="flex items-center gap-4">
           <span
@@ -72,7 +75,7 @@ export function LiveStationPanel({
             <button
               type="button"
               onClick={onRetry}
-              className="inline-flex min-h-[32px] items-center gap-1.5 rounded-full border border-signal/40 px-3 text-xs text-signal transition-colors hover:bg-signal/10"
+              className="inline-flex min-h-[32px] items-center rounded-full border border-signal/40 px-3 text-xs text-signal transition-colors hover:bg-signal/10"
             >
               Retry
             </button>
@@ -80,31 +83,37 @@ export function LiveStationPanel({
         </div>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(300px,0.95fr)] lg:gap-10">
-        {/* Artwork only — the player already shows the track and artist. */}
-        <div className="min-w-0">
-          <div className="w-full max-w-[380px] overflow-hidden rounded-[28px] border border-paper/10 bg-ink-soft shadow-[0_28px_80px_-32px_rgba(0,0,0,0.95)] transition-colors duration-300 hover:border-paper/20">
+      <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(300px,0.95fr)] lg:gap-10">
+        {/* Artwork — sized to the frame so the player can float over it. */}
+        <div className="flex min-h-0 items-start">
+          <div className="h-[min(26vh,220px)] w-[min(26vh,220px)] overflow-hidden rounded-[24px] border border-paper/10 bg-ink-soft shadow-[0_24px_60px_-30px_rgba(0,0,0,0.95)] transition-colors duration-300 hover:border-paper/20 sm:h-[min(30vh,270px)] sm:w-[min(30vh,270px)] lg:h-[min(42vh,340px)] lg:w-[min(42vh,340px)]">
             <AlbumArt
               src={track.cover}
               title={hasCurrentTrack ? track.title : "Radio"}
               accent={accent}
               size="lg"
-              className="aspect-square h-auto w-full rounded-[28px]"
+              className="h-full w-full rounded-[24px]"
             />
           </div>
         </div>
 
         {/* Rail */}
-        <aside className="flex min-w-0 flex-col gap-6 lg:border-l lg:border-paper/10 lg:pl-9">
-          <div>
-            <p className="mono-label mb-4 border-b border-paper/10 pb-3 text-paper/40">
+        <aside className="flex min-h-0 flex-col gap-4 lg:border-l lg:border-paper/10 lg:pl-9">
+          <div className="shrink-0">
+            <p className="mono-label mb-3 border-b border-paper/10 pb-3 text-paper/40">
               Up next
             </p>
 
             {upNext.length > 0 ? (
               <ol className="divide-y divide-paper/10">
                 {upNext.map((item, index) => (
-                  <li key={item.queueItemId} className="flex items-center gap-3 py-3">
+                  <li
+                    key={item.queueItemId}
+                    className={cn(
+                      "flex items-center gap-3 py-2",
+                      index === 2 && "hidden sm:flex",
+                    )}
+                  >
                     <span className="mono-label w-5 shrink-0 text-paper/30">
                       {String(index + 1).padStart(2, "0")}
                     </span>
@@ -113,7 +122,7 @@ export function LiveStationPanel({
                       title={item.title}
                       accent={accent}
                       size="sm"
-                      className="h-10 w-10 rounded-lg"
+                      className="h-9 w-9 rounded-lg"
                     />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-paper/90">
@@ -130,16 +139,14 @@ export function LiveStationPanel({
                 ))}
               </ol>
             ) : (
-              <div className="flex min-h-[100px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-paper/15 px-4 text-center">
+              <div className="flex min-h-[84px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-paper/15 px-4 text-center">
                 <ListMusic className="h-5 w-5 text-paper/25" />
                 <p className="mono-label text-paper/40">Nothing queued</p>
               </div>
             )}
           </div>
 
-          <div className="flex flex-col gap-3">
-            <div className="w-full">{searchOverlay}</div>
-          </div>
+          <div className="mt-auto shrink-0 pt-2">{searchOverlay}</div>
         </aside>
       </div>
     </section>
