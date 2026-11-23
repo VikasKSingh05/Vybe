@@ -52,24 +52,22 @@ function renderPanel(
     hasCurrentTrack: true,
     queue,
     accent: "#b06cff",
-    isPlaying: false,
     searchOverlay: <div>Search</div>,
     onRetry: vi.fn(),
     onOpenQueue: vi.fn(),
-    onTogglePlay: vi.fn(),
     ...overrides,
   };
   return { ...render(<LiveStationPanel {...props} />), props };
 }
 
 describe("LiveStationPanel", () => {
-  it("shows a live status with the shared broadcast track", () => {
+  it("shows the on-air status with the shared broadcast track", () => {
     renderPanel();
-    expect(screen.getByText("LIVE")).toBeTruthy();
+    expect(screen.getByText("ON AIR")).toBeTruthy();
     expect(screen.getByText("Now Playing")).toBeTruthy();
   });
 
-  it("shows a tuning state and disables playback before the wire arrives", () => {
+  it("shows a tuning state before the wire arrives", () => {
     renderPanel({
       status: null,
       hasCurrentTrack: false,
@@ -77,10 +75,6 @@ describe("LiveStationPanel", () => {
     });
     expect(screen.getByText("TUNING IN")).toBeTruthy();
     expect(screen.getByText(/Tuning in/)).toBeTruthy();
-    expect(
-      (screen.getByRole("button", { name: "Play broadcast" }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(true);
     expect(screen.queryByText("Now Playing")).toBeNull();
   });
 
@@ -107,12 +101,5 @@ describe("LiveStationPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Full queue/ }));
     expect(onOpenQueue).toHaveBeenCalledTimes(1);
-  });
-
-  it("toggles playback from the station surface", () => {
-    const onTogglePlay = vi.fn();
-    renderPanel({ isPlaying: true, onTogglePlay });
-    fireEvent.click(screen.getByRole("button", { name: "Pause broadcast" }));
-    expect(onTogglePlay).toHaveBeenCalledTimes(1);
   });
 });

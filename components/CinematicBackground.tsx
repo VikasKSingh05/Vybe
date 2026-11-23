@@ -47,12 +47,6 @@ export function CinematicBackground({
             onError={() => setImageFailed(true)}
           />
           <div
-            className="absolute inset-0 mix-blend-soft-light opacity-70"
-            style={{
-              background: `radial-gradient(circle at 72% 22%, ${theme.accent}55 0%, transparent 46%)`,
-            }}
-          />
-          <div
             className="absolute inset-0"
             style={{ background: theme.overlay }}
           />
@@ -66,22 +60,7 @@ export function CinematicBackground({
         }}
       />
 
-      <div
-        className="absolute inset-0 z-20"
-        style={{
-          background:
-            "radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.72) 100%)",
-        }}
-      />
-
-      <div className="grain-overlay absolute inset-0 z-30 opacity-[0.06]" />
-      <div
-        className="scanlines absolute inset-0 z-30 opacity-[0.035]"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(0deg, rgba(244,239,230,0.14) 0px, rgba(244,239,230,0.14) 1px, transparent 1px, transparent 4px)",
-        }}
-      />
+      <div className="grain-overlay absolute inset-0 z-30 opacity-[0.05]" />
     </div>
   );
 }

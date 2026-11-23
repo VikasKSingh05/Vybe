@@ -5,7 +5,6 @@ import type { Song } from "@/types/music";
 import { Background } from "@/components/Background";
 import { FloatingPlayer } from "@/components/FloatingPlayer";
 import { Header } from "@/components/Header";
-import { HeroSection } from "@/components/HeroSection";
 import { LiveStationPanel } from "@/components/LiveStationPanel";
 import { QueueOverlay } from "@/components/QueueOverlay";
 import { SearchOverlay } from "@/components/SearchOverlay";
@@ -147,14 +146,12 @@ export function VybeApp() {
   );
 
   return (
-    <div className="relative min-h-dvh overflow-x-hidden bg-ink text-paper font-sans antialiased select-none md:h-dvh md:overflow-hidden">
+    <div className="relative min-h-dvh overflow-x-hidden bg-ink text-paper font-sans antialiased select-none">
       <Background theme={player.theme} />
       <Header />
 
-      <main id="main-content" className="relative z-10 min-h-dvh md:h-full md:min-h-0">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-7 px-5 pt-24 pb-36 sm:px-8 sm:pt-24 md:h-full md:justify-center md:gap-6 md:pt-20 md:pb-28">
-          <HeroSection />
-
+      <main id="main-content" className="relative z-10">
+        <div className="mx-auto w-full max-w-6xl px-5 pt-28 pb-44 sm:px-8 sm:pt-32 sm:pb-48">
           <LiveStationPanel
             track={player.track}
             status={player.stationStatus}
@@ -162,11 +159,9 @@ export function VybeApp() {
             hasCurrentTrack={player.hasCurrentTrack}
             queue={player.queueItems}
             accent={player.theme.accent}
-            isPlaying={player.isPlaying}
             searchOverlay={searchOverlay}
             onRetry={() => void player.refreshWire()}
             onOpenQueue={() => setQueueOpen(true)}
-            onTogglePlay={player.togglePlay}
           />
         </div>
       </main>

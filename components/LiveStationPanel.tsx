@@ -4,8 +4,6 @@ import Link from "next/link";
 import {
   ArrowUpRight,
   ListMusic,
-  Pause,
-  Play,
   RotateCw,
   Users,
 } from "lucide-react";
@@ -15,12 +13,7 @@ import type { StationHealth } from "@/lib/radio/types";
 import { formatTime } from "@/lib/format-time";
 import { cn } from "@/lib/cn";
 
-type StatusTone = "live" | "pending" | "offline";
-
-interface StatusView {
-  label: string;
-  tone: StatusTone;
-}
+type StatusLabel = "ON AIR" | "TUNING IN" | "RECONNECTING" | "OFFLINE";
 
 interface LiveStationPanelProps {
   track: Track;
@@ -29,74 +22,31 @@ interface LiveStationPanelProps {
   hasCurrentTrack: boolean;
   queue: QueueItem[];
   accent: string;
-  isPlaying: boolean;
   searchOverlay: React.ReactNode;
   onRetry: () => void;
   onOpenQueue: () => void;
-  onTogglePlay: () => void;
   className?: string;
 }
+
+const STATUS_COLORS: Record<StatusLabel, string> = {
+  "ON AIR": "text-mint",
+  "TUNING IN": "text-ember",
+  RECONNECTING: "text-ember",
+  OFFLINE: "text-signal",
+};
 
 function resolveStatus(
   status: StationHealth | null,
   isSyncing: boolean,
   hasCurrentTrack: boolean,
-): StatusView {
+): StatusLabel {
   if (!hasCurrentTrack) {
-    return {
-      label: status === "unavailable" ? "OFFLINE" : "TUNING IN",
-      tone: status === "unavailable" ? "offline" : "pending",
-    };
+    return status === "unavailable" ? "OFFLINE" : "TUNING IN";
   }
-
-  if (status === "unavailable") {
-    return { label: "OFFLINE", tone: "offline" };
-  }
-
-  if (status === "recovering") {
-    return { label: "RECONNECTING", tone: "pending" };
-  }
-
-  if (status === "loading" || !status || (isSyncing && !hasCurrentTrack)) {
-    return { label: "TUNING IN", tone: "pending" };
-  }
-
-  return { label: "LIVE", tone: "live" };
-}
-
-const TONE_STYLES: Record<
-  StatusTone,
-  { dot: string; text: string; shell: string }
-> = {
-  live: {
-    dot: "bg-mint shadow-[0_0_10px_rgba(158,230,180,0.85)]",
-    text: "text-mint",
-    shell: "border-mint/30 bg-mint/10",
-  },
-  pending: {
-    dot: "bg-ember shadow-[0_0_10px_rgba(255,154,107,0.75)]",
-    text: "text-ember",
-    shell: "border-ember/30 bg-ember/10",
-  },
-  offline: {
-    dot: "bg-signal shadow-[0_0_10px_rgba(255,107,61,0.8)]",
-    text: "text-signal",
-    shell: "border-signal/40 bg-signal/10",
-  },
-};
-
-function Equalizer({ accent }: { accent: string }) {
-  return (
-    <div className="flex h-4 items-end gap-[3px]" aria-hidden="true">
-      {[0, 1, 2, 3, 4].map((i) => (
-        <span
-          key={i}
-          className="eq-bar w-[2px] rounded-full"
-          style={{ backgroundColor: accent }}
-        />
-      ))}
-    </div>
-  );
+  if (status === "unavailable") return "OFFLINE";
+  if (status === "recovering") return "RECONNECTING";
+  if (status === "loading" || !status || isSyncing) return "TUNING IN";
+  return "ON AIR";
 }
 
 export function LiveStationPanel({
@@ -106,124 +56,77 @@ export function LiveStationPanel({
   hasCurrentTrack,
   queue,
   accent,
-  isPlaying,
   searchOverlay,
   onRetry,
   onOpenQueue,
-  onTogglePlay,
   className,
 }: LiveStationPanelProps) {
-  const view = resolveStatus(status, isSyncing, hasCurrentTrack);
-  const tone = TONE_STYLES[view.tone];
+  const label = resolveStatus(status, isSyncing, hasCurrentTrack);
   const upNext = queue.slice(1, 4);
-  const canRetry = view.tone !== "live" && view.tone !== "pending";
+  const canRetry = label === "OFFLINE";
 
   return (
-    <section
-      aria-label="Live broadcast"
-      className={cn("w-full", className)}
-    >
-      {/* Transmission header */}
-      <div className="mb-5 flex items-center justify-between gap-3 border-b border-paper/10 pb-3">
-        <div className="flex items-center gap-3">
-          <span className="signal-line h-px w-5 bg-signal/50" />
-          <p className="mono-label text-paper/35">Transmission / 001</p>
-        </div>
-        <div
-          aria-live="polite"
-          className={cn(
-            "mono-label inline-flex items-center gap-2 rounded-full border px-2.5 py-1.5",
-            tone.shell,
-            tone.text,
-          )}
-        >
+    <section aria-label="Live broadcast" className={cn("w-full", className)}>
+      {/* Single, quiet status line — no duplicate brand or live badge. */}
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-3 border-b border-paper/10 pb-4">
+        <p className="mono-label text-paper/40">Global radio / 001</p>
+        <div className="flex items-center gap-4">
           <span
-            className={cn(
-              "h-1.5 w-1.5 rounded-full",
-              tone.dot,
-              view.tone === "live" && "live-pulse",
-            )}
-          />
-          {view.label}
-        </div>
-      </div>
-
-      <div className="grid gap-7 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] lg:gap-9">
-        {/* Artwork stage */}
-        <div className="relative min-w-0">
-          <div className="absolute -top-3 -left-3 h-9 w-9 border-t border-l border-signal/70" />
-          <div className="absolute -right-3 -bottom-3 h-9 w-9 border-r border-b border-paper/20" />
-
-          <div className="artwork-stage relative overflow-hidden rounded-[28px] border border-paper/10 bg-ink-soft shadow-[0_28px_80px_-32px_rgba(0,0,0,0.95)]">
-            <AlbumArt
-              src={track.cover}
-              title={hasCurrentTrack ? track.title : "VYBE LIVE"}
-              accent={accent}
-              size="lg"
-              className="aspect-square h-auto w-full rounded-[28px] sm:aspect-[5/4] lg:aspect-auto lg:h-[min(44vh,420px)]"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/20 to-transparent" />
-
-            <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-5">
-              <div className="flex h-6 items-center gap-2.5">
-                {isPlaying && hasCurrentTrack ? (
-                  <Equalizer accent={accent} />
-                ) : null}
-                <span className="mono-label text-paper/60">
-                  {hasCurrentTrack ? "On air" : "Standby"}
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={onTogglePlay}
-                disabled={!hasCurrentTrack}
-                aria-label={isPlaying ? "Pause broadcast" : "Play broadcast"}
-                className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-signal text-ink shadow-[0_10px_30px_rgba(255,107,61,0.35)] transition-all hover:scale-105 hover:shadow-[0_10px_30px_rgba(255,107,61,0.45),0_0_0_8px_rgba(255,107,61,0.12)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-none"
-              >
-                {isPlaying ? (
-                  <Pause className="h-5 w-5 fill-current" />
-                ) : (
-                  <Play className="h-5 w-5 fill-current pl-0.5" />
-                )}
-              </button>
-            </div>
-
-            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7">
-              {hasCurrentTrack ? (
-                <>
-                  <span className="mb-3 block h-px w-8 bg-signal" />
-                  <h2 className="font-display text-3xl leading-[1.02] font-bold tracking-[-0.04em] text-paper sm:text-4xl">
-                    {track.title}
-                  </h2>
-                  <p className="mt-2 text-sm text-paper/60">{track.artist}</p>
-                </>
-              ) : (
-                <div aria-live="polite">
-                  <div className="h-5 w-2/3 animate-pulse rounded bg-paper/10" />
-                  <div className="mt-2 h-3 w-1/2 animate-pulse rounded bg-paper/5" />
-                  <p className="mono-label mt-4 text-paper/50">Tuning in…</p>
-                </div>
-              )}
-            </div>
-          </div>
-
+            aria-live="polite"
+            className={cn("mono-label", STATUS_COLORS[label])}
+          >
+            {label}
+          </span>
           {canRetry ? (
             <button
               type="button"
               onClick={onRetry}
-              className="mt-4 inline-flex items-center gap-2 rounded-full border border-signal/40 bg-signal/10 px-4 py-2.5 text-xs text-signal transition-colors hover:bg-signal/20"
+              className="inline-flex min-h-[32px] items-center gap-1.5 rounded-full border border-signal/40 px-3 text-xs text-signal transition-colors hover:bg-signal/10"
             >
-              <RotateCw className="h-3.5 w-3.5" />
+              <RotateCw className="h-3 w-3" />
               Retry
             </button>
           ) : null}
         </div>
+      </div>
 
-        {/* Station rail */}
-        <aside className="flex min-w-0 flex-col gap-5 lg:border-l lg:border-paper/10 lg:pl-8">
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] lg:gap-12">
+        {/* Stage */}
+        <div className="min-w-0">
+          <div className="overflow-hidden rounded-[28px] border border-paper/10 bg-ink-soft shadow-[0_28px_80px_-32px_rgba(0,0,0,0.95)] transition-colors duration-300 hover:border-paper/20">
+            <AlbumArt
+              src={track.cover}
+              title={hasCurrentTrack ? track.title : "Radio"}
+              accent={accent}
+              size="lg"
+              className="aspect-square h-auto w-full rounded-[28px]"
+            />
+          </div>
+
+          {/* The track is the display moment. */}
+          <div className="mt-7 min-w-0">
+            <p className="mono-label mb-3 text-paper/40">Now playing</p>
+            {hasCurrentTrack ? (
+              <>
+                <h1 className="font-display text-[clamp(2rem,4vw,3.25rem)] leading-[1.02] font-bold tracking-[-0.045em] text-paper">
+                  {track.title}
+                </h1>
+                <p className="mt-2 text-sm text-paper/55">{track.artist}</p>
+              </>
+            ) : (
+              <div aria-live="polite">
+                <div className="h-8 w-3/4 animate-pulse rounded bg-paper/10" />
+                <div className="mt-2 h-4 w-1/2 animate-pulse rounded bg-paper/5" />
+                <p className="mt-4 text-xs text-paper/50">Tuning in…</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Rail */}
+        <aside className="flex min-w-0 flex-col gap-7 lg:border-l lg:border-paper/10 lg:pl-10">
           <div>
-            <div className="mb-3 flex items-baseline justify-between gap-3">
+            <div className="mb-4 flex items-baseline justify-between gap-3 border-b border-paper/10 pb-3">
               <p className="mono-label text-paper/40">Up next</p>
               <button
                 type="button"
@@ -236,13 +139,9 @@ export function LiveStationPanel({
             </div>
 
             {upNext.length > 0 ? (
-              <ol className="divide-y divide-paper/10 border-y border-paper/10">
+              <ol className="divide-y divide-paper/10">
                 {upNext.map((item, index) => (
-                  <li
-                    key={item.queueItemId}
-                    className="queue-row flex items-center gap-3 py-2.5"
-                    style={{ animationDelay: `${index * 45}ms` }}
-                  >
+                  <li key={item.queueItemId} className="flex items-center gap-3 py-3">
                     <span className="mono-label w-5 shrink-0 text-paper/30">
                       {String(index + 1).padStart(2, "0")}
                     </span>
@@ -268,14 +167,14 @@ export function LiveStationPanel({
                 ))}
               </ol>
             ) : (
-              <div className="flex min-h-[112px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-paper/15 px-4 text-center">
+              <div className="flex min-h-[120px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-paper/15 px-4 text-center">
                 <ListMusic className="h-5 w-5 text-paper/25" />
                 <p className="mono-label text-paper/40">Nothing queued</p>
               </div>
             )}
           </div>
 
-          <div className="mt-auto flex flex-col gap-3">
+          <div className="flex flex-col gap-3">
             <div className="w-full">{searchOverlay}</div>
             <Link
               href="/party"
@@ -285,7 +184,7 @@ export function LiveStationPanel({
                 <Users className="h-4 w-4" style={{ color: accent }} />
                 <span>
                   <span className="block text-sm font-medium text-paper/90">
-                    VYBE Jam
+                    Jam
                   </span>
                   <span className="mono-label mt-1 block text-paper/35">
                     Listen together

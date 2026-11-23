@@ -22,18 +22,14 @@ export function Header({ className, inParty = false, onExitParty }: HeaderProps)
       )}
     >
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between">
-        <Link href="/" className="group flex items-center gap-3" aria-label="VYBE home">
+        <Link href="/" className="group flex items-center" aria-label="VYBE home">
           <span className="font-display text-lg font-extrabold tracking-[0.28em] text-paper transition-colors group-hover:text-white">
             VYBE
-          </span>
-          <span className="live-pulse relative flex h-2 w-2 items-center justify-center text-signal">
-            <span className="h-1.5 w-1.5 rounded-full bg-current" />
           </span>
         </Link>
 
         <nav className="flex items-center gap-4 sm:gap-6">
-          <div className="hidden items-center gap-2 sm:flex">
-            <span className="h-1 w-1 rounded-full bg-signal" />
+          <div className="hidden sm:block">
             <LiveTime />
           </div>
 

@@ -40,7 +40,7 @@ export function TransportControls({
         onClick={onTogglePlay}
         disabled={disabled}
         aria-label={isPlaying ? "Pause" : "Play"}
-        className={`grid place-items-center rounded-full text-ink transition-all hover:scale-105 hover:shadow-[0_0_0_7px_rgba(255,107,61,0.14)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-none ${
+        className={`grid place-items-center rounded-full text-ink transition-transform hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 ${
           isSmall ? "h-11 w-11" : "h-14 w-14"
         }`}
         style={{ backgroundColor: disabled ? "rgba(244,239,230,0.18)" : accent }}
