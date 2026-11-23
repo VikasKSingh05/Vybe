@@ -21,7 +21,7 @@ interface RedisMulti {
   exec(): Promise<Array<unknown> | null>;
 }
 
-interface RedisClient {
+export interface RedisClient {
   get(key: string): Promise<string | null>;
   set(key: string, value: string, ...args: (string | number)[]): Promise<unknown>;
   watch(key: string): Promise<unknown>;

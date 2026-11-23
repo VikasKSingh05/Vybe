@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { LiveTime } from "@/components/LiveTime";
-import { InstallButton } from "@/components/pwa/InstallButton";
 import { cn } from "@/lib/cn";
 
 interface HeaderProps {
@@ -38,13 +37,13 @@ export function Header({ className, inParty = false, onExitParty }: HeaderProps)
           ) : (
             <Link
               href="/party"
+              prefetch={false}
               className="mono-label group flex h-full items-center gap-1.5 text-paper/55 transition-colors hover:text-paper"
             >
               Jam
               <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </Link>
           )}
-          <InstallButton />
         </nav>
       </div>
     </header>
