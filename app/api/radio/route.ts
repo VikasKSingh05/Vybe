@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import "@/lib/radio/store";
 import { getRadioStore } from "@/lib/radio/store";
-import { getStationDefinition } from "@/lib/radio/engine";
+import { emptyState, getStationDefinition, toWire } from "@/lib/radio/engine";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -25,7 +25,16 @@ export async function GET(request: NextRequest) {
     const meta = getStationDefinition();
     return NextResponse.json({ ...wire, name: meta.name, description: meta.description });
   } catch (error) {
+    // A broken store must not surface as a 500 to every listener. Serve a
+    // truthful offline wire so the UI can show its retry state instead.
     console.error("[API /api/radio]", error);
-    return NextResponse.json({ error: "Failed to load VYBE LIVE" }, { status: 500 });
+    const now = Date.now();
+    const offline = { ...emptyState(), status: "unavailable" as const, updatedAtMs: now };
+    const meta = getStationDefinition();
+    return NextResponse.json({
+      ...toWire(offline, now),
+      name: meta.name,
+      description: meta.description,
+    });
   }
 }
