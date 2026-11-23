@@ -26,8 +26,8 @@ export function Header({ className, inParty = false, onExitParty }: HeaderProps)
           <span className="font-display text-lg font-extrabold tracking-[0.28em] text-paper transition-colors group-hover:text-white">
             VYBE
           </span>
-          <span className="mono-label rounded-full border border-signal/40 bg-signal/10 px-2 py-1 text-signal">
-            Live
+          <span className="live-pulse relative flex h-2 w-2 items-center justify-center text-signal">
+            <span className="h-1.5 w-1.5 rounded-full bg-current" />
           </span>
         </Link>
 

@@ -147,13 +147,13 @@ export function VybeApp() {
   );
 
   return (
-    <div className="relative min-h-dvh overflow-x-hidden bg-ink text-paper font-sans antialiased select-none">
+    <div className="relative min-h-dvh overflow-x-hidden bg-ink text-paper font-sans antialiased select-none md:h-dvh md:overflow-hidden">
       <Background theme={player.theme} />
       <Header />
 
-      <main id="main-content" className="relative z-10 min-h-dvh">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-9 px-5 pt-28 pb-44 sm:px-8 sm:pt-32 sm:pb-48 md:gap-12 md:pb-52">
-          <HeroSection theme={player.theme} />
+      <main id="main-content" className="relative z-10 min-h-dvh md:h-full md:min-h-0">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-7 px-5 pt-24 pb-36 sm:px-8 sm:pt-24 md:h-full md:justify-center md:gap-6 md:pt-20 md:pb-28">
+          <HeroSection />
 
           <LiveStationPanel
             track={player.track}
@@ -181,7 +181,6 @@ export function VybeApp() {
         isMuted={player.isMuted}
         accent={player.theme.accent}
         queueCount={player.queueLength}
-        broadcastLabel="VYBE LIVE"
         onTogglePlay={player.togglePlay}
         onPrev={player.prev}
         onNext={player.next}

@@ -22,7 +22,7 @@ interface FloatingPlayerProps {
   isMuted: boolean;
   accent: string;
   queueCount?: number;
-  /** Optional source label, e.g. "VYBE LIVE". */
+  /** Optional source label, e.g. "LIVE". */
   broadcastLabel?: string;
   locked?: boolean;
   onTogglePlay: () => void;
@@ -114,7 +114,10 @@ export const FloatingPlayer = memo(function FloatingPlayer({
 
           <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
             <div className="flex min-w-0 items-center gap-3">
-              <div ref={artRef} className="shrink-0">
+              <div
+                ref={artRef}
+                className="shrink-0 transition-transform duration-500 hover:scale-105"
+              >
                 <AlbumArt
                   src={track.cover}
                   title={track.title}

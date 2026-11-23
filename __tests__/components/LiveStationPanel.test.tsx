@@ -66,9 +66,6 @@ describe("LiveStationPanel", () => {
   it("shows a live status with the shared broadcast track", () => {
     renderPanel();
     expect(screen.getByText("LIVE")).toBeTruthy();
-    expect(
-      screen.getByText("One station, shared with everyone listening right now."),
-    ).toBeTruthy();
     expect(screen.getByText("Now Playing")).toBeTruthy();
   });
 
@@ -79,9 +76,9 @@ describe("LiveStationPanel", () => {
       isSyncing: true,
     });
     expect(screen.getByText("TUNING IN")).toBeTruthy();
-    expect(screen.getByText(/Tuning in to VYBE LIVE/)).toBeTruthy();
+    expect(screen.getByText(/Tuning in/)).toBeTruthy();
     expect(
-      (screen.getByRole("button", { name: "Play VYBE LIVE" }) as HTMLButtonElement)
+      (screen.getByRole("button", { name: "Play broadcast" }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
     expect(screen.queryByText("Now Playing")).toBeNull();
@@ -97,7 +94,7 @@ describe("LiveStationPanel", () => {
     const onRetry = vi.fn();
     renderPanel({ status: "unavailable", onRetry });
     expect(screen.getByText("OFFLINE")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /Retry connection/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Retry/ }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
@@ -115,7 +112,7 @@ describe("LiveStationPanel", () => {
   it("toggles playback from the station surface", () => {
     const onTogglePlay = vi.fn();
     renderPanel({ isPlaying: true, onTogglePlay });
-    fireEvent.click(screen.getByRole("button", { name: "Pause VYBE LIVE" }));
+    fireEvent.click(screen.getByRole("button", { name: "Pause broadcast" }));
     expect(onTogglePlay).toHaveBeenCalledTimes(1);
   });
 });
