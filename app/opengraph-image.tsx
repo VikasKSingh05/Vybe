@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "VYBE — Pick a vibe. Press play.";
+export const alt = "VYBE LIVE — One station. Everyone, in sync.";
 export const size = {
   width: 1200,
   height: 630,
@@ -68,7 +68,7 @@ export default function Image() {
             letterSpacing: "-0.01em",
           }}
         >
-          Pick a vibe. Press play.
+          One station. Everyone, in sync.
         </div>
       </div>
     ),

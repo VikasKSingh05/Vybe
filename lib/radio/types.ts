@@ -1,4 +1,4 @@
-/** VYBE has exactly one shared broadcast. Vibes are visual themes only. */
+/** VYBE has exactly one shared broadcast with one fixed visual identity. */
 export type RadioStationId = "live";
 
 export type StationHealth = "live" | "loading" | "recovering" | "unavailable";

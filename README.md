@@ -7,8 +7,8 @@ VYBE is an immersive music app built around two headline features:
 - **VYBE LIVE** — one global radio station shared by every listener.
 - **VYBE Jam** — private, synchronized listening rooms for you and your friends.
 
-Vibes are no longer separate channels. They are visual themes and discovery
-seeds: pick the look you want while VYBE LIVE keeps playing without interruption.
+There are no genres, moods, or vibe channels to pick. The landing experience is
+a single VYBE LIVE station with a fixed identity, live status, and shared queue.
 
 ---
 
@@ -27,14 +27,15 @@ VYBE hears the same track at the same point in the song.
 - Skip/complete actions are version-checked so double-clicks advance once
 - Search results and queued songs stay local to your player; the global broadcast remains shared
 
-Vibes such as Bollywood, Indie, Lofi, Chill, and Phonk only change the visual
-theme and influence discovery. Switching vibes never restarts the broadcast.
+The station UI communicates `LIVE`, `TUNING IN`, `RECONNECTING`, and `OFFLINE`
+explicitly, and keeps the current track visible while recovering. Search and
+listener-added songs are local additions; they never fork the global broadcast.
 
 ---
 
 ### 🔎 Music Search
 
-Search for a song, artist, or track from any theme.
+Search for a song, artist, or track without leaving the live station.
 
 - Ranked JioSaavn results with duplicate suppression
 - Retryable error state when the upstream API is unavailable
@@ -65,9 +66,9 @@ when a member leaves or the host handover races with another mutation.
 
 ### 🎨 Modern UI
 
-- Dynamic vibe-based theming (visuals only)
-- Album artwork and cinematic background treatments
-- Floating player with queue, settings, and media-session controls
+- Fixed VYBE LIVE visual identity with cinematic background fallback
+- Album artwork and explicit live-status surface
+- Floating player with queue and media-session controls
 - Responsive desktop and mobile layout
 - Reduced-motion support
 

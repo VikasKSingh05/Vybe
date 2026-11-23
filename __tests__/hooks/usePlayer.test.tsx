@@ -218,7 +218,7 @@ describe("usePlayer shared VYBE LIVE", () => {
   });
 
   function setup() {
-    return renderHook(() => usePlayer({ initialVibeId: "bollywood", autoPlay: true }));
+    return renderHook(() => usePlayer({ autoPlay: true }));
   }
 
   async function waitForSync(host: ReturnType<typeof setup>) {
@@ -262,18 +262,18 @@ describe("usePlayer shared VYBE LIVE", () => {
     expect(host.result.current.track.title).toBe("Song b");
   });
 
-  it("changes only the visual theme when a vibe pill is selected", async () => {
+  it("keeps one fixed live-station identity across resyncs", async () => {
     const host = setup();
     await waitForSync(host);
     const src = primary().src;
     const pauses = primary().pause.mock.calls.length;
 
-    act(() => {
-      host.result.current.changeVibe("lofi");
+    await act(async () => {
+      await host.result.current.refreshWire();
     });
 
-    expect(host.result.current.vibeId).toBe("lofi");
-    expect(host.result.current.theme.id).toBe("lofi");
+    expect(host.result.current.isLiveStation).toBe(true);
+    expect(host.result.current.theme.label).toBe("VYBE LIVE");
     expect(primary().src).toBe(src);
     expect(primary().pause.mock.calls.length).toBe(pauses);
   });

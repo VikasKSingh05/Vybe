@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { QueueItem, Track, VibeId } from "@/data/types";
-import { getVibeTheme } from "@/data/vibes";
+import type { QueueItem, Track } from "@/data/types";
+import { liveTheme } from "@/data/backgrounds";
 import type { PlaylistEntry } from "@/data/playlists";
 import type { Song } from "@/types/music";
 import { useAudioElement } from "./useAudioElement";
@@ -15,19 +15,12 @@ import type { StationWire } from "@/lib/radio/types";
 import { useSharedRadioSync } from "./useSharedRadioSync";
 
 interface UsePlayerOptions {
-  /** Initial visual theme. Vibes no longer select independent stations. */
-  initialVibeId?: VibeId;
   autoPlay?: boolean;
 }
 
-export function usePlayer({
-  initialVibeId = "bollywood",
-  autoPlay = false,
-}: UsePlayerOptions = {}) {
+export function usePlayer({ autoPlay = false }: UsePlayerOptions = {}) {
   const [persisted] = useState(() => loadPlayerState());
 
-  const initialVibe = persisted?.vibeId ?? initialVibeId;
-  const [vibeId, setVibeId] = useState<VibeId>(initialVibe);
   const [playlist, setPlaylist] = useState<PlaylistEntry[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
@@ -66,7 +59,7 @@ export function usePlayer({
     currentIndexRef.current = currentIndex;
   });
 
-  const theme = getVibeTheme(vibeId);
+  const theme = liveTheme;
 
   const [volume, setVolumeState] = useState(persisted?.volume ?? 0.75);
   const [isMuted, setIsMutedState] = useState(persisted?.isMuted ?? false);
@@ -114,14 +107,11 @@ export function usePlayer({
     applyVolume(isMuted ? 0 : volume);
   }, [volume, isMuted, applyVolume]);
 
-  // Only the visual theme and mixer settings are persisted. The queue itself
-  // always comes from the shared station on load.
+  // Only mixer settings are persisted. The queue always comes from the shared
+  // station on load, and stale track state is deliberately never restored.
   useEffect(() => {
     const timer = setTimeout(() => {
       savePlayerState({
-        vibeId,
-        playlist: [],
-        currentIndex: 0,
         volume,
         isMuted,
         crossfadeEnabled,
@@ -130,7 +120,7 @@ export function usePlayer({
       });
     }, 400);
     return () => clearTimeout(timer);
-  }, [vibeId, volume, isMuted, crossfadeEnabled, repeatMode, shuffle]);
+  }, [volume, isMuted, crossfadeEnabled, repeatMode, shuffle]);
 
   /** Play a local queue entry (used for listener-added songs only). */
   const loadSongAtIndex = useCallback(
@@ -332,12 +322,6 @@ export function usePlayer({
     handleEndedRef.current = handleEnded;
   }, [handleEnded]);
 
-  /** Theme changes only — the single broadcast keeps playing uninterrupted. */
-  const changeVibe = useCallback((newVibeId: VibeId) => {
-    setUserInteracted(true);
-    setVibeId(newVibeId);
-  }, []);
-
   const togglePlay = useCallback(() => {
     setUserInteracted(true);
     const audio = getActiveAudio();
@@ -502,7 +486,6 @@ export function usePlayer({
   }));
 
   return {
-    vibeId,
     theme,
     track,
     isPlaying,
@@ -521,7 +504,6 @@ export function usePlayer({
     seek,
     next,
     prev,
-    changeVibe,
     changeVolume,
     toggleMute,
     addToQueue,
@@ -542,6 +524,7 @@ export function usePlayer({
         : 0,
     isStationSyncing: sharedRadio.isSyncing,
     isLiveStation: true,
+    hasCurrentTrack: Boolean(sharedRadio.wire?.current),
     stationStatus: sharedRadio.wire?.status ?? null,
     refreshWire: sharedRadio.refreshWire,
   };

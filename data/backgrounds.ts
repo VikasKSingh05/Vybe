@@ -9,6 +9,16 @@ export const partyTheme: VibeTheme = {
   description: "Party mode — orange themed.",
 };
 
+/** The fixed visual identity of the single shared broadcast. */
+export const liveTheme: VibeTheme = {
+  id: "random",
+  label: "VYBE LIVE",
+  background: "/backgrounds/fields.jpg",
+  overlay: "linear-gradient(180deg, rgba(16,8,30,0.42) 0%, rgba(0,0,0,0.8) 100%)",
+  accent: "#b06cff",
+  description: "The one global VYBE radio station.",
+};
+
 export const backgroundThemes: Record<VibeId, VibeTheme> = {
   phonk: {
     id: "phonk",

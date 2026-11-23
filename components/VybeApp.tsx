@@ -4,12 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import type { Song } from "@/types/music";
 import { Background } from "@/components/Background";
 import { FloatingPlayer } from "@/components/FloatingPlayer";
-import { GenrePills } from "@/components/GenrePills";
 import { Header } from "@/components/Header";
 import { HeroSection } from "@/components/HeroSection";
+import { LiveStationPanel } from "@/components/LiveStationPanel";
 import { QueueOverlay } from "@/components/QueueOverlay";
 import { SearchOverlay } from "@/components/SearchOverlay";
-import { SettingsOverlay } from "@/components/SettingsOverlay";
 import { TrackAnnouncer } from "@/components/player/TrackAnnouncer";
 import { usePlayer } from "@/hooks/usePlayer";
 import { useSearch } from "@/hooks/useSearch";
@@ -19,12 +18,11 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/cn";
 
 export function VybeApp() {
-  const player = usePlayer({ initialVibeId: "bollywood", autoPlay: false });
+  const player = usePlayer({ autoPlay: false });
   const search = useSearch();
 
   const [queueOpen, setQueueOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (player.error) {
@@ -87,16 +85,6 @@ export function VybeApp() {
     [player],
   );
 
-  const handleVibeChange = useCallback(
-    (id: Parameters<typeof player.changeVibe>[0]) => {
-      player.changeVibe(id);
-      search.clear();
-      setQueueOpen(false);
-      setSearchOpen(false);
-    },
-    [player, search],
-  );
-
   const handleClearQueue = useCallback(() => {
     player.clearCustomQueue();
   }, [player]);
@@ -155,7 +143,7 @@ export function VybeApp() {
       onPrev: player.prev,
       onToggleMute: player.toggleMute,
     },
-    !queueOpen && !settingsOpen && !searchOpen,
+    !queueOpen && !searchOpen,
   );
 
   return (
@@ -167,17 +155,22 @@ export function VybeApp() {
         id="main-content"
         className="relative z-10 flex h-dvh flex-col items-center overflow-y-auto pb-44 sm:pb-48 md:pb-52"
       >
-        <div className="my-auto flex w-full flex-col items-center">
-          <HeroSection />
+        <div className="my-auto flex w-full flex-col items-center gap-8">
+          <HeroSection theme={player.theme} />
 
-          <div className="mt-8 shrink-0 sm:mt-10">
-            <GenrePills
-              activeId={player.vibeId}
-              onChange={handleVibeChange}
-              accent={player.theme.accent}
-              searchOverlay={searchOverlay}
-            />
-          </div>
+          <LiveStationPanel
+            track={player.track}
+            status={player.stationStatus}
+            isSyncing={player.isStationSyncing}
+            hasCurrentTrack={player.hasCurrentTrack}
+            queue={player.queueItems}
+            accent={player.theme.accent}
+            isPlaying={player.isPlaying}
+            searchOverlay={searchOverlay}
+            onRetry={() => void player.refreshWire()}
+            onOpenQueue={() => setQueueOpen(true)}
+            onTogglePlay={player.togglePlay}
+          />
         </div>
       </main>
 
@@ -199,23 +192,10 @@ export function VybeApp() {
         onVolumeChange={player.changeVolume}
         onToggleMute={player.toggleMute}
         onToggleQueue={() => setQueueOpen((o) => !o)}
-        onToggleSettings={() => setSettingsOpen((o) => !o)}
         className={cn(
           "transition-opacity duration-300",
           searchOpen && "opacity-0 pointer-events-none",
         )}
-      />
-
-      <SettingsOverlay
-        isOpen={settingsOpen}
-        accent={player.theme.accent}
-        crossfadeEnabled={player.crossfadeEnabled}
-        repeatMode={player.repeatMode}
-        shuffle={player.shuffle}
-        onClose={() => setSettingsOpen(false)}
-        onToggleCrossfade={() => player.setCrossfadeEnabled(!player.crossfadeEnabled)}
-        onRepeatModeChange={player.setRepeatMode}
-        onToggleShuffle={player.toggleShuffle}
       />
 
       <QueueOverlay
