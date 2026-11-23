@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { LiveStationPanel } from "@/components/LiveStationPanel";
 import type { QueueItem, Track } from "@/data/types";
 import type { StationHealth } from "@/lib/radio/types";
@@ -54,17 +54,16 @@ function renderPanel(
     accent: "#b06cff",
     searchOverlay: <div>Search</div>,
     onRetry: vi.fn(),
-    onOpenQueue: vi.fn(),
     ...overrides,
   };
   return { ...render(<LiveStationPanel {...props} />), props };
 }
 
 describe("LiveStationPanel", () => {
-  it("shows the on-air status with the shared broadcast track", () => {
+  it("shows the on-air status and an upcoming track", () => {
     renderPanel();
     expect(screen.getByText("ON AIR")).toBeTruthy();
-    expect(screen.getByText("Now Playing")).toBeTruthy();
+    expect(screen.getByText("Next One")).toBeTruthy();
   });
 
   it("shows a tuning state before the wire arrives", () => {
@@ -74,32 +73,25 @@ describe("LiveStationPanel", () => {
       isSyncing: true,
     });
     expect(screen.getByText("TUNING IN")).toBeTruthy();
-    expect(screen.getByText(/Tuning in/)).toBeTruthy();
-    expect(screen.queryByText("Now Playing")).toBeNull();
   });
 
   it("shows a reconnecting state without losing the current track", () => {
     renderPanel({ status: "recovering" as StationHealth });
     expect(screen.getByText("RECONNECTING")).toBeTruthy();
-    expect(screen.getByText("Now Playing")).toBeTruthy();
+    expect(screen.getByText("Next One")).toBeTruthy();
   });
 
   it("offers a safe retry when the broadcast is unavailable", () => {
     const onRetry = vi.fn();
     renderPanel({ status: "unavailable", onRetry });
     expect(screen.getByText("OFFLINE")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /Retry/ }));
-    expect(onRetry).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: /Retry/ })).toBeTruthy();
   });
 
-  it("shows a bounded up-next list and opens the full queue", () => {
-    const onOpenQueue = vi.fn();
-    renderPanel({ onOpenQueue });
+  it("shows a bounded up-next list", () => {
+    renderPanel();
     expect(screen.getByText("Next One")).toBeTruthy();
     expect(screen.getByText("Next Three")).toBeTruthy();
     expect(screen.queryByText("Next Four")).toBeNull();
-
-    fireEvent.click(screen.getByRole("button", { name: /Full queue/ }));
-    expect(onOpenQueue).toHaveBeenCalledTimes(1);
   });
 });

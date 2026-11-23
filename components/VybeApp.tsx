@@ -5,6 +5,7 @@ import type { Song } from "@/types/music";
 import { Background } from "@/components/Background";
 import { FloatingPlayer } from "@/components/FloatingPlayer";
 import { Header } from "@/components/Header";
+import { HeroSection } from "@/components/HeroSection";
 import { LiveStationPanel } from "@/components/LiveStationPanel";
 import { QueueOverlay } from "@/components/QueueOverlay";
 import { SearchOverlay } from "@/components/SearchOverlay";
@@ -146,12 +147,16 @@ export function VybeApp() {
   );
 
   return (
-    <div className="relative min-h-dvh overflow-x-hidden bg-ink text-paper font-sans antialiased select-none">
+    <div className="relative h-dvh overflow-hidden bg-ink font-sans text-paper antialiased select-none">
       <Background theme={player.theme} />
       <Header />
 
-      <main id="main-content" className="relative z-10">
-        <div className="mx-auto w-full max-w-6xl px-5 pt-28 pb-44 sm:px-8 sm:pt-32 sm:pb-48">
+      <main
+        id="main-content"
+        className="scrollbar-hide relative z-10 h-full overflow-y-auto overscroll-contain"
+      >
+        <div className="mx-auto w-full max-w-6xl px-5 pt-24 pb-40 sm:px-8 sm:pt-28 sm:pb-44">
+          <HeroSection />
           <LiveStationPanel
             track={player.track}
             status={player.stationStatus}
@@ -161,7 +166,6 @@ export function VybeApp() {
             accent={player.theme.accent}
             searchOverlay={searchOverlay}
             onRetry={() => void player.refreshWire()}
-            onOpenQueue={() => setQueueOpen(true)}
           />
         </div>
       </main>

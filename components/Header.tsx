@@ -22,11 +22,7 @@ export function Header({ className, inParty = false, onExitParty }: HeaderProps)
       )}
     >
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between">
-        <Link href="/" className="group flex items-center" aria-label="VYBE home">
-          <span className="font-display text-lg font-extrabold tracking-[0.28em] text-paper transition-colors group-hover:text-white">
-            VYBE
-          </span>
-        </Link>
+        <div aria-hidden="true" />
 
         <nav className="flex items-center gap-4 sm:gap-6">
           <div className="hidden sm:block">

@@ -311,7 +311,7 @@ export function QueueOverlay({
     <div
       className={cn(
         "fixed inset-0 z-50 flex flex-col justify-end",
-        !isOpen && "pointer-events-none",
+        !isOpen && "pointer-events-none invisible opacity-0",
       )}
     >
       <div
@@ -475,7 +475,9 @@ export function QueueOverlay({
                     <button
                       type="button"
                       onClick={() => onRemove(i)}
-                      className="mr-1 flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full p-2 text-paper/25 transition-colors hover:bg-signal/10 hover:text-signal cursor-pointer"
+                      disabled={isPlaying}
+                      title={isPlaying ? "Currently playing" : undefined}
+                      className="mr-1 flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full p-2 text-paper/25 transition-colors hover:bg-signal/10 hover:text-signal cursor-pointer disabled:cursor-not-allowed disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-paper/25"
                       aria-label={`Remove ${item.title} from queue`}
                     >
                       <X className="h-3.5 w-3.5" />

@@ -36,6 +36,9 @@ export function usePlayer({ autoPlay = false }: UsePlayerOptions = {}) {
   const stationBroadcastSigRef = useRef("");
   const stationSyncingRef = useRef(false);
   const userPausedRef = useRef(false);
+  // Per-listener removals must survive the next shared-wire playlist rebuild,
+  // otherwise a queued track reappears as soon as the broadcast advances.
+  const removedTrackIdsRef = useRef<Set<string>>(new Set());
 
   const sharedRadio = useSharedRadioSync();
   const sharedRadioRef = useRef(sharedRadio);
@@ -180,7 +183,9 @@ export function usePlayer({ autoPlay = false }: UsePlayerOptions = {}) {
       stationSyncingRef.current = true;
       try {
         stationBroadcastSigRef.current = sig;
-        const entries = wireToPlaylist(wire);
+        const entries = wireToPlaylist(wire).filter(
+          (entry) => !entry.jiosaavnId || !removedTrackIdsRef.current.has(entry.jiosaavnId),
+        );
         setPlaylist(entries);
         activePlaylistRef.current = entries;
         setCurrentIndex(0);
@@ -262,6 +267,8 @@ export function usePlayer({ autoPlay = false }: UsePlayerOptions = {}) {
           (e) => e.jiosaavnId === entry.jiosaavnId,
         );
         if (exists) return false;
+        // Re-adding a previously removed track makes it visible again.
+        removedTrackIdsRef.current.delete(entry.jiosaavnId);
       }
       if (resolvedSong) {
         songCacheRef.current.set(
@@ -405,44 +412,30 @@ export function usePlayer({ autoPlay = false }: UsePlayerOptions = {}) {
     }
   }, [shuffle]);
 
-  const removeFromQueue = useCallback(
-    (index: number) => {
-      const newPlaylist = activePlaylistRef.current.filter((_, i) => i !== index);
-      setPlaylist(newPlaylist);
-      activePlaylistRef.current = newPlaylist;
+  const removeFromQueue = useCallback((index: number) => {
+    const currentList = activePlaylistRef.current;
+    const removed = currentList[index];
+    // The current broadcast track cannot be removed for one listener only.
+    if (!removed || index === currentIndexRef.current) return;
+    if (removed.jiosaavnId) removedTrackIdsRef.current.add(removed.jiosaavnId);
 
-      if (newPlaylist.length === 0) {
-        stopPlayback();
-        setCurrentSong(null);
-        setCurrentIndex(0);
-        stationBroadcastSigRef.current = "";
-        const wire = sharedRadioRef.current.wire;
-        if (wire) void syncFromSharedWireRef.current?.(wire, false);
-        return;
-      }
-
-      if (index < currentIndexRef.current) {
-        setCurrentIndex((prev) => prev - 1);
-      } else if (index === currentIndexRef.current) {
-        const nextIdx = currentIndexRef.current % newPlaylist.length;
-        void loadSongAtIndexRef.current?.(nextIdx, true);
-      }
-    },
-    [stopPlayback],
-  );
+    const newPlaylist = currentList.filter((_, i) => i !== index);
+    setPlaylist(newPlaylist);
+    activePlaylistRef.current = newPlaylist;
+  }, []);
 
   const clearCustomQueue = useCallback(() => {
-    stationBroadcastSigRef.current = "";
-    const wire = sharedRadioRef.current.wire;
-    if (!wire) {
-      setPlaylist([]);
-      activePlaylistRef.current = [];
-      setCurrentIndex(0);
-      setExtraLoading(false);
-      setErrorState(null);
-      return;
+    const currentList = activePlaylistRef.current;
+    const current = currentList[currentIndexRef.current];
+    for (const entry of currentList) {
+      if (entry !== current && entry.jiosaavnId) {
+        removedTrackIdsRef.current.add(entry.jiosaavnId);
+      }
     }
-    void syncFromSharedWireRef.current?.(wire, false);
+    const next = current ? [current] : [];
+    setPlaylist(next);
+    activePlaylistRef.current = next;
+    setCurrentIndex(0);
   }, []);
 
   const playAtIndex = useCallback((index: number) => {

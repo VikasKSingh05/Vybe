@@ -49,6 +49,7 @@
 html,
 body {
   height: 100%;
+  overscroll-behavior: none;
 }
 
 body {
@@ -253,6 +254,43 @@ button:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .shimmer {
     animation: none;
+  }
+}
+
+/* Orange signal traces: a highlight travels along each hairline. */
+.signal-line {
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.signal-line::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--color-signal), transparent);
+  transform: translateX(-100%);
+  animation: signal-travel 3.2s ease-in-out infinite;
+}
+
+.signal-line--slow::after {
+  animation-duration: 5s;
+  animation-delay: 0.8s;
+}
+
+@keyframes signal-travel {
+  0%,
+  100% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signal-line::after {
+    display: none;
   }
 }
 
