@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "VYBE — Pick a vibe. Press play.";
+export const alt = "VYBE LIVE — One station. Everyone, in sync.";
 export const size = {
   width: 1200,
   height: 630,
@@ -21,7 +21,7 @@ export default function Image() {
           justifyContent: "center",
           backgroundColor: "#0a0a0a",
           backgroundImage:
-            "radial-gradient(circle at 50% 130%, rgba(176,108,255,0.28), rgba(176,108,255,0) 55%)",
+            "radial-gradient(circle at 50% 130%, rgba(255,107,61,0.3), rgba(255,107,61,0) 55%)",
         }}
       >
         <div
@@ -36,7 +36,7 @@ export default function Image() {
               width: 16,
               height: 84,
               borderRadius: 8,
-              backgroundColor: "#b06cff",
+              backgroundColor: "#ff6b3d",
               display: "flex",
             }}
           />
@@ -55,7 +55,7 @@ export default function Image() {
               width: 16,
               height: 84,
               borderRadius: 8,
-              backgroundColor: "#b06cff",
+              backgroundColor: "#ff6b3d",
               display: "flex",
             }}
           />
@@ -68,7 +68,7 @@ export default function Image() {
             letterSpacing: "-0.01em",
           }}
         >
-          Pick a vibe. Press play.
+          One station. Everyone, in sync.
         </div>
       </div>
     ),

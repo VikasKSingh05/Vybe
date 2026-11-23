@@ -49,7 +49,7 @@ export function PartyRoom({ party }: PartyRoomProps) {
     () => state?.playback?.queueId
       ? state.queue.find((t) => t.queueId === state.playback?.queueId)
       : null,
-    [state?.playback?.queueId, state?.queue],
+    [state],
   );
 
   const hasQueue = (state?.queue.length ?? 0) > 0;
@@ -92,9 +92,9 @@ export function PartyRoom({ party }: PartyRoomProps) {
     [isHost, send],
   );
 
-  const confirmLeave = useCallback(() => {
+  const confirmLeave = useCallback(async () => {
     setShowLeaveConfirm(false);
-    leaveParty();
+    await leaveParty();
     router.push("/party");
   }, [leaveParty, router]);
 
@@ -123,26 +123,35 @@ export function PartyRoom({ party }: PartyRoomProps) {
     send("clearQueue");
   }, [send]);
 
-  const confirmHandover = useCallback(() => {
-    const target = handoverTarget;
+  const confirmHandover = useCallback(async () => {
+    const targetId = handoverTarget?.id ?? null;
     setHandoverTarget(null);
-    if (target) {
-      send("transferHost", { targetMemberId: target.id });
+    if (!targetId) return;
+    // The member may have left while the confirmation dialog was open. Never
+    // show an optimistic "handed over" state for a rejected command.
+    if (!state?.members.some((m) => m.id === targetId)) {
+      toast("That member left the party", "error");
+      return;
     }
-  }, [handoverTarget, send]);
+    const ok = await send("transferHost", { targetMemberId: targetId });
+    if (!ok) {
+      setHandoverTarget(state.members.find((m) => m.id === targetId) ?? null);
+    }
+  }, [handoverTarget, state, send]);
 
   const handleHandover = useCallback(
     (targetMemberId: string) => {
       const target = state?.members.find((m) => m.id === targetMemberId) ?? null;
       setHandoverTarget(target);
     },
-    [state?.members],
+    [state],
   );
 
+  const inviteRoomId = state?.roomId;
   const handleInvite = useCallback(() => {
-    if (!state) return;
-    copy(`${window.location.origin}/party/${state.roomId}`);
-  }, [state?.roomId, copy]);
+    if (!inviteRoomId) return;
+    copy(`${window.location.origin}/party/${inviteRoomId}`);
+  }, [inviteRoomId, copy]);
 
   const queuedTracks = useMemo(
     () => new Map((state?.queue ?? []).map((t) => [t.song.id, t])),
@@ -179,23 +188,26 @@ export function PartyRoom({ party }: PartyRoomProps) {
     router.push("/party");
   }, [removed, router]);
 
-  // Track the server clock so presence dots stay truthful between patches,
-  // and re-render periodically as heartbeats age members in and out.
-  const clockOffsetRef = useRef(0);
+  // Approximate the server clock so presence dots stay truthful between
+  // patches: anchor to the last known serverNow and advance on an interval.
+  // Whenever a newer patch lands, the tick is reset during render (derived
+  // state) so the estimate never drifts ahead of the server.
+  const [presenceTick, setPresenceTick] = useState(0);
+  const [anchoredServerNow, setAnchoredServerNow] = useState(state?.serverNow ?? 0);
+  if (state && state.serverNow !== anchoredServerNow) {
+    setAnchoredServerNow(state.serverNow);
+    setPresenceTick(0);
+  }
   useEffect(() => {
-    if (state) clockOffsetRef.current = state.serverNow - Date.now();
-  }, [state]);
-  const [, setPresenceTick] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setPresenceTick((n) => n + 1), 30_000);
+    const t = setInterval(() => setPresenceTick((n) => n + 1), 15_000);
     return () => clearInterval(t);
   }, []);
-  const serverNowEstimate = Date.now() + clockOffsetRef.current;
+  const serverNowEstimate = anchoredServerNow + presenceTick * 15_000;
 
   // Lock-screen / hardware media controls for everyone in the room
   useMediaSession({
     enabled: playerTrack != null,
-    title: playerTrack?.title ?? "VYBE Party",
+    title: playerTrack?.title ?? "VYBE Jam",
     artist: playerTrack?.artist ?? "",
     artwork: playerTrack?.cover,
     isPlaying: audio.isPlaying,
@@ -209,13 +221,16 @@ export function PartyRoom({ party }: PartyRoomProps) {
   });
 
   return (
-    <div className="relative flex min-h-dvh flex-col text-white font-sans antialiased lg:h-dvh lg:overflow-hidden">
+    <div className="relative flex min-h-dvh flex-col bg-ink font-sans text-paper antialiased lg:h-dvh lg:overflow-hidden">
       <Background theme={theme} />
 
-      {(status === "reconnecting") && (
-        <div role="alert" className="fixed inset-x-0 top-[52px] z-40 flex items-center justify-center gap-3 bg-black/80 px-4 py-3 text-sm backdrop-blur-sm">
-          <RefreshCw className="h-4 w-4 animate-spin text-amber-300" />
-          <span className="text-white/70">Reconnecting…</span>
+      {status === "reconnecting" && (
+        <div
+          role="alert"
+          className="fixed inset-x-0 top-[60px] z-40 flex items-center justify-center gap-3 border-b border-signal/20 bg-signal/10 px-4 py-3 backdrop-blur-xl"
+        >
+          <RefreshCw className="h-4 w-4 animate-spin text-signal" />
+          <span className="mono-label text-signal">Reconnecting…</span>
         </div>
       )}
 

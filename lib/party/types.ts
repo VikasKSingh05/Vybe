@@ -5,7 +5,6 @@ export type VibeId = _VibeId;
 export interface PartyMember {
   id: string;
   name: string;
-  isHost: boolean;
   joinedAt: number;
   lastSeen: number;
 }
@@ -70,15 +69,12 @@ export interface PartyState {
 }
 
 export const PARTY_EMOJIS = ["🔥", "❤️", "🎉", "💯", "👏"] as const;
-export type PartyEmoji = (typeof PARTY_EMOJIS)[number];
 
 export const PARTY_MAX_MEMBERS = 20;
 export const PARTY_MAX_QUEUE = 50;
 export const PARTY_MEMBER_IDLE_MS = 10 * 60 * 1000;
 export const PARTY_ROOM_TTL_MS = 30 * 60 * 1000;
 export const PARTY_REACTION_TTL_MS = 30 * 1000;
-
-export const PARTY_VIBES: VibeId[] = ["phonk", "lofi", "bollywood", "indie", "chill", "random"];
 
 /** Delta-sync patch: only fields that changed since the last broadcast. */
 export type PartyPatch = Partial<Pick<PartyState, "hostId" | "vibeId" | "members" | "queue" | "playback" | "reactions" | "locked">> & {

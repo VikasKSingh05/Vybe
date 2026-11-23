@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname),
+      "@": path.resolve(import.meta.dirname),
     },
   },
   test: {
@@ -14,5 +14,10 @@ export default defineConfig({
     setupFiles: ["./__tests__/setup.ts"],
     include: ["__tests__/**/*.test.{ts,tsx}"],
     globals: true,
+    // jsdom startup is expensive; cap parallel workers so slower machines do
+    // not hit the worker-startup timeout under full-suite load.
+    pool: "forks",
+    maxWorkers: 2,
+    testTimeout: 20_000,
   },
 });

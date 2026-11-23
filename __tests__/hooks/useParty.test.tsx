@@ -21,7 +21,19 @@ class FakeEventSource {
     this.url = url;
   }
 
-  addEventListener() {}
+  listeners = new Map<string, Array<(event: Event) => void>>();
+
+  addEventListener(type: string, listener: (event: Event) => void) {
+    const list = this.listeners.get(type) ?? [];
+    list.push(listener);
+    this.listeners.set(type, list);
+  }
+
+  simulateMessage(type: string, data: unknown) {
+    const event = { data: JSON.stringify(data) } as MessageEvent<string>;
+    this.listeners.get(type)?.forEach((listener) => listener(event));
+  }
+
   close() {
     this.readyState = FakeEventSource.CLOSED;
   }
@@ -152,5 +164,41 @@ describe("useParty dead-stream handling", () => {
       vi.advanceTimersByTime(4_000);
     });
     expect(FakeEventSource.instances.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("ignores a stale full-state frame that would roll back a newer host transfer", async () => {
+    setupDefaultRouting();
+    const result = await createPartyViaHook();
+    const es = FakeEventSource.instances[0];
+
+    const transferred = {
+      roomId: "abc123",
+      createdAt: 1,
+      hostId: "m2",
+      vibeId: "chill",
+      members: [
+        { id: "m1", name: "Host", joinedAt: 1, lastSeen: 1 },
+        { id: "m2", name: "Guest", joinedAt: 2, lastSeen: 2 },
+      ],
+      queue: [],
+      playback: null,
+      reactions: [],
+      locked: false,
+      version: 4,
+      serverNow: 4_000,
+    };
+    const staleSnapshot = { ...transferred, hostId: "m1", version: 3, serverNow: 5_000 };
+
+    await act(async () => {
+      // Initial snapshot predates the transfer.
+      es.simulateMessage("state", staleSnapshot);
+      // A newer delta moves authority to m2.
+      es.simulateMessage("patch", { version: 4, serverNow: 4_000, hostId: "m2" });
+      // Delayed replay of the old snapshot must not undo it.
+      es.simulateMessage("state", staleSnapshot);
+    });
+
+    expect(result.current.state?.hostId).toBe("m2");
+    expect(result.current.isHost).toBe(false);
   });
 });

@@ -12,13 +12,13 @@ describe("TrackInfo", () => {
   it("renders with lg size", () => {
     render(<TrackInfo title="Song" artist="Artist" size="lg" />);
     const title = screen.getByText("Song");
-    expect(title.className).toContain("text-lg");
+    expect(title.className).toContain("text-xl");
   });
 
   it("renders with sm size", () => {
     render(<TrackInfo title="Song" artist="Artist" size="sm" />);
     const title = screen.getByText("Song");
-    expect(title.className).toContain("text-xs");
+    expect(title.className).toContain("text-sm");
   });
 
   it("truncates long titles via CSS", () => {

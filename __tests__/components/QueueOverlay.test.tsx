@@ -13,7 +13,6 @@ function makeItem(id: string, title: string): QueueItem {
 
 describe("QueueOverlay keyboard reorder", () => {
   const onReorder = vi.fn();
-  let mounted: ReturnType<typeof render>;
 
   function setup() {
     return render(
@@ -35,26 +34,26 @@ describe("QueueOverlay keyboard reorder", () => {
   });
 
   it("exposes grip handles to assistive tech", () => {
-    mounted = setup();
+    setup();
     expect(screen.getAllByRole("button", { name: /^Reorder / })).toHaveLength(3);
   });
 
   it("moves an item down with ArrowDown", () => {
-    mounted = setup();
+    setup();
     const grips = screen.getAllByRole("button", { name: /^Reorder / });
     fireEvent.keyDown(grips[0], { key: "ArrowDown" });
     expect(onReorder).toHaveBeenCalledWith(0, 1);
   });
 
   it("moves an item up with ArrowUp", () => {
-    mounted = setup();
+    setup();
     const grips = screen.getAllByRole("button", { name: /^Reorder / });
     fireEvent.keyDown(grips[2], { key: "ArrowUp" });
     expect(onReorder).toHaveBeenCalledWith(2, 1);
   });
 
   it("does nothing at the list boundaries", () => {
-    mounted = setup();
+    setup();
     const grips = screen.getAllByRole("button", { name: /^Reorder / });
     fireEvent.keyDown(grips[0], { key: "ArrowUp" });
     fireEvent.keyDown(grips[2], { key: "ArrowDown" });
@@ -62,7 +61,7 @@ describe("QueueOverlay keyboard reorder", () => {
   });
 
   it("announces the new position after a move", () => {
-    mounted = setup();
+    setup();
     const grips = screen.getAllByRole("button", { name: /^Reorder / });
     fireEvent.keyDown(grips[1], { key: "ArrowUp" });
     expect(onReorder).toHaveBeenCalledWith(1, 0);
@@ -70,7 +69,7 @@ describe("QueueOverlay keyboard reorder", () => {
   });
 
   it("ignores unrelated keys", () => {
-    mounted = setup();
+    setup();
     const grips = screen.getAllByRole("button", { name: /^Reorder / });
     fireEvent.keyDown(grips[0], { key: "Enter" });
     fireEvent.keyDown(grips[0], { key: "ArrowLeft" });
@@ -78,26 +77,12 @@ describe("QueueOverlay keyboard reorder", () => {
   });
 
   it("renders the live region for announcements", () => {
-    mounted = setup();
+    setup();
     expect(screen.getByRole("status")).toBeTruthy();
   });
 });
 
 describe("QueueOverlay play selection + keyboard isolation", () => {
-  function setup() {
-    return render(
-      <QueueOverlay
-        queue={[makeItem("a", "Alpha"), makeItem("b", "Bravo")]}
-        currentIndex={0}
-        accent="#ffffff"
-        isOpen={true}
-        onClose={vi.fn()}
-        onRemove={vi.fn()}
-        onPlayItem={vi.fn()}
-      />,
-    );
-  }
-
   it("blurs the item button after selecting so a follow-up Space cannot re-trigger it", () => {
     const onPlayItem = vi.fn();
     render(

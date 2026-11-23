@@ -1,23 +1,13 @@
-"use client";
-
-import { cn } from "@/lib/cn";
-
-interface HeroSectionProps {
-  className?: string;
-}
-
-export function HeroSection({ className }: HeroSectionProps) {
+export function HeroSection() {
   return (
-    <section
-      className={cn(
-        "flex flex-col items-center px-6 text-center",
-        className,
-      )}
-    >
-      <h1
-        className="animate-hero-in font-display text-[clamp(4.5rem,15vw,9rem)] leading-[0.88] font-bold tracking-[-0.04em] text-white drop-shadow-2xl"
-      >
-        VYBE
+    <section className="shrink-0 pb-5">
+      <div className="mb-2.5 flex items-center gap-3">
+        <span className="signal-line h-px w-10 bg-signal/60" />
+        <p className="mono-label text-paper/40">Global broadcast / 001</p>
+      </div>
+
+      <h1 className="font-display text-[clamp(2.5rem,7vw,5.25rem)] leading-[0.78] font-extrabold tracking-[-0.07em] text-paper">
+        VYBE<span className="text-signal">.</span>LIVE
       </h1>
     </section>
   );

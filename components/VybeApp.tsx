@@ -4,12 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import type { Song } from "@/types/music";
 import { Background } from "@/components/Background";
 import { FloatingPlayer } from "@/components/FloatingPlayer";
-import { GenrePills } from "@/components/GenrePills";
 import { Header } from "@/components/Header";
 import { HeroSection } from "@/components/HeroSection";
+import { LiveStationPanel } from "@/components/LiveStationPanel";
 import { QueueOverlay } from "@/components/QueueOverlay";
 import { SearchOverlay } from "@/components/SearchOverlay";
-import { SettingsOverlay } from "@/components/SettingsOverlay";
 import { TrackAnnouncer } from "@/components/player/TrackAnnouncer";
 import { usePlayer } from "@/hooks/usePlayer";
 import { useSearch } from "@/hooks/useSearch";
@@ -19,12 +18,11 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/cn";
 
 export function VybeApp() {
-  const player = usePlayer({ initialVibeId: "bollywood", autoPlay: false });
+  const player = usePlayer({ autoPlay: false });
   const search = useSearch();
 
   const [queueOpen, setQueueOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (player.error) {
@@ -87,15 +85,6 @@ export function VybeApp() {
     [player],
   );
 
-  const handleVibeChange = useCallback(
-    (id: Parameters<typeof player.changeVibe>[0]) => {
-      player.changeVibe(id);
-      search.clear();
-      setQueueOpen(false);
-    },
-    [player, search],
-  );
-
   const handleClearQueue = useCallback(() => {
     player.clearCustomQueue();
   }, [player]);
@@ -114,7 +103,7 @@ export function VybeApp() {
       isSearching={search.isSearching}
       hasSearched={search.hasSearched}
       error={search.error}
-      accent="#b06cff"
+      accent={player.theme.accent}
       onQueryChange={search.setQuery}
       onPlaySong={handlePlaySong}
       onAddToQueue={handleAddToQueue}
@@ -122,7 +111,10 @@ export function VybeApp() {
       onSearchSubmit={search.search}
       history={search.history}
       onClearHistory={search.clearHistory}
-      onOpenChange={setSearchOpen}
+      onOpenChange={(open) => {
+        setSearchOpen(open);
+        if (!open) search.clear();
+      }}
     />
   );
 
@@ -151,29 +143,27 @@ export function VybeApp() {
       onPrev: player.prev,
       onToggleMute: player.toggleMute,
     },
-    !queueOpen && !settingsOpen && !searchOpen,
+    !queueOpen && !searchOpen,
   );
 
   return (
-    <div className="relative min-h-dvh overflow-hidden text-white font-sans antialiased select-none">
+    <div className="relative h-dvh overflow-hidden bg-ink font-sans text-paper antialiased select-none">
       <Background theme={player.theme} />
       <Header />
 
-      <main
-        id="main-content"
-        className="relative z-10 flex h-dvh flex-col items-center overflow-y-auto pb-44 sm:pb-48 md:pb-52"
-      >
-        <div className="my-auto flex w-full flex-col items-center">
+      <main id="main-content" className="relative z-10 h-full">
+        <div className="mx-auto flex h-full w-full max-w-6xl flex-col px-5 pt-20 pb-32 sm:px-8 sm:pt-24 sm:pb-36">
           <HeroSection />
-
-          <div className="mt-8 shrink-0 sm:mt-10">
-            <GenrePills
-              activeId={player.vibeId}
-              onChange={handleVibeChange}
-              accent={player.theme.accent}
-              searchOverlay={searchOverlay}
-            />
-          </div>
+          <LiveStationPanel
+            track={player.track}
+            status={player.stationStatus}
+            isSyncing={player.isStationSyncing}
+            hasCurrentTrack={player.hasCurrentTrack}
+            queue={player.queueItems}
+            accent={player.theme.accent}
+            searchOverlay={searchOverlay}
+            onRetry={() => void player.refreshWire()}
+          />
         </div>
       </main>
 
@@ -194,23 +184,10 @@ export function VybeApp() {
         onVolumeChange={player.changeVolume}
         onToggleMute={player.toggleMute}
         onToggleQueue={() => setQueueOpen((o) => !o)}
-        onToggleSettings={() => setSettingsOpen((o) => !o)}
         className={cn(
           "transition-opacity duration-300",
           searchOpen && "opacity-0 pointer-events-none",
         )}
-      />
-
-      <SettingsOverlay
-        isOpen={settingsOpen}
-        accent={player.theme.accent}
-        crossfadeEnabled={player.crossfadeEnabled}
-        repeatMode={player.repeatMode}
-        shuffle={player.shuffle}
-        onClose={() => setSettingsOpen(false)}
-        onToggleCrossfade={() => player.setCrossfadeEnabled(!player.crossfadeEnabled)}
-        onRepeatModeChange={player.setRepeatMode}
-        onToggleShuffle={player.toggleShuffle}
       />
 
       <QueueOverlay
@@ -221,7 +198,7 @@ export function VybeApp() {
         onClose={() => setQueueOpen(false)}
         onRemove={handleRemoveFromQueue}
         onPlayItem={handlePlayQueueItem}
-        onClear={player.isRandomMode ? handleClearQueue : undefined}
+        onClear={handleClearQueue}
         onReorder={handleReorder}
       />
 

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DM_Sans, Syne } from "next/font/google";
 import { ToastViewport } from "@/components/ui/ToastViewport";
 import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
+import { APP_URL } from "@/lib/site";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -16,13 +17,11 @@ const syne = Syne({
   weight: ["600", "700", "800"],
 });
 
-const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://vybe.app";
-
 export const metadata: Metadata = {
   title: "VYBE",
   description:
-    "An immersive, cinematic music discovery experience. Pick a vibe and press play.",
-  metadataBase: new URL(appUrl),
+    "VYBE LIVE is one global radio station everyone hears together. Tune in, or host a VYBE Jam with friends.",
+  metadataBase: new URL(APP_URL),
   applicationName: "VYBE",
   appleWebApp: {
     capable: true,
@@ -31,16 +30,16 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "VYBE",
-    description: "Pick a vibe. Press play.",
+    description: "One station. One world.",
     type: "website",
-    url: appUrl,
+    url: APP_URL,
     siteName: "VYBE",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
     title: "VYBE",
-    description: "Pick a vibe. Press play.",
+    description: "One station. One world.",
   },
 };
 

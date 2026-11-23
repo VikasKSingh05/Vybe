@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { searchJioSaavnSongs } from "@/lib/music/jiosaavn";
+import { getMusicProvider } from "@/lib/music/provider";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Query too long" }, { status: 400 });
     }
 
-    const songs = await searchJioSaavnSongs(query);
+    const songs = await getMusicProvider().search(query);
     return NextResponse.json({ songs });
   } catch (error) {
     console.error("[API /api/music/search] Error:", error);

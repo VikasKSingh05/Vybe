@@ -6,7 +6,6 @@ function makeMember(lastSeen: number): PartyMember {
   return {
     id: "m1",
     name: "Asha",
-    isHost: false,
     joinedAt: 0,
     lastSeen,
   };

@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "VYBE",
     short_name: "VYBE",
     description:
-      "An immersive, cinematic music discovery experience. Pick a vibe and press play.",
+      "One global live radio station. Press play and listen together.",
     start_url: "/",
     display: "standalone",
     background_color: "#0a0a0a",

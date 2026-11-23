@@ -3,7 +3,7 @@ import { detectHostChange } from "@/lib/party/host-change";
 import type { PartyMember } from "@/lib/party/types";
 
 function makeMember(id: string, name = `Member ${id}`): PartyMember {
-  return { id, name, isHost: false, joinedAt: 0, lastSeen: 0 };
+  return { id, name, joinedAt: 0, lastSeen: 0 };
 }
 
 describe("detectHostChange", () => {

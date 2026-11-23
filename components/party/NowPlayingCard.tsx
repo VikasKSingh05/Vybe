@@ -122,9 +122,21 @@ export const NowPlayingCard = memo(function NowPlayingCard({
             <TrackInfo title={track.title} artist={track.artist} size="lg" />
             <TrackAnnouncer title={track.title} artist={track.artist} />
             <div className="mt-3 flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[10px] font-medium text-emerald-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                Playing
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium",
+                  isPlaying
+                    ? "bg-emerald-500/15 text-emerald-400"
+                    : "bg-white/10 text-white/50",
+                )}
+              >
+                <span
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    isPlaying ? "bg-emerald-400" : "bg-white/40",
+                  )}
+                />
+                {isPlaying ? "Playing" : "Paused"}
               </span>
             </div>
           </div>

@@ -36,7 +36,6 @@ interface RegistrationOptions {
 }
 
 function makeRegistration({
-  controller = false,
   waiting = null,
   installing = null,
 }: RegistrationOptions = {}) {

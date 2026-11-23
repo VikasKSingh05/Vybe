@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { discoverRandomSongs } from "@/lib/music/discover";
+import { discoverSongsForVibe } from "@/lib/music/discover";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import type { VibeId } from "@/data/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+function isVibeId(value: string | null): value is VibeId {
+  return (
+    value === "phonk" ||
+    value === "lofi" ||
+    value === "bollywood" ||
+    value === "indie" ||
+    value === "chill" ||
+    value === "random"
+  );
+}
 
 export async function GET(request: NextRequest) {
   const ip = getClientIp(request);
@@ -30,7 +42,10 @@ export async function GET(request: NextRequest) {
         .filter(Boolean),
     );
 
-    const songs = await discoverRandomSongs(count, excludeIds);
+    const vibeParam = request.nextUrl.searchParams.get("vibe");
+    const vibe = isVibeId(vibeParam) ? vibeParam : "random";
+
+    const songs = await discoverSongsForVibe(vibe, count, excludeIds);
     return NextResponse.json({ songs });
   } catch (error) {
     console.error("[API /api/music/discover] Error:", error);

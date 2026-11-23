@@ -22,8 +22,8 @@ interface ToneConfig {
 const TONE_CONFIG: Record<ToastTone, ToneConfig> = {
   info: {
     icon: Info,
-    chip: "bg-violet-400/10 text-violet-300",
-    bar: "bg-violet-400/70",
+    chip: "bg-signal/10 text-signal",
+    bar: "bg-signal/70",
   },
   success: {
     icon: CheckCircle2,
@@ -121,7 +121,6 @@ function ToastCard({ item, index }: { item: ToastItem; index: number }) {
       enterAnimRef.current?.cancel();
       exitAnimsRef.current.forEach((a) => a.cancel());
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Lifetime progress bar — paused/resumed in tandem with the lib countdown

@@ -7,7 +7,7 @@ export function sharePartyLink(roomId: string): Promise<boolean> {
   const url = getPartyShareUrl(roomId);
   if (navigator.share) {
     return navigator
-      .share({ title: "Join my VYBE Party", url })
+      .share({ title: "Join my VYBE Jam", url })
       .then(() => true)
       .catch(() => false);
   }

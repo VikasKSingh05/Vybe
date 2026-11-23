@@ -9,14 +9,14 @@ export function TrackInfo({ title, artist, size = "md", className }: TrackInfoPr
   return (
     <div className={className}>
       <p
-        className={`truncate font-semibold tracking-tight text-white/95 ${
-          size === "lg" ? "text-lg" : size === "sm" ? "text-xs" : "text-sm"
+        className={`truncate font-display font-bold tracking-tight text-paper ${
+          size === "lg" ? "text-xl" : size === "sm" ? "text-sm" : "text-base"
         }`}
       >
         {title}
       </p>
       <p
-        className={`truncate text-white/55 ${
+        className={`truncate text-paper/50 ${
           size === "lg" ? "mt-1 text-sm" : size === "sm" ? "mt-0.5 text-[11px]" : "mt-0.5 text-xs"
         }`}
       >

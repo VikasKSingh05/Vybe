@@ -45,7 +45,12 @@ export function useAudioElement(handlers: AudioEventHandlers = {}): UseAudioElem
   const crossfadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const crossfadeTokenRef = useRef(0);
   const handlersRef = useRef(handlers);
-  handlersRef.current = handlers;
+
+  // Keep the latest handlers in a ref (synced after commit) so the audio
+  // event listeners bound once on mount always call fresh callbacks.
+  useEffect(() => {
+    handlersRef.current = handlers;
+  });
 
   useEffect(() => {
     const audioA = new Audio();

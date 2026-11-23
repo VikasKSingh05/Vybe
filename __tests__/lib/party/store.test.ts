@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { createRoom, joinRoom, getRoom, dispatch } from "@/lib/party/store";
+import { describe, it, expect, beforeEach } from "vitest";
+import { createRoom, joinRoom, getRoom, dispatch, subscribe, startMaintenance } from "@/lib/party/store";
 import { PARTY_MAX_MEMBERS } from "@/lib/party/types";
-import type { PartyState } from "@/lib/party/types";
-import type { DispatchResult } from "@/lib/party/store-interface";
+import type { PartyState, PartyPatch } from "@/lib/party/types";
+import type { DispatchResult, Envelope } from "@/lib/party/store-interface";
 
 /** Narrow a successful dispatch result so its `state` is accessible. */
 async function stateOf(res: DispatchResult | Promise<DispatchResult>): Promise<{ ok: true; state: PartyState }> {
@@ -15,7 +15,7 @@ describe("createRoom", () => {
   it("creates a room with a host member", async () => {
     const result = await createRoom("Test Host", "phonk");
     expect(result.roomId).toBeTruthy();
-    expect(result.member.isHost).toBe(true);
+    expect(result.state.hostId).toBe(result.member.id);
     expect(result.member.name).toBe("Test Host");
     expect(result.state.hostId).toBe(result.member.id);
     expect(result.state.vibeId).toBe("phonk");
@@ -45,7 +45,7 @@ describe("joinRoom", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.member.name).toBe("Guest");
-      expect(result.member.isHost).toBe(false);
+      expect(result.state.hostId).not.toBe(result.member.id);
     }
   });
 
@@ -155,7 +155,7 @@ describe("dispatch", () => {
     expect(first.state.queue).toHaveLength(1);
     expect(first.state.queue[0].votes).toHaveLength(1);
 
-    const duplicate = await stateOf(dispatch(roomId, memberId, "addTrack", { song }));
+    await stateOf(dispatch(roomId, memberId, "addTrack", { song }));
 
     const state = await getRoom(roomId);
     expect(state!.queue).toHaveLength(1);
@@ -195,7 +195,7 @@ describe("dispatch", () => {
   });
 
   describe("transferHost", () => {
-    it("swaps the host flags and hostId", async () => {
+    it("moves host authority to the target and revokes the old host", async () => {
       const guest = (await joinRoom(roomId, "Guest")) as { member: { id: string } };
       const result = await dispatch(roomId, memberId, "transferHost", {
         targetMemberId: guest.member.id,
@@ -203,10 +203,8 @@ describe("dispatch", () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.state.hostId).toBe(guest.member.id);
-        const oldHost = result.state.members.find((m) => m.id === memberId);
-        const newHost = result.state.members.find((m) => m.id === guest.member.id);
-        expect(oldHost?.isHost).toBe(false);
-        expect(newHost?.isHost).toBe(true);
+        expect(result.state.members.some((m) => m.id === memberId)).toBe(true);
+        expect(result.state.members.some((m) => m.id === guest.member.id)).toBe(true);
       }
 
       // Control actually moved: the new host can now play, the old cannot
@@ -394,5 +392,74 @@ describe("dispatch host controls", () => {
     if (host.ok) {
       // After kicking the only guest, guest can't be the host; nothing to assert further.
     }
+  });
+});
+
+describe("patch broadcasts", () => {
+  it("broadcasts the hostId patch on transferHost", async () => {
+    const room = await createRoom("Host", "phonk");
+    const hostId = room.member.id;
+    const guest = (await joinRoom(room.roomId, "Guest")) as { member: { id: string } };
+    const guestId = guest.member.id;
+
+    const envelopes: Envelope[] = [];
+    const unsub = subscribe(room.roomId, null, (msg) => envelopes.push(msg));
+    try {
+      const res = await dispatch(room.roomId, hostId, "transferHost", { targetMemberId: guestId });
+      expect(res.ok).toBe(true);
+
+      const patch = envelopes.find((e) => e.event === "patch")?.data as PartyPatch | undefined;
+      expect(patch).toBeDefined();
+      expect(patch!.hostId).toBe(guestId);
+      // The patch still carries the full member list so clients can resolve
+      // the new host's name without a second round-trip.
+      expect(patch!.members).toBeDefined();
+      expect(patch!.members!.some((m) => m.id === guestId)).toBe(true);
+      expect(patch!.members!.some((m) => m.id === hostId)).toBe(true);
+    } finally {
+      unsub();
+    }
+  });
+
+  it("broadcasts the queue patch on vote (in-place vote mutation is detected)", async () => {
+    const room = await createRoom("Host", "phonk");
+    const hostId = room.member.id;
+    const guest = (await joinRoom(room.roomId, "Guest")) as { member: { id: string } };
+    const guestId = guest.member.id;
+
+    const track = await stateOf(
+      dispatch(room.roomId, hostId, "addTrack", {
+        song: { id: "s1", title: "S1", artist: "A", streamUrl: "https://e.com/s1" },
+      }),
+    );
+    const queueId = track.state.queue[0].queueId;
+
+    const envelopes: Envelope[] = [];
+    const unsub = subscribe(room.roomId, null, (msg) => envelopes.push(msg));
+    try {
+      await dispatch(room.roomId, guestId, "vote", { queueId });
+
+      const patch = envelopes.find((e) => e.event === "patch")?.data as PartyPatch | undefined;
+      expect(patch).toBeDefined();
+      expect(patch!.queue).toBeDefined();
+      expect(patch!.queue![0].votes.some((v) => v.memberId === guestId)).toBe(true);
+    } finally {
+      unsub();
+    }
+  });
+});
+
+describe("maintenance", () => {
+  it("does not revert a host transfer", async () => {
+    const room = await createRoom("Host", "phonk");
+    const hostId = room.member.id;
+    const guest = (await joinRoom(room.roomId, "Guest")) as { member: { id: string } };
+    const guestId = guest.member.id;
+
+    await dispatch(room.roomId, hostId, "transferHost", { targetMemberId: guestId });
+    await startMaintenance();
+
+    const state = await getRoom(room.roomId);
+    expect(state!.hostId).toBe(guestId);
   });
 });

@@ -16,6 +16,7 @@ export interface PartySession {
 /** Remembered identity after the connection gave up (network died, not room closed). */
 export interface LostIdentity {
   roomId: string;
+  memberId: string;
   name: string;
 }
 
@@ -74,13 +75,25 @@ export function useParty() {
   const retryRef = useRef(0);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Latest openStream, kept for the backoff-reconnect path so it never
+  // captures a stale closure (see handleDroppedStream).
+  const openStreamRef = useRef<((session: PartySession) => void) | null>(null);
 
   const member: PartyMember | null = state && selfId
     ? (state.members.find((m) => m.id === selfId) ?? null)
     : null;
 
   const applyState = useCallback((next: PartyState) => {
-    setState(next);
+    // SSE delivers both full snapshots (initial + maintenance) and deltas.
+    // Without a guard here, an older maintenance frame can arrive after a
+    // newer transfer patch and roll the client back to a hostless/old-host
+    // view even though the server is correct.
+    setState((prev) => {
+      if (!prev) return next;
+      if (next.version < prev.version) return prev;
+      if (next.version === prev.version && next.serverNow < prev.serverNow) return prev;
+      return next;
+    });
     setError(null);
     retryRef.current = 0;
   }, []);
@@ -90,13 +103,16 @@ export function useParty() {
       esRef.current.close();
       esRef.current = null;
     }
-    if (heartbeatRef.current) {
-      clearInterval(heartbeatRef.current);
-      heartbeatRef.current = null;
-    }
     if (reconnectTimerRef.current) {
       clearTimeout(reconnectTimerRef.current);
       reconnectTimerRef.current = null;
+    }
+  }, []);
+
+  const stopHeartbeat = useCallback(() => {
+    if (heartbeatRef.current) {
+      clearInterval(heartbeatRef.current);
+      heartbeatRef.current = null;
     }
   }, []);
 
@@ -106,6 +122,7 @@ export function useParty() {
    */
   const handleRemoved = useCallback(() => {
     stopConnection();
+    stopHeartbeat();
     clearSession();
     sessionRef.current = null;
     setRemoved(true);
@@ -114,7 +131,30 @@ export function useParty() {
     setSelfId(null);
     setLostIdentity(null);
     setError(null);
-  }, [stopConnection]);
+  }, [stopConnection, stopHeartbeat]);
+
+  /** Heartbeats survive SSE drops so a reconnect can't get swept as idle. */
+  const startHeartbeat = useCallback(
+    (session: PartySession) => {
+      stopHeartbeat();
+      heartbeatRef.current = setInterval(() => {
+        const current = sessionRef.current;
+        if (!current || current.roomId !== session.roomId) return;
+        fetch(`/api/party/${current.roomId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ memberId: current.memberId, command: "heartbeat" }),
+        })
+          .then((res) => {
+            if (res.status === 403 && current.roomId === sessionRef.current?.roomId) {
+              handleRemoved();
+            }
+          })
+          .catch(() => {});
+      }, HEARTBEAT_MS);
+    },
+    [handleRemoved, stopHeartbeat],
+  );
 
   /**
    * EventSource hides HTTP status codes, so every drop looks identical.
@@ -127,6 +167,7 @@ export function useParty() {
       try {
         const res = await fetch(`/api/party/${session.roomId}`);
         if (res.status === 404) {
+          stopHeartbeat();
           clearSession();
           sessionRef.current = null;
           setStatus("closed");
@@ -140,13 +181,13 @@ export function useParty() {
       }
 
       if (retryRef.current >= MAX_RETRIES) {
-        // Network gave up — keep the identity around so the landing
-        // page can offer a one-click rejoin. The room itself is fine.
-        setLostIdentity({ roomId: session.roomId, name: session.name });
+        // Network gave up — keep the identity around so the landing page can
+        // rejoin as the SAME member. Nulling it here used to mint a new id on
+        // rejoin, leaving a phantom host in the server-side member list.
+        setLostIdentity({ roomId: session.roomId, memberId: session.memberId, name: session.name });
         setStatus("closed");
         setState(null);
         setSelfId(null);
-        sessionRef.current = null;
         return;
       }
       setStatus("reconnecting");
@@ -162,10 +203,15 @@ export function useParty() {
         }
       }, delay);
     },
-    [],
+    [stopHeartbeat],
   );
 
-  const openStreamRef = useRef<((session: PartySession) => void) | null>(null);
+  // Stable indirection so openStream can invoke the latest dropped-stream
+  // handler without creating a dependency cycle through openStreamRef.
+  const handleDroppedStreamRef = useRef(handleDroppedStream);
+  useEffect(() => {
+    handleDroppedStreamRef.current = handleDroppedStream;
+  });
 
   const openStream = useCallback(
     (session: PartySession) => {
@@ -175,6 +221,7 @@ export function useParty() {
       setLostIdentity(null);
       setRemoved(false);
       retryRef.current = 0;
+      startHeartbeat(session);
 
       const es = new EventSource(`/api/party/${session.roomId}/stream?memberId=${encodeURIComponent(session.memberId)}`);
       esRef.current = es;
@@ -198,9 +245,8 @@ export function useParty() {
           const patch = JSON.parse((ev as MessageEvent<string>).data) as Partial<PartyState> & { version: number; serverNow: number };
           setState((prev) => {
             if (!prev) return null;
-            if (typeof patch.version === "number" && typeof (prev as PartyState & { version?: number }).version === "number" && patch.version < (prev as PartyState & { version: number }).version) {
-              return prev;
-            }
+            if (patch.version < prev.version) return prev;
+            if (patch.version === prev.version && patch.serverNow < prev.serverNow) return prev;
             return { ...prev, ...patch };
           });
         } catch {
@@ -210,6 +256,7 @@ export function useParty() {
 
       es.addEventListener("closed", () => {
         stopConnection();
+        stopHeartbeat();
         clearSession();
         sessionRef.current = null;
         setStatus("closed");
@@ -220,35 +267,18 @@ export function useParty() {
       es.onerror = () => {
         if (es.readyState !== EventSource.CLOSED) return;
         stopConnection();
-        void handleDroppedStream(session);
+        void handleDroppedStreamRef.current(session);
       };
 
-      heartbeatRef.current = setInterval(() => {
-        const current = sessionRef.current;
-        if (!current) return;
-        fetch(`/api/party/${current.roomId}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            memberId: current.memberId,
-            command: "heartbeat",
-          }),
-        })
-          .then((res) => {
-            if (
-              res.status === 403 &&
-              current.roomId === sessionRef.current?.roomId
-            ) {
-              handleRemoved();
-            }
-          })
-          .catch(() => {});
-      }, HEARTBEAT_MS);
     },
-    [applyState, handleRemoved, stopConnection, handleDroppedStream],
+    [applyState, startHeartbeat, stopConnection, stopHeartbeat],
   );
 
-  openStreamRef.current = openStream;
+  // Keep the reconnect path pointed at the latest openStream (synced after
+  // commit rather than during render).
+  useEffect(() => {
+    openStreamRef.current = openStream;
+  }, [openStream]);
 
   // Auto-rejoin a persisted session on mount. Validate the room still
   // exists before opening the SSE stream to avoid the retry-timeout loop.
@@ -272,7 +302,13 @@ export function useParty() {
     return () => clearTimeout(t);
   }, [openStream]);
 
-  useEffect(() => () => stopConnection(), [stopConnection]);
+  useEffect(
+    () => () => {
+      stopConnection();
+      stopHeartbeat();
+    },
+    [stopConnection, stopHeartbeat],
+  );
 
   const createParty = useCallback(
     async (hostName: string, vibeId: VibeId) => {
@@ -301,11 +337,11 @@ export function useParty() {
   );
 
   const joinParty = useCallback(
-    async (roomId: string, name: string) => {
+    async (roomId: string, name: string, memberId?: string) => {
       const res = await fetch(`/api/party/${roomId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ command: "join", name }),
+        body: JSON.stringify({ command: "join", name, memberId }),
       });
       const data = (await res.json().catch(() => null)) as
         | { member?: PartyMember; state?: PartyState; error?: string }
@@ -361,16 +397,19 @@ export function useParty() {
     [applyState, handleRemoved, status],
   );
 
-  const leaveParty = useCallback(() => {
+  const leaveParty = useCallback(async () => {
     const session = sessionRef.current;
     if (session) {
-      fetch(`/api/party/${session.roomId}`, {
+      // Await the leave so the server can re-elect before we navigate away;
+      // otherwise the room can briefly keep a departed host in its state.
+      await fetch(`/api/party/${session.roomId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ memberId: session.memberId, command: "leave" }),
       }).catch(() => {});
     }
     stopConnection();
+    stopHeartbeat();
     clearSession();
     sessionRef.current = null;
     setSelfId(null);
@@ -378,10 +417,11 @@ export function useParty() {
     setStatus("idle");
     setError(null);
     setRemoved(false);
-  }, [stopConnection]);
+  }, [stopConnection, stopHeartbeat]);
 
   const reset = useCallback(() => {
     stopConnection();
+    stopHeartbeat();
     clearSession();
     sessionRef.current = null;
     setSelfId(null);
@@ -389,13 +429,14 @@ export function useParty() {
     setStatus("idle");
     setError(null);
     setRemoved(false);
-  }, [stopConnection]);
+  }, [stopConnection, stopHeartbeat]);
 
   return {
     status,
     state,
     member,
-    isHost: member?.isHost ?? false,
+    // hostId is the only host authority. No per-member flag to disagree with.
+    isHost: member != null && state?.hostId === member.id,
     error,
     lostIdentity,
     removed,

@@ -24,17 +24,13 @@ export function TransportControls({
   const isSmall = size === "sm";
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1 sm:gap-2">
       <button
         type="button"
         onClick={onPrev}
         disabled={disabled}
         aria-label="Previous track"
-        className={`rounded-full transition-all duration-200 hover:scale-105 hover:bg-white/10 hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 disabled:hover:bg-transparent cursor-pointer ${
-          isSmall
-            ? "p-2.5 text-white/50 min-h-[44px] min-w-[44px] flex items-center justify-center"
-            : "p-2.5 text-white/60"
-        }`}
+        className="grid min-h-[44px] min-w-[44px] place-items-center rounded-full p-2.5 text-paper/45 transition-all hover:scale-105 hover:bg-paper/10 hover:text-paper active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 disabled:hover:bg-transparent"
       >
         <SkipBack className={`${isSmall ? "h-4 w-4" : "h-5 w-5"} fill-current`} />
       </button>
@@ -44,20 +40,15 @@ export function TransportControls({
         onClick={onTogglePlay}
         disabled={disabled}
         aria-label={isPlaying ? "Pause" : "Play"}
-        className={`rounded-full text-white transition-all duration-200 hover:scale-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100 cursor-pointer shadow-lg ${
-          isSmall ? "p-3" : "p-4"
+        className={`grid place-items-center rounded-full text-ink transition-transform hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 ${
+          isSmall ? "h-11 w-11" : "h-14 w-14"
         }`}
-        style={{
-          backgroundColor: disabled ? "rgba(255,255,255,0.12)" : accent,
-          boxShadow: `0 4px ${isSmall ? "20px" : "24px"} ${
-            disabled ? "rgba(255,255,255,0.05)" : `${accent}55`
-          }`,
-        }}
+        style={{ backgroundColor: disabled ? "rgba(244,239,230,0.18)" : accent }}
       >
         {isPlaying ? (
-          <Pause className={`${isSmall ? "h-5 w-5" : "h-6 w-6"} fill-current`} />
+          <Pause className={`${isSmall ? "h-4 w-4" : "h-5 w-5"} fill-current`} />
         ) : (
-          <Play className={`${isSmall ? "h-5 w-5" : "h-6 w-6"} fill-current pl-0.5`} />
+          <Play className={`${isSmall ? "h-4 w-4" : "h-5 w-5"} fill-current pl-0.5`} />
         )}
       </button>
 
@@ -66,11 +57,7 @@ export function TransportControls({
         onClick={onNext}
         disabled={disabled}
         aria-label="Next track"
-        className={`rounded-full transition-all duration-200 hover:scale-105 hover:bg-white/10 hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 disabled:hover:bg-transparent cursor-pointer ${
-          isSmall
-            ? "p-2.5 text-white/50 min-h-[44px] min-w-[44px] flex items-center justify-center"
-            : "p-2.5 text-white/60"
-        }`}
+        className="grid min-h-[44px] min-w-[44px] place-items-center rounded-full p-2.5 text-paper/45 transition-all hover:scale-105 hover:bg-paper/10 hover:text-paper active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 disabled:hover:bg-transparent"
       >
         <SkipForward className={`${isSmall ? "h-4 w-4" : "h-5 w-5"} fill-current`} />
       </button>

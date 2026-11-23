@@ -34,6 +34,10 @@ const DRAG_ACTIVATE_PX = 6;
 const AUTO_SCROLL_EDGE_PX = 48;
 const AUTO_SCROLL_MAX_SPEED = 12; // px per frame at the very edge
 
+// Fixed equalizer-bar heights (px). Constant values keep the "now playing"
+// indicator from re-randomizing and jittering on every render.
+const PLAYING_BAR_HEIGHTS = [10, 6, 8];
+
 export function QueueOverlay({
   queue,
   currentIndex,
@@ -168,15 +172,6 @@ export function QueueOverlay({
     return () => document.removeEventListener("keydown", handleEsc);
   }, [isOpen, onClose]);
 
-  // Reset any leftover drag styles when the overlay closes mid-gesture
-  useEffect(() => {
-    if (isOpen) return;
-    clearDragStyles();
-    stopAutoScroll();
-    dragState.current = null;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
-
   const clearDragStyles = useCallback(() => {
     rowRefs.current.forEach((el) => {
       if (!el) return;
@@ -186,6 +181,15 @@ export function QueueOverlay({
       el.style.boxShadow = "";
     });
   }, []);
+
+  // Reset any leftover drag styles when the overlay closes mid-gesture
+  useEffect(() => {
+    if (isOpen) return;
+    clearDragStyles();
+    stopAutoScroll();
+    dragState.current = null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const activateDrag = useCallback((ds: DragState, dragged: HTMLLIElement) => {
     ds.activated = true;
@@ -269,7 +273,7 @@ export function QueueOverlay({
         });
       }
     },
-    [activateDrag],
+    [activateDrag, updateAutoScroll],
   );
 
   const handleDragEnd = useCallback(
@@ -307,12 +311,12 @@ export function QueueOverlay({
     <div
       className={cn(
         "fixed inset-0 z-50 flex flex-col justify-end",
-        !isOpen && "pointer-events-none",
+        !isOpen && "pointer-events-none invisible opacity-0",
       )}
     >
       <div
         ref={backdropRef}
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/75 backdrop-blur-md"
         style={{ opacity: 0 }}
         onClick={onClose}
         aria-hidden="true"
@@ -320,7 +324,7 @@ export function QueueOverlay({
 
       <div
         ref={panelRef}
-        className="relative max-h-[60vh] rounded-t-2xl border-t border-white/10 bg-[#0d0d0d]/95 backdrop-blur-xl shadow-2xl overflow-hidden"
+        className="relative max-h-[68vh] overflow-hidden rounded-t-[28px] border border-paper/12 border-b-0 bg-ink/95 shadow-[0_-24px_80px_-32px_rgba(0,0,0,0.95)] backdrop-blur-2xl sm:mx-auto sm:mb-5 sm:max-w-3xl sm:rounded-[28px] sm:border-b"
         style={{ transform: "translateY(100%)" }}
         role="dialog"
         aria-modal="true"
@@ -330,12 +334,13 @@ export function QueueOverlay({
           {moveNote}
         </div>
 
-        <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
-          <div className="flex items-center gap-2.5">
-            <h2 className="text-sm font-semibold tracking-wide text-white/90">
+        <div className="flex items-center justify-between border-b border-paper/10 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="h-px w-5 bg-signal" />
+            <h2 className="font-display text-sm font-bold tracking-tight text-paper">
               Queue
             </h2>
-            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white/40">
+            <span className="mono-label rounded-full bg-paper/10 px-2 py-1 text-paper/45">
               {queue.length}
             </span>
           </div>
@@ -344,7 +349,7 @@ export function QueueOverlay({
               <button
                 type="button"
                 onClick={onClear}
-                className="rounded-full p-2 text-white/25 hover:text-red-400 hover:bg-white/5 transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full p-2 text-paper/25 transition-colors hover:bg-signal/10 hover:text-signal cursor-pointer"
                 aria-label="Clear queue"
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -354,7 +359,7 @@ export function QueueOverlay({
               ref={closeBtnRef}
               type="button"
               onClick={onClose}
-              className="rounded-full p-2 text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full p-2 text-paper/40 transition-colors hover:bg-paper/10 hover:text-paper cursor-pointer"
               aria-label="Close queue"
             >
               <X className="h-4 w-4" />
@@ -364,17 +369,17 @@ export function QueueOverlay({
 
         <div
           ref={scrollerRef}
-          className="overflow-y-auto max-h-[calc(60vh-60px)] pb-[env(safe-area-inset-bottom)] scrollbar-hide"
+          className="scrollbar-hide max-h-[calc(68vh-65px)] overflow-y-auto pb-[env(safe-area-inset-bottom)]"
         >
           {queue.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 px-4 py-12 text-center">
-              <Music className="h-8 w-8 text-white/15" />
-              <p className="text-xs text-white/30">
+              <Music className="h-8 w-8 text-paper/15" />
+              <p className="mono-label text-paper/30">
                 Your queue is empty. Search for songs to add.
               </p>
             </div>
           ) : (
-            <ul ref={listRef} className="divide-y divide-white/5">
+            <ul ref={listRef} className="divide-y divide-paper/10">
               {queue.map((item, i) => {
                 const isPlaying = i === currentIndex;
                 return (
@@ -386,8 +391,8 @@ export function QueueOverlay({
                     className={cn(
                       "flex items-center gap-1 px-3 py-3 sm:px-5",
                       isPlaying
-                        ? "bg-[#161616]/95"
-                        : "bg-[#0d0d0d]/95 hover:bg-[#191919]/95 transition-colors",
+                        ? "bg-signal/[0.07]"
+                        : "transition-colors hover:bg-paper/[0.04]",
                     )}
                   >
                     {canReorder && (
@@ -400,7 +405,7 @@ export function QueueOverlay({
                         onPointerCancel={handleDragEnd}
                         onKeyDown={handleGripKeyDown(i)}
                         style={{ touchAction: "none" }}
-                        className="shrink-0 cursor-grab touch-none rounded-full p-1.5 text-white/20 transition-colors hover:text-white/60 active:cursor-grabbing min-h-[44px] min-w-[44px] flex items-center justify-center"
+                        className="flex min-h-[44px] min-w-[44px] shrink-0 cursor-grab touch-none items-center justify-center rounded-full p-1.5 text-paper/20 transition-colors hover:text-paper/60 active:cursor-grabbing"
                       >
                         <GripVertical className="h-3.5 w-3.5" />
                       </button>
@@ -426,15 +431,16 @@ export function QueueOverlay({
                         />
                         {isPlaying && (
                           <div
-                            className="absolute inset-0 rounded-md flex items-center justify-center bg-black/50"
+                            className="absolute inset-0 flex items-center justify-center rounded-md bg-ink/70"
                           >
                             <div className="flex gap-0.5">
                               {[0, 1, 2].map((bar) => (
                                 <span
                                   key={bar}
-                                  className="w-0.5 rounded-full bg-white"
+                                  className="w-0.5 rounded-full"
                                   style={{
-                                    height: `${6 + Math.random() * 6}px`,
+                                    backgroundColor: accent,
+                                    height: `${PLAYING_BAR_HEIGHTS[bar]}px`,
                                     animation: `pulse 0.8s ease-in-out ${bar * 0.15}s infinite alternate`,
                                   }}
                                 />
@@ -448,20 +454,20 @@ export function QueueOverlay({
                           className={cn(
                             "truncate text-sm",
                             isPlaying
-                              ? "font-medium text-white"
-                              : "text-white/75",
+                              ? "font-display font-bold text-paper"
+                              : "text-paper/75",
                           )}
                         >
                           {item.title}
                         </p>
-                        <p className="truncate text-xs text-white/35">
+                        <p className="truncate text-xs text-paper/40">
                           {item.artist}
                         </p>
                       </div>
                     </button>
 
                     {item.duration ? (
-                      <span className="shrink-0 pr-2 text-[10px] font-mono text-white/25 tabular-nums">
+                      <span className="shrink-0 pr-2 font-mono text-[10px] tabular-nums text-paper/30">
                         {formatTime(item.duration)}
                       </span>
                     ) : null}
@@ -469,7 +475,9 @@ export function QueueOverlay({
                     <button
                       type="button"
                       onClick={() => onRemove(i)}
-                      className="mr-1 shrink-0 rounded-full p-2 text-white/25 hover:text-red-400 hover:bg-white/5 transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      disabled={isPlaying}
+                      title={isPlaying ? "Currently playing" : undefined}
+                      className="mr-1 flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full p-2 text-paper/25 transition-colors hover:bg-signal/10 hover:text-signal cursor-pointer disabled:cursor-not-allowed disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-paper/25"
                       aria-label={`Remove ${item.title} from queue`}
                     >
                       <X className="h-3.5 w-3.5" />
